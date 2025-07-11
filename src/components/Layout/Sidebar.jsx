@@ -58,7 +58,6 @@ const Nav = styled.nav`
   margin-top: 1rem;
 `;
 
-// ...The rest of the styled-components (NavList, NavItem, LogoutButton) are unchanged...
 const NavList = styled.ul`
   list-style: none;
   padding: 0;
@@ -113,7 +112,6 @@ const LogoutButton = styled.button`
   }
 `;
 
-
 const Sidebar = () => {
   const { t } = useTranslation();
   const { logout, currentUser } = useAuth();
@@ -148,7 +146,7 @@ const Sidebar = () => {
       <LogoContainer>
         <Logo>
           <FaFlask />
-          <h1>SmartLab</h1>
+          <h1>Central Lab</h1>
         </Logo>
         <HospitalName>{t('hospital_name')}</HospitalName>
       </LogoContainer>

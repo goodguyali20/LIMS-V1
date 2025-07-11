@@ -9,8 +9,14 @@ import { logAuditEvent } from '../../utils/auditLogger';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-// This list should ideally come from your settings, but we'll define it here for now.
-const ALL_AVAILABLE_TESTS = ["Glucose", "Potassium", "Hemoglobin", "WBC", "Platelet", "Creatinine", "ALT", "AST"];
+const departmentColors = {
+    Chemistry: '#007bff',
+    Hematology: '#dc3545',
+    Serology: '#28a745',
+    Virology: '#ffc107',
+    Microbiology: '#6f42c1',
+    General: '#6c757d',
+};
 
 const PageContainer = styled.div`
   animation: ${fadeIn} 0.5s ease-in-out;
@@ -58,18 +64,20 @@ const Input = styled.input`
   border: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
-const TestSelectionContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1.2rem;
-`;
-
 const CheckboxGroup = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
   label { cursor: pointer; }
   input { cursor: pointer; }
+`;
+
+const DepartmentHeader = styled.h4`
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid ${props => departmentColors[props.department] || '#ccc'};
+    color: ${props => departmentColors[props.department] || '#333'};
 `;
 
 const UrgentCheckbox = styled(CheckboxGroup)`
@@ -96,6 +104,12 @@ const SubmitButton = styled.button`
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
+const TestGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem 1rem;
+`;
+
 
 const PatientRegistration = () => {
     const { t } = useTranslation();
@@ -104,7 +118,7 @@ const PatientRegistration = () => {
     
     // Form State
     const [patientName, setPatientName] = useState('');
-    const [age, setAge] = useState(''); // <-- New Age field
+    const [age, setAge] = useState('');
     const [patientId, setPatientId] = useState('');
     const [referringDoctor, setReferringDoctor] = useState('');
     const [selectedTests, setSelectedTests] = useState(new Set());
@@ -112,13 +126,21 @@ const PatientRegistration = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     // Data from DB
-    const [testPanels, setTestPanels] = useState([]);
+    const [grouped_tests, setGrouped_tests] = useState({});
 
     useEffect(() => {
-        const unsubPanels = onSnapshot(collection(db, "testPanels"), (snapshot) => {
-            setTestPanels(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const unsubTests = onSnapshot(collection(db, "labTests"), (snapshot) => {
+            const testsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            const grouped = testsData.reduce((acc, test) => {
+                const { department } = test;
+                if(!acc[department]) acc[department] = [];
+                acc[department].push(test);
+                return acc;
+            }, {});
+            setGrouped_tests(grouped);
         });
-        return () => unsubPanels();
+        return () => unsubTests();
     }, []);
 
     const handleTestSelection = (testName) => {
@@ -132,21 +154,9 @@ const PatientRegistration = () => {
             return newSet;
         });
     };
-    
-    const handlePanelSelection = (panel) => {
-        const allTestsSelected = panel.tests.every(test => selectedTests.has(test));
-        let newSet = new Set(selectedTests);
-        if (allTestsSelected) {
-            panel.tests.forEach(test => newSet.delete(test));
-        } else {
-            panel.tests.forEach(test => newSet.add(test));
-        }
-        setSelectedTests(newSet);
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // Updated validation
         if (!patientName || !age || selectedTests.size === 0) {
             toast.error("Patient Name, Age, and at least one test are required.");
             return;
@@ -155,7 +165,7 @@ const PatientRegistration = () => {
         try {
             const orderData = {
                 patientName,
-                age, // <-- Add age to data
+                age,
                 patientId: patientId || "N/A",
                 referringDoctor: referringDoctor || "N/A",
                 tests: Array.from(selectedTests),
@@ -175,7 +185,7 @@ const PatientRegistration = () => {
             setIsSubmitting(false);
         }
     };
-
+    
     return (
         <PageContainer>
             <FormCard onSubmit={handleSubmit}>
@@ -205,34 +215,24 @@ const PatientRegistration = () => {
 
                 <Section>
                     <SectionHeader>{t('registration_testSelection')}*</SectionHeader>
-                    <h4>Panels</h4>
-                    <TestSelectionContainer>
-                    {testPanels.map(panel => (
-                        <CheckboxGroup key={panel.id}>
-                            <input 
-                                type="checkbox" 
-                                id={panel.id}
-                                checked={panel.tests.every(test => selectedTests.has(test))}
-                                onChange={() => handlePanelSelection(panel)}
-                            />
-                            <label htmlFor={panel.id}><strong>{panel.name}</strong> ({panel.tests.join(', ')})</label>
-                        </CheckboxGroup>
+                    {Object.entries(grouped_tests).map(([department, testsInGroup]) => (
+                        <div key={department}>
+                            <DepartmentHeader department={department}>{department}</DepartmentHeader>
+                            <TestGrid>
+                                {testsInGroup.map(test => (
+                                    <CheckboxGroup key={test.id}>
+                                        <input 
+                                            type="checkbox" 
+                                            id={test.id}
+                                            checked={selectedTests.has(test.name)}
+                                            onChange={() => handleTestSelection(test.name)}
+                                        />
+                                        <label htmlFor={test.id}>{test.name}</label>
+                                    </CheckboxGroup>
+                                ))}
+                            </TestGrid>
+                        </div>
                     ))}
-                    </TestSelectionContainer>
-                    <h4 style={{marginTop: '1.5rem'}}>Individual Tests</h4>
-                    <TestSelectionContainer>
-                        {ALL_AVAILABLE_TESTS.map(testName => (
-                             <CheckboxGroup key={testName}>
-                                <input 
-                                    type="checkbox" 
-                                    id={testName}
-                                    checked={selectedTests.has(testName)}
-                                    onChange={() => handleTestSelection(testName)}
-                                />
-                                <label htmlFor={testName}>{testName}</label>
-                            </CheckboxGroup>
-                        ))}
-                    </TestSelectionContainer>
                 </Section>
                 
                 <UrgentCheckbox>
