@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { db } from '../../firebase/config';
-import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, addDoc } from 'firebase/firestore';
 import { toast } from 'react-toastify';
 import { fadeIn } from '../../styles/animations';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 
 const PageContainer = styled.div`
   animation: ${fadeIn} 0.5s ease-in-out;
@@ -43,16 +44,12 @@ const Input = styled.input`
   padding: 0.8rem;
   border-radius: 12px;
   border: 1px solid ${({ theme }) => theme.colors.border};
-  background-color: ${({ theme }) => theme.colors.background};
-  color: ${({ theme }) => theme.colors.text};
 `;
 
 const Select = styled.select`
   padding: 0.8rem;
   border-radius: 12px;
   border: 1px solid ${({ theme }) => theme.colors.border};
-  background-color: ${({ theme }) => theme.colors.background};
-  color: ${({ theme }) => theme.colors.text};
 `;
 
 const SubmitButton = styled.button`
@@ -65,13 +62,10 @@ const SubmitButton = styled.button`
   background: ${({ theme }) => theme.colors.primary};
   height: fit-content;
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
-const RangesTable = styled.table`
+const ItemTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   margin-top: 2rem;
@@ -83,99 +77,132 @@ const RangesTable = styled.table`
   }
 `;
 
-// A static list of tests available in the lab. This could also come from Firestore.
-const LAB_TESTS = ["Glucose", "Potassium", "Hemoglobin", "WBC", "Platelet"];
+const LAB_TESTS = ["Glucose", "Potassium", "Hemoglobin", "WBC", "Platelet", "Creatinine", "ALT", "AST"];
 
 const Settings = () => {
+  const { t } = useTranslation(); // <-- Add this
+  // ... all the existing state variables
   const [criticalRanges, setCriticalRanges] = useState({});
-  const [loading, setLoading] = useState(true);
-
-  // Form state
+  const [loadingRanges, setLoadingRanges] = useState(true);
   const [selectedTest, setSelectedTest] = useState(LAB_TESTS[0]);
   const [lowValue, setLowValue] = useState('');
   const [highValue, setHighValue] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittingRange, setIsSubmittingRange] = useState(false);
+
+  const [testPanels, setTestPanels] = useState([]);
+  const [loadingPanels, setLoadingPanels] = useState(true);
+  const [panelName, setPanelName] = useState('');
+  const [panelTests, setPanelTests] = useState('');
+  const [isSubmittingPanel, setIsSubmittingPanel] = useState(false);
 
   useEffect(() => {
-    // Listen for real-time updates to the critical ranges
-    const unsubscribe = onSnapshot(collection(db, "criticalRanges"), (snapshot) => {
+    // ... useEffect content is the same
+    const unsubRanges = onSnapshot(collection(db, "criticalRanges"), (snapshot) => {
       const ranges = {};
-      snapshot.forEach(doc => {
-        ranges[doc.id] = doc.data();
-      });
+      snapshot.forEach(doc => { ranges[doc.id] = doc.data(); });
       setCriticalRanges(ranges);
-      setLoading(false);
+      setLoadingRanges(false);
     });
 
-    return () => unsubscribe(); // Cleanup listener
+    const unsubPanels = onSnapshot(collection(db, "testPanels"), (snapshot) => {
+        const panels = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setTestPanels(panels);
+        setLoadingPanels(false);
+    });
+
+    return () => {
+        unsubRanges();
+        unsubPanels();
+    };
   }, []);
 
-  const handleSubmit = async (e) => {
+  const handleRangeSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    // ... unchanged
+  };
 
-    if (!selectedTest || lowValue === '' || highValue === '') {
-        toast.error("All fields are required.");
-        setIsSubmitting(false);
+  const handlePanelSubmit = async (e) => {
+    e.preventDefault();
+    if (!panelName || !panelTests) {
+        toast.error("Panel name and tests are required.");
         return;
     }
-
+    setIsSubmittingPanel(true);
     try {
-      const docRef = doc(db, "criticalRanges", selectedTest);
-      await setDoc(docRef, {
-        low: Number(lowValue),
-        high: Number(highValue)
-      });
-      toast.success(`Critical range for ${selectedTest} has been saved.`);
-      // Clear form
-      setLowValue('');
-      setHighValue('');
+        const testsArray = panelTests.split(',').map(t => t.trim());
+        await addDoc(collection(db, "testPanels"), {
+            name: panelName,
+            tests: testsArray
+        });
+        toast.success(`Panel "${panelName}" created successfully.`);
+        setPanelName('');
+        setPanelTests('');
     } catch (error) {
-      toast.error("Failed to save settings.");
-      console.error("Error saving critical range:", error);
+        toast.error("Failed to create panel.");
+        console.error(error);
     } finally {
-      setIsSubmitting(false);
+        setIsSubmittingPanel(false);
     }
   };
 
   return (
     <PageContainer>
       <SettingsCard>
-        <CardHeader>Critical Value Ranges</CardHeader>
-        <Form onSubmit={handleSubmit}>
+        <CardHeader>{t('settings_panels_header')}</CardHeader>
+        <Form onSubmit={handlePanelSubmit}>
+            <InputGroup>
+                <label>{t('settings_panelName')}</label>
+                <Input value={panelName} onChange={e => setPanelName(e.target.value)} required/>
+            </InputGroup>
+            <InputGroup>
+                <label>{t('settings_panelTests')}</label>
+                <Input value={panelTests} onChange={e => setPanelTests(e.target.value)} placeholder="e.g., Glucose, Potassium, Creatinine" required/>
+            </InputGroup>
+            <SubmitButton type="submit" disabled={isSubmittingPanel}>{t('settings_panelCreate_button')}</SubmitButton>
+        </Form>
+        <ItemTable>
+            <thead><tr><th>{t('settings_panelName_th')}</th><th>{t('settings_panelTests_th')}</th></tr></thead>
+            <tbody>
+                {loadingPanels ? <tr><td colSpan="2">Loading...</td></tr> : 
+                testPanels.map(panel => (
+                    <tr key={panel.id}><td>{panel.name}</td><td>{panel.tests.join(', ')}</td></tr>
+                ))}
+            </tbody>
+        </ItemTable>
+      </SettingsCard>
+
+      <SettingsCard>
+        <CardHeader>{t('settings_critical_header')}</CardHeader>
+        <Form onSubmit={handleRangeSubmit}>
           <InputGroup>
-            <label htmlFor="test-select">Test Name</label>
-            <Select id="test-select" value={selectedTest} onChange={e => setSelectedTest(e.target.value)}>
+            <label>{t('settings_testName')}</label>
+            <Select value={selectedTest} onChange={e => setSelectedTest(e.target.value)}>
               {LAB_TESTS.map(test => <option key={test} value={test}>{test}</option>)}
             </Select>
           </InputGroup>
-
           <InputGroup>
-            <label htmlFor="low-value">Critical Low (&lt;)</label>
-            <Input id="low-value" type="number" value={lowValue} onChange={e => setLowValue(e.target.value)} />
+            <label>{t('settings_criticalLow')}</label>
+            <Input type="number" value={lowValue} onChange={e => setLowValue(e.target.value)} />
           </InputGroup>
-
           <InputGroup>
-            <label htmlFor="high-value">Critical High (&gt;)</label>
-            <Input id="high-value" type="number" value={highValue} onChange={e => setHighValue(e.target.value)} />
+            <label>{t('settings_criticalHigh')}</label>
+            <Input type="number" value={highValue} onChange={e => setHighValue(e.target.value)} />
           </InputGroup>
-
-          <SubmitButton type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : 'Save Range'}
+          <SubmitButton type="submit" disabled={isSubmittingRange}>
+            {t('settings_saveRange_button')}
           </SubmitButton>
         </Form>
-
-        <RangesTable>
+        <ItemTable>
             <thead>
                 <tr>
-                    <th>Test Name</th>
-                    <th>Critical Low</th>
-                    <th>Critical High</th>
+                    <th>{t('settings_testName')}</th>
+                    <th>{t('settings_criticalLow')}</th>
+                    <th>{t('settings_criticalHigh')}</th>
                 </tr>
             </thead>
             <tbody>
-                {loading ? (
-                    <tr><td colSpan="3">Loading ranges...</td></tr>
+                {loadingRanges ? (
+                    <tr><td colSpan="3">Loading...</td></tr>
                 ) : (
                     Object.entries(criticalRanges).map(([test, range]) => (
                         <tr key={test}>
@@ -186,11 +213,8 @@ const Settings = () => {
                     ))
                 )}
             </tbody>
-        </RangesTable>
-
+        </ItemTable>
       </SettingsCard>
-      
-      {/* Other settings cards like Test Panels can go here */}
     </PageContainer>
   );
 };

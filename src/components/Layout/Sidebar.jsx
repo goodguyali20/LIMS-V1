@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import {
   FaTachometerAlt, FaUserPlus, FaTasks, FaHistory,
-  FaCog, FaUserCircle, FaSignOutAlt, FaFlask, FaChartBar, FaBoxes // <-- Import new icon
+  FaCog, FaUserCircle, FaSignOutAlt, FaFlask, FaChartBar, FaBoxes
 } from 'react-icons/fa';
 
 const SidebarContainer = styled.aside`
@@ -20,12 +20,15 @@ const SidebarContainer = styled.aside`
   direction: ltr;
 `;
 
+const LogoContainer = styled.div`
+  padding: 0 1.5rem 1.5rem 1.5rem;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
 const Logo = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0 1.5rem 1.5rem 1.5rem;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
 
   svg {
     font-size: 2.5rem;
@@ -40,6 +43,13 @@ const Logo = styled.div`
   }
 `;
 
+const HospitalName = styled.p`
+    font-size: 0.8rem;
+    color: ${({ theme }) => theme.colors.textSecondary};
+    margin: 0.25rem 0 0 0;
+    text-align: center;
+`;
+
 const Nav = styled.nav`
   flex-grow: 1;
   display: flex;
@@ -48,6 +58,7 @@ const Nav = styled.nav`
   margin-top: 1rem;
 `;
 
+// ...The rest of the styled-components (NavList, NavItem, LogoutButton) are unchanged...
 const NavList = styled.ul`
   list-style: none;
   padding: 0;
@@ -122,8 +133,8 @@ const Sidebar = () => {
     { to: "/dashboard", icon: <FaTachometerAlt />, label: t('dashboard') },
     { to: "/register", icon: <FaUserPlus />, label: t('patientRegistration') },
     { to: "/work-queue", icon: <FaTasks />, label: t('workQueue') },
-    { to: "/inventory", icon: <FaBoxes />, label: 'Inventory' }, // <-- ADDED INVENTORY LINK
-    { to: "/workload", icon: <FaChartBar />, label: 'Workload', roles: ['Manager'] },
+    { to: "/inventory", icon: <FaBoxes />, label: t('inventory') },
+    { to: "/workload", icon: <FaChartBar />, label: t('workload'), roles: ['Manager'] },
     { to: "/audit-log", icon: <FaHistory />, label: t('auditLog'), roles: ['Manager'] },
     { to: "/settings", icon: <FaCog />, label: t('settings'), roles: ['Manager'] },
   ];
@@ -134,10 +145,13 @@ const Sidebar = () => {
 
   return (
     <SidebarContainer>
-      <Logo>
-        <FaFlask />
-        <h1>SmartLab</h1>
-      </Logo>
+      <LogoContainer>
+        <Logo>
+          <FaFlask />
+          <h1>SmartLab</h1>
+        </Logo>
+        <HospitalName>{t('hospital_name')}</HospitalName>
+      </LogoContainer>
       <Nav>
         <NavList>
           {navItems.map(item =>

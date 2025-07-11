@@ -5,7 +5,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaSearch, FaBarcode } from 'react-icons/fa';
 import { formatInTimeZone } from 'date-fns-tz';
-import { useBarcodeScanner } from '../../hooks/useBarcodeScanner'; // <-- 1. IMPORT THE HOOK
+import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
+import LanguageSwitcher from '../common/LanguageSwitcher'; // <-- Import the switcher
 
 const HeaderContainer = styled.header`
   display: flex;
@@ -78,7 +79,7 @@ const BarcodeStatus = styled.div`
 const UserProfile = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem; // Increased gap for switcher
 `;
 
 const Avatar = styled(Link)`
@@ -100,23 +101,30 @@ const Avatar = styled(Link)`
   }
 `;
 
+// Simple wrapper to style the button for the dashboard
+const HeaderSwitcher = styled.div`
+    button {
+        background: ${({ theme }) => theme.colors.background};
+        border-color: ${({ theme }) => theme.colors.border};
+        color: ${({ theme }) => theme.colors.text};
+
+        &:hover {
+            background: ${({ theme }) => theme.colors.border};
+        }
+    }
+`;
+
 const Header = () => {
   const { t } = useTranslation();
   const { currentUser } = useAuth();
-  const navigate = useNavigate(); // <-- For navigation
+  const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState('');
 
-  // --- 2. INTEGRATE THE HOOK ---
-  // This function will run when a barcode is successfully scanned
   const handleBarcodeScan = (scannedCode) => {
-    console.log(`Barcode scanned: ${scannedCode}`);
-    // Navigate to the order details page with the scanned code
     navigate(`/order/${scannedCode}`);
   };
 
-  // Attach the scanner listener
   useBarcodeScanner(handleBarcodeScan);
-  // -----------------------------
 
   const userInitials = currentUser?.displayName
     ? currentUser.displayName.charAt(0).toUpperCase()
@@ -148,8 +156,10 @@ const Header = () => {
         </BarcodeStatus>
       </SearchContainer>
       
-
       <UserProfile>
+        <HeaderSwitcher>
+            <LanguageSwitcher />
+        </HeaderSwitcher>
         <Avatar to="/profile">{userInitials}</Avatar>
       </UserProfile>
     </HeaderContainer>

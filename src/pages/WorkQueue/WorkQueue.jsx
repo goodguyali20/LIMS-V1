@@ -3,7 +3,8 @@ import styled from 'styled-components';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { fadeIn } from '../../styles/animations';
-import OrderCard from '../../components/WorkQueue/OrderCard'; // We'll create this next
+import OrderCard from '../../components/WorkQueue/OrderCard';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 
 const PageContainer = styled.div`
   animation: ${fadeIn} 0.5s ease-in-out;
@@ -28,14 +29,14 @@ const EmptyState = styled.div`
 `;
 
 const WorkQueue = () => {
+  const { t } = useTranslation(); // <-- Add this
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Query for orders that are not yet 'Completed' or 'Rejected'
     const q = query(
       collection(db, "testOrders"), 
-      where("status", "in", ["Pending Sample", "Sample Collected", "In Progress"])
+      where("status", "in", ["Pending Sample", "Sample Collected", "In Progress", "Rejected"])
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -47,21 +48,21 @@ const WorkQueue = () => {
       setLoading(false);
     });
 
-    return () => unsubscribe(); // Cleanup listener on component unmount
+    return () => unsubscribe();
   }, []);
 
   if (loading) {
-    return <p>Loading work queue...</p>;
+    return <p>{t('workqueue_loading')}</p>;
   }
 
   return (
     <PageContainer>
-      <PageHeader>Active Work Queue</PageHeader>
+      <PageHeader>{t('workqueue_header')}</PageHeader>
       {orders.length > 0 ? (
         orders.map(order => <OrderCard key={order.id} order={order} />)
       ) : (
         <EmptyState>
-          <p>🎉 No active orders in the queue. Great job!</p>
+          <p>🎉 {t('workqueue_empty')}</p>
         </EmptyState>
       )}
     </PageContainer>

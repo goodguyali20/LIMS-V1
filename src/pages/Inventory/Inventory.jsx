@@ -5,6 +5,7 @@ import { collection, addDoc, onSnapshot } from 'firebase/firestore';
 import { toast } from 'react-toastify';
 import { fadeIn } from '../../styles/animations';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 
 const PageContainer = styled.div`
   animation: ${fadeIn} 0.5s ease-in-out;
@@ -77,13 +78,14 @@ const ItemTable = styled.table`
 `;
 
 const Inventory = () => {
+  const { t } = useTranslation(); // <-- Add this
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // Form State
   const [itemName, setItemName] = useState('');
   const [manufacturer, setManufacturer] = useState('');
-  const [lowStockThreshold, setLowStockThreshold] = useState(10); // Default threshold
+  const [lowStockThreshold, setLowStockThreshold] = useState(10);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -124,32 +126,32 @@ const Inventory = () => {
   return (
     <PageContainer>
       <Card>
-        <CardHeader>Add New Inventory Item</CardHeader>
+        <CardHeader>{t('inventory_add_header', 'Add New Inventory Item')}</CardHeader>
         <Form onSubmit={handleSubmit}>
           <InputGroup>
-            <label>Item Name</label>
+            <label>{t('inventory_itemName', 'Item Name')}</label>
             <Input value={itemName} onChange={e => setItemName(e.target.value)} required />
           </InputGroup>
           <InputGroup>
-            <label>Manufacturer</label>
+            <label>{t('inventory_manufacturer', 'Manufacturer')}</label>
             <Input value={manufacturer} onChange={e => setManufacturer(e.target.value)} />
           </InputGroup>
           <InputGroup>
-            <label>Low Stock Threshold</label>
+            <label>{t('inventory_threshold', 'Low Stock Threshold')}</label>
             <Input type="number" value={lowStockThreshold} onChange={e => setLowStockThreshold(e.target.value)} required />
           </InputGroup>
-          <SubmitButton type="submit" disabled={isSubmitting}>Add Item</SubmitButton>
+          <SubmitButton type="submit" disabled={isSubmitting}>{t('inventory_add_button', 'Add Item')}</SubmitButton>
         </Form>
       </Card>
       
       <Card>
-        <CardHeader>Current Inventory Items</CardHeader>
+        <CardHeader>{t('inventory_current_header', 'Current Inventory Items')}</CardHeader>
         <ItemTable>
           <thead>
             <tr>
-              <th>Item Name</th>
-              <th>Manufacturer</th>
-              <th>Low Stock Threshold</th>
+              <th>{t('inventory_itemName', 'Item Name')}</th>
+              <th>{t('inventory_manufacturer', 'Manufacturer')}</th>
+              <th>{t('inventory_threshold', 'Low Stock Threshold')}</th>
             </tr>
           </thead>
           <tbody>
