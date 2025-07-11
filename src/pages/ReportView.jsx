@@ -27,7 +27,7 @@ const PrintButton = styled.button`
   background-color: #007BFF;
   color: white;
   border: none;
-  border-radius: 8px;
+  ${({ theme }) => theme.squircle(12)};
   display: flex;
   align-items: center;
   gap: 8px;
@@ -134,6 +134,7 @@ const ReportFooter = styled.footer`
 const ReportView = () => {
   const { orderId } = useParams();
   const { t } = useTranslation();
+  const [labInfo, setLabInfo] = useState(null); // State for custom lab info
   const [order, setOrder] = useState(null);
   const [patient, setPatient] = useState(null);
   const [results, setResults] = useState(null);
@@ -146,6 +147,15 @@ const ReportView = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      // Fetch custom lab info
+      const labInfoDoc = await getDoc(doc(db, 'settings', 'labInfo'));
+      if (labInfoDoc.exists()) {
+        setLabInfo(labInfoDoc.data());
+      } else {
+        // Set default values if none are in the database
+        setLabInfo({ name: 'مستشفى العزيزية العام', address: 'Kut, Wasit Governorate, Iraq', phone: '' });
+      }
+
       // Fetch test definitions first
       const defsRef = collection(db, 'labTests');
       const defsSnap = await getDocs(defsRef);
@@ -177,7 +187,8 @@ const ReportView = () => {
     fetchData();
   }, [orderId]);
 
-  if (!order || !patient || !results) return <PageContainer><div>Loading report...</div></PageContainer>;
+  // Updated loading check to include labInfo
+  if (!order || !patient || !results || !labInfo) return <PageContainer><div>Loading report...</div></PageContainer>;
 
   return (
     <PageContainer>
@@ -185,8 +196,9 @@ const ReportView = () => {
       <ReportSheet ref={componentRef}>
         <ReportHeader>
           <LabLogo><FaFlask /></LabLogo>
-          <LabName>مستشفى العزيزية العام</LabName>
-          <LabAddress>Kut, Wasit Governorate, Iraq</LabAddress>
+          {/* Use the dynamic labInfo from state */}
+          <LabName>{labInfo.name}</LabName>
+          <LabAddress>{labInfo.address} {labInfo.phone && `| Tel: ${labInfo.phone}`}</LabAddress>
         </ReportHeader>
 
         <SectionTitle>{t('patientInformation')}</SectionTitle>
@@ -196,6 +208,7 @@ const ReportView = () => {
           <InfoItem><strong>{t('dateOfBirth')}:</strong> {format(new Date(patient.dob), 'MMMM d, yyyy')}</InfoItem>
           <InfoItem><strong>{t('gender')}:</strong> {t(patient.gender.toLowerCase())}</InfoItem>
           <InfoItem><strong>{t('orderDate')}:</strong> {format(order.createdAt.toDate(), 'MMMM d, yyyy')}</InfoItem>
+          {order.referringDoctor && <InfoItem><strong>Referring Doctor:</strong> {order.referringDoctor}</InfoItem>}
         </InfoGrid>
 
         <SectionTitle>{t('results')}</SectionTitle>

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { db, auth } from '../firebase';
 import { doc, collection, addDoc, serverTimestamp, updateDoc, query, where, getDocs } from 'firebase/firestore';
 import { toast } from 'react-toastify';
+import { logAction } from '../utils/logAction.js'; // Import the logger
 
 //--- STYLED COMPONENTS (Vivid Design) ---//
 
@@ -167,6 +168,10 @@ const ResultEntry = ({ order, onClose, onResultsSubmitted }) => {
         await addDoc(collection(db, 'testResults'), resultsPayload);
       }
       await updateDoc(doc(db, 'testOrders', order.id), { status: 'pending_verification' });
+      
+      // Log the action
+      await logAction('Results Entered', { orderId: order.id, patientName: order.patientName });
+
       toast.success('Results submitted for verification!');
       onResultsSubmitted();
       onClose();

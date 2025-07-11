@@ -4,7 +4,8 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useTheme } from '../contexts/ThemeContext.jsx';
-import { FaFlask, FaUserEdit, FaUserMd, FaVial, FaChartBar, FaSignOutAlt, FaCog, FaMoon, FaSun } from 'react-icons/fa';
+import { FaFlask, FaUserEdit, FaUserMd, FaVial, FaChartBar, FaSignOutAlt, FaCog, FaMoon, FaSun, FaHistory } from 'react-icons/fa';
+import { logAction } from '../utils/logAction.js';
 
 const SidebarContainer = styled.div`
   display: flex;
@@ -102,11 +103,12 @@ const ActionButton = styled.button`
 
 const Sidebar = () => {
     const { t } = useTranslation();
-    const { userRole, logout } = useAuth();
+    const { currentUser, userRole, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     
     const handleLogout = async () => {
+        await logAction('User Logout', { email: currentUser.email });
         await logout();
         navigate('/login');
     };
@@ -119,6 +121,7 @@ const Sidebar = () => {
             { path: "/manager", icon: <FaChartBar />, label: t('managerDashboard') },
             { path: "/reception", icon: <FaUserEdit />, label: t('receptionistDashboard') },
             { path: "/settings", icon: <FaCog />, label: 'Settings' },
+            { path: "/audit-log", icon: <FaHistory />, label: 'Audit Log' }, // New link
         ]
     };
 

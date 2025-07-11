@@ -22,7 +22,9 @@ import SettingsPage from './pages/SettingsPage.jsx';
 import PrintLabels from './pages/PrintLabels.jsx';
 import ResultEntry from './pages/ResultEntry.jsx';
 import ReportView from './pages/ReportView.jsx';
-import PatientHistoryPage from './pages/PatientHistoryPage.jsx'; // Import new page
+import PatientHistoryPage from './pages/PatientHistoryPage.jsx';
+import UserProfilePage from './pages/UserProfilePage.jsx';
+import AuditLogPage from './pages/AuditLogPage.jsx'; // Import the new page
 
 const AuthenticatedApp = () => {
     return (
@@ -33,8 +35,10 @@ const AuthenticatedApp = () => {
                 <Route path="/technologist" element={<TechnologistWorklist />} />
                 <Route path="/manager" element={<ManagerDashboard />} />
                 <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/patient/:patientId" element={<PatientHistoryPage />} /> {/* Add new route */}
-                <Route path="/" element={<ManagerDashboard />} /> {/* Default route for logged-in users */}
+                <Route path="/patient/:patientId" element={<PatientHistoryPage />} />
+                <Route path="/profile" element={<UserProfilePage />} />
+                <Route path="/audit-log" element={<AuditLogPage />} /> {/* Add the new route */}
+                <Route path="/" element={<ManagerDashboard />} />
             </Routes>
         </AppLayout>
     );

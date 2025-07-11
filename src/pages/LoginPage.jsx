@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
 import { FaFlask } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import { logAction } from '../utils/logAction.js'; // Import the new logger
 
 //--- STYLED COMPONENTS (Vivid Design) ---//
 
@@ -123,6 +124,8 @@ const LoginPage = () => {
 
     try {
       await login(email, password);
+      // Log the action after a successful login
+      logAction('User Login', { email });
     } catch (err) {
       console.error("Firebase login failed:", err);
       if (err.code === 'auth/invalid-credential') {

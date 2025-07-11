@@ -5,6 +5,7 @@ import { db, auth } from '../firebase';
 import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from 'react-toastify';
 import { FaExclamationTriangle } from 'react-icons/fa';
+import { logAction } from '../utils/logAction.js'; // Import the logger
 
 //--- STYLED COMPONENTS ---//
 const FormContainer = styled.div` background: ${({ theme }) => theme.cardBg}; ${({ theme }) => theme.squircle(24)}; padding: 32px; box-shadow: ${({ theme }) => theme.shadow}; `;
@@ -55,7 +56,7 @@ const RegistrationForm = ({ onPatientRegistered }) => {
     if (!patientName || !dob || selectedTests.length === 0) return toast.warn("Please fill all fields and select at least one test.");
     try {
       const patientRef = await addDoc(collection(db, 'patients'), { name: patientName, dob, gender, registeredAt: serverTimestamp(), registeredBy: auth.currentUser.uid });
-      await addDoc(collection(db, 'testOrders'), {
+      const orderRef = await addDoc(collection(db, 'testOrders'), {
         patientId: patientRef.id,
         patientName,
         tests: selectedTests,
@@ -64,6 +65,10 @@ const RegistrationForm = ({ onPatientRegistered }) => {
         priority: isUrgent ? 'urgent' : 'routine',
         createdAt: serverTimestamp()
       });
+      
+      // Log the action
+      await logAction('Patient Registered', { patientId: patientRef.id, patientName, orderId: orderRef.id, tests: selectedTests.join(', ') });
+
       toast.success(`${patientName} has been registered successfully!`);
       setPatientName(''); setDob(''); setReferringDoctor(''); setSelectedTests([]); setIsUrgent(false);
       if (onPatientRegistered) onPatientRegistered();

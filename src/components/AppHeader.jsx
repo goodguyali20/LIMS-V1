@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { formatInTimeZone } from 'date-fns-tz';
-import SearchBar from './SearchBar.jsx'; // Import the new component
+import SearchBar from './SearchBar.jsx';
+import { Link } from 'react-router-dom'; // Import Link
 
 const HeaderContainer = styled.header`
   display: flex;
@@ -62,6 +63,12 @@ const Avatar = styled.div`
   font-weight: 600;
   font-size: 1.2rem;
   ${({ theme }) => theme.squircle(16)};
+  cursor: pointer; // Make it look clickable
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.1);
+  }
 `;
 
 
@@ -96,7 +103,10 @@ const AppHeader = () => {
             <p>{formatInTimeZone(time, 'Asia/Baghdad', 'h:mm:ss a')}</p>
             <span>{formatInTimeZone(time, 'Asia/Baghdad', 'eeee, MMMM d')}</span>
           </TimeDisplay>
-          <Avatar>{userInitial}</Avatar>
+          {/* Wrap the Avatar in a Link to the new profile page */}
+          <Link to="/profile" style={{ textDecoration: 'none' }}>
+            <Avatar>{userInitial}</Avatar>
+          </Link>
         </UserWidget>
       </HeaderRight>
     </HeaderContainer>

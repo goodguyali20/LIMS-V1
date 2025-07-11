@@ -1,6 +1,7 @@
 import React from 'react';
 import UserManagement from '../components/UserManagement.jsx';
 import TestManagement from '../components/TestManagement.jsx';
+import LabSettings from '../components/LabSettings.jsx'; // Import the new component
 import styled from 'styled-components';
 
 //--- STYLED COMPONENTS ---//
@@ -25,18 +26,26 @@ const SettingsLayout = styled.div`
 
 const ContentBox = styled.div`
   background: ${({ theme }) => theme.cardBg};
-  border-radius: 12px;
+  ${({ theme }) => theme.squircle(24)};
   padding: 24px;
   box-shadow: ${({ theme }) => theme.shadow};
 `;
 
+// A new full-width box for the new component
+const FullWidthContentBox = styled(ContentBox)`
+    grid-column: 1 / -1;
+`;
+
 const SettingsPage = () => {
   return (
-    <>
+    <div className="fade-in">
       <PageHeader>
         <PageTitle>System Settings</PageTitle>
       </PageHeader>
       <SettingsLayout>
+        <FullWidthContentBox>
+            <LabSettings />
+        </FullWidthContentBox>
         <ContentBox>
           <TestManagement />
         </ContentBox>
@@ -44,7 +53,7 @@ const SettingsPage = () => {
           <UserManagement />
         </ContentBox>
       </SettingsLayout>
-    </>
+    </div>
   );
 };
 
