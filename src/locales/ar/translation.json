@@ -1,0 +1,17 @@
+{
+  "greeting": "مرحباً",
+  "dashboard": "لوحة التحكم",
+  "patientRegistration": "تسجيل مريض",
+  "workQueue": "قائمة العمل",
+  "auditLog": "سجل التدقيق",
+  "settings": "الإعدادات",
+  "profile": "الملف الشخصي",
+  "logout": "تسجيل الخروج",
+  "searchPlaceholder": "ابحث عن مريض بالاسم أو الرقم...",
+  "smartlabLoginTitle": "تسجيل الدخول إلى SmartLab",
+  "emailLabel": "البريد الإلكتروني",
+  "passwordLabel": "كلمة المرور",
+  "loginButton": "تسجيل الدخول",
+  "welcomeMessage": "مرحباً بك في",
+  "hospitalName": "مستشفى العزيزية العام"
+}

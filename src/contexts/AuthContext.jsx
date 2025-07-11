@@ -1,49 +1,42 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase.js';
+import { auth, db } from '../firebase/config';
+import { logAuditEvent } from '../utils/auditLogger';
 
 const AuthContext = createContext();
 
-export const useAuth = () => {
+export function useAuth() {
   return useContext(AuthContext);
-};
+}
 
-export const AuthProvider = ({ children }) => {
+export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
-  const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const login = (email, password) => {
-    return signInWithEmailAndPassword(auth, email, password);
-  };
-
-  const logout = () => {
-    return signOut(auth);
-  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
       if (user) {
-        // This is the fix: Wrap the database call in a try/catch block
-        try {
-            const userDocRef = doc(db, 'users', user.uid);
-            const userDocSnap = await getDoc(userDocRef);
-            if (userDocSnap.exists()) {
-              setUserRole(userDocSnap.data().role);
-            } else {
-              console.warn(`No role document found for user ${user.uid}`);
-              setUserRole(null);
-            }
-        } catch (error) {
-            console.error("AuthContext: Failed to get user role due to a network error.", error);
-            // In an offline scenario, we can't get the role, so we set it to null.
-            // The app will no longer crash.
-            setUserRole(null);
+        // Fetch user role and other details from Firestore
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setCurrentUser({ 
+            uid: user.uid, 
+            email: user.email, 
+            ...userData 
+          });
+          // Log login event only once per session
+          if(sessionStorage.getItem('loginEventLogged') !== 'true') {
+            await logAuditEvent('User Logged In', { userId: user.uid, email: user.email });
+            sessionStorage.setItem('loginEventLogged', 'true');
+          }
+        } else {
+          setCurrentUser(user);
         }
       } else {
-        setUserRole(null);
+        setCurrentUser(null);
       }
       setLoading(false);
     });
@@ -51,17 +44,22 @@ export const AuthProvider = ({ children }) => {
     return unsubscribe;
   }, []);
 
+  const logout = async () => {
+    if (currentUser) {
+        await logAuditEvent('User Logged Out', { userId: currentUser.uid, email: currentUser.email });
+        sessionStorage.removeItem('loginEventLogged');
+    }
+    await signOut(auth);
+  };
+
   const value = {
     currentUser,
-    userRole,
-    loading,
-    login,
     logout,
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
-};
+}

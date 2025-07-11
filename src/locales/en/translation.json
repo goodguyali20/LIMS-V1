@@ -1,0 +1,17 @@
+{
+  "greeting": "Welcome",
+  "dashboard": "Dashboard",
+  "patientRegistration": "Patient Registration",
+  "workQueue": "Work Queue",
+  "auditLog": "Audit Log",
+  "settings": "Settings",
+  "profile": "Profile",
+  "logout": "Logout",
+  "searchPlaceholder": "Search patient by name or ID...",
+  "smartlabLoginTitle": "SmartLab Login",
+  "emailLabel": "Email Address",
+  "passwordLabel": "Password",
+  "loginButton": "Login",
+  "welcomeMessage": "Welcome to",
+  "hospitalName": "Al-Aziziyah General Hospital"
+}
