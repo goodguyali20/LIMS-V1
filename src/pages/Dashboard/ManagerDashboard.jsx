@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { collection, getDocs, query } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { fadeIn } from '../../styles/animations';
-import { FaExclamationTriangle, FaBell } from 'react-icons/fa';
+import { FaExclamationTriangle, FaBell, FaChartPie } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const PageContainer = styled.div`
   animation: ${fadeIn} 0.5s ease-in-out;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
+  align-items: start;
 `;
 
 const Card = styled.div`
@@ -18,6 +21,10 @@ const Card = styled.div`
   padding: 2rem;
   border-radius: ${({ theme }) => theme.shapes.squircle};
   box-shadow: ${({ theme }) => theme.shadows.main};
+`;
+
+const FullWidthCard = styled(Card)`
+    grid-column: 1 / -1;
 `;
 
 const CardHeader = styled.h2`
@@ -64,86 +71,135 @@ const AlertLink = styled(Link)`
     }
 `;
 
+const ChartWrapper = styled.div`
+    height: 400px;
+`;
+
 const ManagerDashboard = () => {
+  const { t } = useTranslation();
   const [lowStockItems, setLowStockItems] = useState([]);
   const [expiringItems, setExpiringItems] = useState([]);
+  const [testVolumeData, setTestVolumeData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const PIE_CHART_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
   useEffect(() => {
-    const fetchInventoryAlerts = async () => {
-      const itemsQuery = query(collection(db, "inventoryItems"));
-      const itemsSnapshot = await getDocs(itemsQuery);
-      
-      const lowStockAlerts = [];
-      const expiringAlerts = [];
-      const now = new Date();
-      const thirtyDaysFromNow = new Date();
-      thirtyDaysFromNow.setDate(now.getDate() + 30);
-
-      // Using Promise.all to handle multiple async calls for lots
-      await Promise.all(itemsSnapshot.docs.map(async (itemDoc) => {
-        const item = { id: itemDoc.id, ...itemDoc.data() };
+    const fetchData = async () => {
+      try {
+        const itemsQuery = query(collection(db, "inventoryItems"));
+        const itemsSnapshot = await getDocs(itemsQuery);
         
-        const lotsQuery = query(collection(db, "inventoryItems", item.id, "lots"));
-        const lotsSnapshot = await getDocs(lotsQuery);
-        
-        let totalQuantity = 0;
-        lotsSnapshot.forEach(lotDoc => {
-          const lot = lotDoc.data();
-          totalQuantity += lot.quantity;
+        const lowStockAlerts = [];
+        const expiringAlerts = [];
+        const now = new Date();
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(now.getDate() + 30);
 
-          // Check for expiring lots
-          const expiryDate = lot.expiryDate.toDate();
-          if (expiryDate < thirtyDaysFromNow && expiryDate > now) {
-            expiringAlerts.push({ ...item, lotNumber: lot.lotNumber, expiryDate });
+        await Promise.all(itemsSnapshot.docs.map(async (itemDoc) => {
+          const item = { id: itemDoc.id, ...itemDoc.data() };
+          const lotsQuery = query(collection(db, "inventoryItems", item.id, "lots"));
+          const lotsSnapshot = await getDocs(lotsQuery);
+          let totalQuantity = 0;
+          lotsSnapshot.forEach(lotDoc => {
+            const lot = lotDoc.data();
+            if (typeof lot.quantity === 'number') totalQuantity += lot.quantity;
+            if (lot.expiryDate?.toDate) {
+              const expiryDate = lot.expiryDate.toDate();
+              if (expiryDate < thirtyDaysFromNow && expiryDate > now) {
+                expiringAlerts.push({ ...item, lotNumber: lot.lotNumber, expiryDate });
+              }
+            }
+          });
+          if (typeof item.lowStockThreshold === 'number' && totalQuantity <= item.lowStockThreshold) {
+            lowStockAlerts.push({ ...item, totalQuantity });
           }
+        }));
+
+        setLowStockItems(lowStockAlerts);
+        setExpiringItems(expiringAlerts);
+
+        const ordersQuery = query(collection(db, "testOrders"), where("status", "in", ["Completed", "Verified", "Amended"]));
+        const ordersSnapshot = await getDocs(ordersQuery);
+        const testCounts = {};
+        ordersSnapshot.forEach(doc => {
+            const order = doc.data();
+            order.tests.forEach(testName => {
+                testCounts[testName] = (testCounts[testName] || 0) + 1;
+            });
         });
+        const chartData = Object.entries(testCounts)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value);
+        
+        setTestVolumeData(chartData);
 
-        // Check for low stock
-        if (totalQuantity <= item.lowStockThreshold) {
-          lowStockAlerts.push({ ...item, totalQuantity });
-        }
-      }));
-
-      setLowStockItems(lowStockAlerts);
-      setExpiringItems(expiringAlerts);
-      setLoading(false);
+      } catch (e) {
+        console.error("Failed to fetch dashboard data:", e);
+        setError("Could not load dashboard data. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    fetchInventoryAlerts();
+    fetchData();
   }, []);
 
   return (
     <PageContainer>
-        <Card>
-            <CardHeader><FaBell /> System Alerts</CardHeader>
-            {loading ? (
-                <p>Loading alerts...</p>
-            ) : (
+        <FullWidthCard>
+            <CardHeader><FaBell /> {t('dashboard_alerts_header')}</CardHeader>
+            {loading ? <p>Loading alerts...</p> : error ? <p style={{color: 'red'}}>{error}</p> : (
                 <AlertList>
-                    {lowStockItems.length === 0 && expiringItems.length === 0 && <p>No system alerts. Everything looks good!</p>}
+                    {lowStockItems.length === 0 && expiringItems.length === 0 && <p>{t('dashboard_alerts_none')}</p>}
+                    
                     {lowStockItems.map(item => (
                         <AlertItem key={item.id} type="error">
                             <FaExclamationTriangle/>
                             <div>
-                                <strong>Low Stock Alert:</strong> <AlertLink to={`/inventory/${item.id}`}>{item.name}</AlertLink> is running low. Only {item.totalQuantity} remaining.
+                                <strong>{t('dashboard_alerts_lowStock')}</strong> 
+                                <AlertLink to={`/inventory/${item.id}`}>{item.name}</AlertLink> {t('dashboard_alerts_lowStock_part2')} {item.totalQuantity} {t('dashboard_alerts_lowStock_part3')}
                             </div>
                         </AlertItem>
                     ))}
+                    
                     {expiringItems.map(item => (
                         <AlertItem key={`${item.id}-${item.lotNumber}`} type="warning">
                              <FaExclamationTriangle/>
                              <div>
-                                <strong>Expiry Alert:</strong> Lot {item.lotNumber} of <AlertLink to={`/inventory/${item.id}`}>{item.name}</AlertLink> will expire on {item.expiryDate.toLocaleDateString()}.
+                                <strong>{t('dashboard_alerts_expiry')}</strong> {t('dashboard_alerts_expiry_part2')} {item.lotNumber} {t('dashboard_alerts_expiry_part3')} 
+                                <AlertLink to={`/inventory/${item.id}`}>{item.name}</AlertLink> {t('dashboard_alerts_expiry_part4')} {item.expiryDate.toLocaleDateString()}.
                              </div>
                         </AlertItem>
                     ))}
                 </AlertList>
             )}
-        </Card>
-      
-      {/* Other dashboard cards like charts would go here */}
+        </FullWidthCard>
 
+        <Card>
+            <CardHeader><FaChartPie /> Test Volume</CardHeader>
+            {loading ? <p>Loading chart data...</p> : (
+                <ChartWrapper>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <Pie data={testVolumeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label>
+                                {testVolumeData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={PIE_CHART_COLORS[index % PIE_CHART_COLORS.length]} />
+                                ))}
+                            </Pie>
+                            <Tooltip />
+                            <Legend />
+                        </PieChart>
+                    </ResponsiveContainer>
+                </ChartWrapper>
+            )}
+        </Card>
+
+        <Card>
+            <CardHeader>Other Stats</CardHeader>
+            <p>Future analytics will be displayed here.</p>
+        </Card>
     </PageContainer>
   );
 };
