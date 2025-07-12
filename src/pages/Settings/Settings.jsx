@@ -1,330 +1,373 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { db } from '../../firebase/config';
-import { collection, doc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { useTestCatalog } from '../../contexts/TestContext';
+import { useSettings } from '../../contexts/SettingsContext';
+import { FaSave, FaPlus, FaEdit, FaTrash, FaExclamationCircle } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import { fadeIn } from '../../styles/animations';
-import { useTranslation } from 'react-i18next';
-import { FaEdit, FaTrash } from 'react-icons/fa';
-import { useTestCatalog, departmentColors } from '../../contexts/TestContext';
-import EditTestModal from '../../components/Modals/EditTestModal';
-import SelectTestsModal from '../../components/Modals/SelectTestsModal';
 
-const PageContainer = styled.div`
-  animation: ${fadeIn} 0.5s ease-in-out;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+// Components
+import Modal from '../../components/Common/Modal';
+// import TestPanelManager from '../../components/Settings/TestPanelManager'; // Temporarily disabled
+
+const SettingsContainer = styled.div`
+  padding: 2rem;
+  animation: fadeIn 0.3s ease-in-out;
 `;
 
-const SettingsCard = styled.div`
+const TabsContainer = styled.div`
+  display: flex;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  margin-bottom: 2rem;
+`;
+
+const TabButton = styled.button`
+  padding: 1rem 1.5rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: ${({ theme, active }) => active ? theme.colors.primary : theme.colors.textSecondary};
+  border-bottom: 3px solid ${({ theme, active }) => active ? theme.colors.primary : 'transparent'};
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary};
+  }
+`;
+
+const TabContent = styled.div`
+  animation: fadeIn 0.5s;
+`;
+
+const Section = styled.div`
   background: ${({ theme }) => theme.colors.surface};
   padding: 2rem;
   border-radius: ${({ theme }) => theme.shapes.squircle};
   box-shadow: ${({ theme }) => theme.shadows.main};
 `;
 
-const CardHeader = styled.h2`
-  margin-top: 0;
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   padding-bottom: 1rem;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const ActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: ${({ theme }) => theme.shapes.squircle};
+  background: ${({ theme }) => theme.colors.primary};
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  transition: opacity 0.2s ease;
+  &:hover { opacity: 0.9; }
 `;
 
 const Form = styled.form`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
-  align-items: flex-end;
-  margin-bottom: 2rem;
-`;
-
-const InputGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 `;
 
 const Input = styled.input`
-  padding: 0.8rem;
-  border-radius: 12px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-`;
-
-const Select = styled.select`
-  padding: 0.8rem;
-  border-radius: 12px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-`;
-
-const ButtonGroup = styled.div`
-    display: flex;
-    gap: 1rem;
-`;
-
-const SubmitButton = styled.button`
-  padding: 0.8rem 1.5rem;
-  border: none;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  cursor: pointer;
-  font-weight: 600;
-  color: white;
-  background: ${({ theme }) => theme.colors.primary};
-  height: fit-content;
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
-
-const CancelButton = styled(SubmitButton)`
-    background: ${({ theme }) => theme.colors.textSecondary};
-`;
-
-const DepartmentsContainer = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 2rem;
-`;
-
-const DepartmentCard = styled.div`
-    border: 1px solid ${({ theme, color }) => color || theme.colors.border};
-    border-radius: ${({ theme }) => theme.shapes.squircle};
-    overflow: hidden;
-`;
-
-const DepartmentHeader = styled.h3`
-    margin: 0;
-    padding: 1rem 1.5rem;
-    color: white;
-    background-color: ${({ color }) => color || '#ccc'};
-`;
-
-const TestsContainer = styled.div`
-    padding: 1.5rem;
-`;
-
-const TestItem = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 0;
-    border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-    &:last-child { border-bottom: none; }
-`;
-
-const TestInfo = styled.div`
-    display: flex;
-    flex-direction: column;
-`;
-
-const TestName = styled.span`
-    font-weight: 600;
-`;
-
-const TestDetails = styled.span`
-    font-size: 0.85rem;
-    color: ${({ theme }) => theme.colors.textSecondary};
-    margin-top: 0.25rem;
-`;
-
-const ActionIcons = styled.div`
-    display: flex;
-    gap: 1.5rem;
-    font-size: 1.1rem;
-    svg {
-        cursor: pointer;
-        transition: color 0.2s ease-in-out;
-        &:hover { color: ${({ theme }) => theme.colors.primaryPlain}; }
-    }
-`;
-
-const ItemTable = styled.table`
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-  th, td {
-    padding: 0.75rem;
-    text-align: left;
-    border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  padding: 0.8rem 1rem;
+  border-radius: ${({ theme }) => theme.shapes.squircle};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background-color: ${({ theme }) => theme.colors.input};
+  color: ${({ theme }) => theme.colors.text};
+`;
+
+const TestList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+const TestListItem = styled.li`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  &:last-child {
+    border-bottom: none;
+  }
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.hover};
   }
 `;
 
-const PanelTestsSelector = styled.div`
-    border: 1px solid ${({ theme }) => theme.colors.border};
-    border-radius: 12px;
-    padding: 1rem;
-    min-height: 80px;
-    background-color: ${({ theme }) => theme.colors.background};
+const TestInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 `;
 
-const TestTag = styled.span`
-    display: inline-block;
-    background-color: ${({ theme }) => theme.colors.primaryPlain};
-    color: white;
-    padding: 0.3rem 0.7rem;
-    border-radius: 12px;
-    font-size: 0.9rem;
-    margin: 0.25rem;
+const TestActions = styled.div`
+  display: flex;
+  gap: 1.5rem;
+  & > svg {
+    cursor: pointer;
+    color: ${({ theme }) => theme.colors.textSecondary};
+    font-size: 1.1rem;
+    &:hover {
+      color: ${({ theme }) => theme.colors.primary};
+    }
+  }
 `;
 
-const DEPARTMENTS = ["General", "Chemistry", "Hematology", "Serology", "Virology", "Microbiology"];
+const SpecialBadge = styled.span`
+  background-color: ${({ theme }) => theme.colors.warning}20;
+  color: ${({ theme }) => theme.colors.warning};
+  border: 1px solid ${({ theme }) => theme.colors.warning}80;
+  padding: 0.2rem 0.6rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+`;
+
+const CheckboxContainer = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.8rem;
+  border-radius: ${({ theme }) => theme.shapes.squircle};
+  transition: background-color 0.2s ease;
+  user-select: none;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  grid-column: 1 / -1;
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.hover};
+  }
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: ${({ theme }) => theme.colors.primary};
+    cursor: pointer;
+  }
+`;
+
+const ModalForm = styled.form`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+`;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+`;
+
+const SaveButton = styled(ActionButton)``;
+const CancelButton = styled(ActionButton)`
+  background: ${({ theme }) => theme.colors.surface};
+  color: ${({ theme }) => theme.colors.textSecondary};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
 
 const Settings = () => {
-  const { t } = useTranslation();
-  const { labTests, loadingTests } = useTestCatalog();
+  const [activeTab, setActiveTab] = useState('general');
+  const { settings, updateSettings, loading: settingsLoading } = useSettings();
+  const { labTests, addTest, updateTest, deleteTest, loading: testsLoading } = useTestCatalog();
   
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
-  const [isSelectTestsModalOpen, setIsSelectTestsModalOpen] = useState(false);
+  const [testFormState, setTestFormState] = useState({
+    name: '',
+    department: '',
+    unit: '',
+    referenceRange: '',
+    requiresSpecialSlip: false
+  });
 
-  // Form state for ADDING new tests
-  const [testName, setTestName] = useState('');
-  const [department, setDepartment] = useState(DEPARTMENTS[0]);
-  const [unit, setUnit] = useState('');
-  const [normalRange, setNormalRange] = useState('');
-  const [isSubmittingTest, setIsSubmittingTest] = useState(false);
-  
-  // State for Test Panels
-  const [testPanels, setTestPanels] = useState([]);
-  const [loadingPanels, setLoadingPanels] = useState(true);
-  const [panelName, setPanelName] = useState('');
-  const [panelTests, setPanelTests] = useState([]);
-  const [isSubmittingPanel, setIsSubmittingPanel] = useState(false);
+  const [generalFormState, setGeneralFormState] = useState(settings);
 
   useEffect(() => {
-    const unsubPanels = onSnapshot(collection(db, "testPanels"), (snapshot) => {
-        setTestPanels(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        setLoadingPanels(false);
-    });
-    return () => unsubPanels();
-  }, []);
+    setGeneralFormState(settings);
+  }, [settings]);
   
-  const handleAddNewTest = async (e) => {
-    e.preventDefault();
-    if (!testName || !department) return toast.error("Test Name and Department are required.");
-    setIsSubmittingTest(true);
-    try {
-      await addDoc(collection(db, "labTests"), { name: testName, department, unit, normalRange });
-      toast.success(`"${testName}" added to catalog.`);
-      setTestName(''); setDepartment(DEPARTMENTS[0]); setUnit(''); setNormalRange('');
-    } catch (error) { toast.error("Failed to add test."); }
-    finally { setIsSubmittingTest(false); }
+  useEffect(() => {
+    if (editingTest) {
+      setTestFormState({
+        name: editingTest.name || '',
+        department: editingTest.department || '',
+        unit: editingTest.unit || '',
+        referenceRange: editingTest.referenceRange || '',
+        requiresSpecialSlip: editingTest.requiresSpecialSlip || false,
+      });
+    } else {
+      setTestFormState({ name: '', department: '', unit: '', referenceRange: '', requiresSpecialSlip: false });
+    }
+  }, [editingTest, isModalOpen]);
+
+  const handleGeneralInputChange = (e) => {
+    const { name, value } = e.target;
+    setGeneralFormState(prev => ({ ...prev, [name]: value }));
   };
   
-  const handleTestDelete = async (testId, testName) => {
-    if (window.confirm(`Are you sure you want to delete "${testName}"?`)) {
-      await deleteDoc(doc(db, "labTests", testId));
-      toast.success(`"${testName}" deleted.`);
+  const handleTestFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setTestFormState(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleGeneralSubmit = async (e) => {
+    e.preventDefault();
+    await updateSettings(generalFormState);
+    toast.success('General settings updated!');
+  };
+
+  const handleOpenModal = (test = null) => {
+    setEditingTest(test);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setEditingTest(null);
+    setIsModalOpen(false);
+  };
+
+  const handleSaveTest = async (e) => {
+    e.preventDefault();
+    try {
+      if (!testFormState.name || !testFormState.department) {
+        toast.warn('Test Name and Department are required.');
+        return;
+      }
+
+      if (editingTest) {
+        await updateTest(editingTest.id, testFormState);
+        toast.success(`Test "${testFormState.name}" updated successfully!`);
+      } else {
+        await addTest(testFormState);
+        toast.success(`Test "${testFormState.name}" added successfully!`);
+      }
+      handleCloseModal();
+    } catch (error) {
+      toast.error("Failed to save test.");
     }
   };
 
-  const handlePanelSubmit = async (e) => {
-    e.preventDefault();
-    if (!panelName || panelTests.length === 0) return toast.error("Panel name and at least one test are required.");
-    setIsSubmittingPanel(true);
-    try {
-      await addDoc(collection(db, "testPanels"), { name: panelName, tests: panelTests });
-      toast.success(`Panel "${panelName}" created successfully.`);
-      setPanelName(''); setPanelTests([]);
-    } catch (error) { toast.error("Failed to create panel."); }
-    finally { setIsSubmittingPanel(false); }
+  const handleDeleteTest = async (testId, testName) => {
+    if (window.confirm(`Are you sure you want to delete the test "${testName}"? This cannot be undone.`)) {
+      await deleteTest(testId);
+    }
   };
 
-  const grouped_tests = labTests.reduce((acc, test) => {
-    const dept = test.department || 'General';
-    if (!acc[dept]) acc[dept] = [];
-    acc[dept].push(test);
-    return acc;
-  }, {});
-
   return (
-    <>
-      <PageContainer>
-        <SettingsCard>
-          <CardHeader>Add New Lab Test</CardHeader>
-          <Form onSubmit={handleAddNewTest}>
-              <InputGroup><label>Test Name</label><Input value={testName} onChange={e => setTestName(e.target.value)} required /></InputGroup>
-              <InputGroup><label>Department</label><Select value={department} onChange={e => setDepartment(e.target.value)}>{DEPARTMENTS.map(dep => <option key={dep} value={dep}>{dep}</option>)}</Select></InputGroup>
-              <InputGroup><label>Unit</label><Input value={unit} onChange={e => setUnit(e.target.value)} placeholder="e.g., mg/dL" /></InputGroup>
-              <InputGroup><label>Normal Range</label><Input value={normalRange} onChange={e => setNormalRange(e.target.value)} placeholder="e.g., 70 - 110" /></InputGroup>
-              <SubmitButton type="submit" disabled={isSubmittingTest}>Add Test</SubmitButton>
-          </Form>
-        </SettingsCard>
-        
-        <SettingsCard>
-            <CardHeader>{t('settings_panels_header')}</CardHeader>
-            <Form onSubmit={handlePanelSubmit}>
-                <InputGroup>
-                    <label>{t('settings_panelName')}</label>
-                    <Input value={panelName} onChange={e => setPanelName(e.target.value)} required/>
-                </InputGroup>
-                <InputGroup style={{gridColumn: '1 / -1'}}>
-                    <label>Tests in Panel</label>
-                    <PanelTestsSelector>
-                        {panelTests.length > 0 ? 
-                            panelTests.map(test => <TestTag key={test}>{test}</TestTag>) :
-                            <p style={{color: '#999'}}>Click the button to select tests...</p>
-                        }
-                    </PanelTestsSelector>
-                    <SubmitButton type="button" style={{alignSelf: 'flex-start', marginTop: '1rem'}} onClick={() => setIsSelectTestsModalOpen(true)}>
-                        Select Tests
-                    </SubmitButton>
-                </InputGroup>
-                <SubmitButton type="submit" disabled={isSubmittingPanel} style={{gridColumn: '1 / -1'}}>
-                    {t('settings_panelCreate_button')}
-                </SubmitButton>
-            </Form>
-            <ItemTable>
-                <thead><tr><th>{t('settings_panelName_th')}</th><th>{t('settings_panelTests_th')}</th><th>Actions</th></tr></thead>
-                <tbody>
-                    {loadingPanels ? <tr><td colSpan="3">Loading...</td></tr> : 
-                    testPanels.map(panel => (
-                        <tr key={panel.id}>
-                            <td>{panel.name}</td>
-                            <td>{panel.tests.join(', ')}</td>
-                            <td><ActionIcons><FaTrash onClick={() => handleTestDelete(panel.id, panel.name)} /></ActionIcons></td>
-                        </tr>
-                    ))}
-                </tbody>
-            </ItemTable>
-        </SettingsCard>
+    <SettingsContainer>
+      <h1>Settings</h1>
+      <TabsContainer>
+        <TabButton active={activeTab === 'general'} onClick={() => setActiveTab('general')}>General</TabButton>
+        <TabButton active={activeTab === 'catalog'} onClick={() => setActiveTab('catalog')}>Test Catalog</TabButton>
+        {/* <TabButton active={activeTab === 'panels'} onClick={() => setActiveTab('panels')}>Test Panels</TabButton> */}
+      </TabsContainer>
 
-        <DepartmentsContainer>
-          {loadingTests ? <p>Loading tests...</p> :
-           Object.entries(grouped_tests).map(([deptName, testsInDept]) => (
-            <DepartmentCard key={deptName} color={departmentColors[deptName]}>
-                <DepartmentHeader color={departmentColors[deptName]}>{deptName}</DepartmentHeader>
-                <TestsContainer>
-                    {testsInDept.map(test => (
-                        <TestItem key={test.id}>
-                            <TestInfo>
-                                <TestName>{test.name}</TestName>
-                                <TestDetails>
-                                    {test.unit && `Unit: ${test.unit}`}
-                                    {test.unit && test.normalRange && ' | '}
-                                    {test.normalRange && `Range: ${test.normalRange}`}
-                                </TestDetails>
-                            </TestInfo>
-                            <ActionIcons>
-                                <FaEdit onClick={() => setEditingTest(test)} />
-                                <FaTrash onClick={() => handleTestDelete(test.id, test.name)} />
-                            </ActionIcons>
-                        </TestItem>
-                    ))}
-                </TestsContainer>
-            </DepartmentCard>
-           ))
-          }
-        </DepartmentsContainer>
-      </PageContainer>
-      
-      {editingTest && <EditTestModal test={editingTest} onClose={() => setEditingTest(null)} />}
-      
-      {isSelectTestsModalOpen && (
-        <SelectTestsModal
-          initialSelectedTests={panelTests}
-          onClose={() => setIsSelectTestsModalOpen(false)}
-          onSave={(selected) => setPanelTests(selected)}
-        />
-      )}
-    </>
+      <TabContent>
+        {activeTab === 'general' && (
+          <Section>
+            <form onSubmit={handleGeneralSubmit}>
+              <SectionHeader>
+                <h2>General Settings</h2>
+                <ActionButton type="submit" disabled={settingsLoading}>
+                  <FaSave /> {settingsLoading ? 'Saving...' : 'Save Changes'}
+                </ActionButton>
+              </SectionHeader>
+              <Form>
+                <Input name="hospitalName" value={generalFormState.hospitalName || ''} onChange={handleGeneralInputChange} placeholder="Hospital Name" />
+                <Input name="hospitalAddress" value={generalFormState.hospitalAddress || ''} onChange={handleGeneralInputChange} placeholder="Hospital Address" />
+                <Input name="hospitalPhone" value={generalFormState.hospitalPhone || ''} onChange={handleGeneralInputChange} placeholder="Hospital Phone" />
+              </Form>
+            </form>
+          </Section>
+        )}
+
+        {activeTab === 'catalog' && (
+          <Section>
+            <SectionHeader>
+              <h2>Test Catalog</h2>
+              <ActionButton onClick={() => handleOpenModal()}>
+                <FaPlus /> Add New Test
+              </ActionButton>
+            </SectionHeader>
+            <TestList>
+              {testsLoading ? <p>Loading tests...</p> : labTests.map((test) => (
+                <TestListItem key={test.id}>
+                  <TestInfo>
+                    <strong>{test.name}</strong>
+                    <span>({test.department})</span>
+                    {test.requiresSpecialSlip && (
+                      <SpecialBadge>
+                        <FaExclamationCircle size={12} />
+                        Special Slip
+                      </SpecialBadge>
+                    )}
+                  </TestInfo>
+                  <TestActions>
+                    <FaEdit onClick={() => handleOpenModal(test)} title="Edit Test"/>
+                    <FaTrash onClick={() => handleDeleteTest(test.id, test.name)} title="Delete Test"/>
+                  </TestActions>
+                </TestListItem>
+              ))}
+            </TestList>
+          </Section>
+        )}
+
+        {/* {activeTab === 'panels' && (
+          <Section>
+            <SectionHeader>
+              <h2>Test Panels</h2>
+            </SectionHeader>
+          </Section>
+        )} */}
+      </TabContent>
+
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingTest ? 'Edit Test' : 'Add New Test'}>
+        <ModalForm onSubmit={handleSaveTest}>
+            <Input name="name" value={testFormState.name} onChange={handleTestFormChange} placeholder="Test Name (e.g., Glucose)" required />
+            <Input name="department" value={testFormState.department} onChange={handleTestFormChange} placeholder="Department (e.g., Chemistry)" required />
+            <Input name="unit" value={testFormState.unit} onChange={handleTestFormChange} placeholder="Unit (e.g., mg/dL)" />
+            <Input name="referenceRange" value={testFormState.referenceRange} onChange={handleTestFormChange} placeholder="Reference Range (e.g., 70-100)" />
+            
+            <CheckboxContainer>
+                <input
+                    type="checkbox"
+                    name="requiresSpecialSlip"
+                    checked={testFormState.requiresSpecialSlip}
+                    onChange={handleTestFormChange}
+                />
+                <span>Generate a special, individual slip for this test</span>
+            </CheckboxContainer>
+
+            <ButtonContainer>
+                <CancelButton type="button" onClick={handleCloseModal}>Cancel</CancelButton>
+                <SaveButton type="submit">Save Test</SaveButton>
+            </ButtonContainer>
+        </ModalForm>
+      </Modal>
+    </SettingsContainer>
   );
 };
 

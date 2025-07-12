@@ -10,3 +10,15 @@ export const fadeIn = keyframes`
     transform: translateY(0);
   }
 `;
+
+// Add this new animation for the modal
+export const slideIn = keyframes`
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+`;
