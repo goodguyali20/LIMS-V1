@@ -1,207 +1,381 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { fadeIn } from '../../styles/animations';
-import { FaExclamationTriangle, FaBell, FaChartPie } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useContext } from 'react';
+import { collection, getDocs, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
+import { db } from '/src/firebase-config.js'; // Corrected with absolute path
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { toast } from 'react-toastify';
+import Select from 'react-select';
+import { OrderContext } from '../contexts/OrderContext.jsx';
+import styled from 'styled-components';
+import { FaBox, FaFlask, FaClock } from 'react-icons/fa';
 
-const PageContainer = styled.div`
-  animation: ${fadeIn} 0.5s ease-in-out;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  align-items: start;
-`;
+// --- Styled Components ---
 
-const Card = styled.div`
-  background: ${({ theme }) => theme.colors.surface};
+const DashboardContainer = styled.div`
   padding: 2rem;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  box-shadow: ${({ theme }) => theme.shadows.main};
 `;
 
-const FullWidthCard = styled(Card)`
-    grid-column: 1 / -1;
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
 `;
 
-const CardHeader = styled.h2`
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  padding-bottom: 1rem;
+const StatCard = styled.div`
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
+  border-left: 5px solid ${({ color }) => color};
 `;
 
-const AlertList = styled.ul`
-    list-style: none;
-    padding: 0;
+const StatIcon = styled.div`
+  font-size: 2.5rem;
+  color: ${({ color }) => color};
+`;
+
+const StatInfo = styled.div`
+  h3 {
     margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    font-size: 1rem;
+    color: #666;
+  }
+  p {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
+  }
 `;
 
-const AlertItem = styled.li`
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    border-radius: 12px;
-    background-color: ${({ theme }) => theme.colors.background};
-    border: 1px solid ${({ theme, type }) => type === 'error' ? theme.colors.error : theme.colors.border};
-
-    svg {
-        color: ${({ theme, type }) => type === 'error' ? theme.colors.error : 'orange'};
-        font-size: 1.5rem;
-        flex-shrink: 0;
-    }
+const FormContainer = styled.div`
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 `;
 
-const AlertLink = styled(Link)`
-    text-decoration: none;
-    color: inherit;
-    font-weight: 500;
-    &:hover {
-        text-decoration: underline;
-    }
+const FormGroup = styled.div`
+  margin-bottom: 1.5rem;
 `;
 
-const ChartWrapper = styled.div`
-    height: 400px;
+const Label = styled.label`
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  color: ${({ theme }) => theme.colors.text};
 `;
 
-const ManagerDashboard = () => {
+const Input = styled.input`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 4px;
+  box-sizing: border-box;
+`;
+
+const SelectWrapper = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const GenderSelector = styled.div`
+  display: flex;
+  gap: 1rem;
+`;
+
+const GenderButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 4px;
+  background-color: ${({ active, theme }) => (active ? theme.colors.primary : 'white')};
+  color: ${({ active, theme }) => (active ? 'white' : theme.colors.text)};
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+
+  &:hover {
+    background-color: ${({ active, theme }) => (active ? theme.colors.primary : '#f0f0f0')};
+  }
+`;
+
+const Summary = styled.div`
+  margin-top: 2rem;
+  padding: 1rem;
+  background-color: #eef2f7;
+  border-radius: 4px;
+  border-left: 5px solid ${({ theme }) => theme.colors.primary};
+`;
+
+const SummaryText = styled.p`
+  font-size: 1.2rem;
+  font-weight: bold;
+`;
+
+const SubmitButton = styled.button`
+  width: 100%;
+  padding: 1rem;
+  margin-top: 1rem;
+  background-color: ${({ theme }) => theme.colors.primary};
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.primaryHover};
+  }
+
+  &:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+`;
+
+// --- Initial State ---
+
+const initialPatientState = {
+  patientName: '',
+  patientAge: '',
+  patientGender: 'Male',
+};
+
+// --- Component ---
+
+const Dashboard = () => {
   const { t } = useTranslation();
-  const [lowStockItems, setLowStockItems] = useState([]);
-  const [expiringItems, setExpiringItems] = useState([]);
-  const [testVolumeData, setTestVolumeData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const { setLastOrderId } = useContext(OrderContext);
 
-  const PIE_CHART_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
+  // State for dashboard statistics
+  const [stats, setStats] = useState({ ordersCount: 0, testsCount: 0, pendingOrders: 0 });
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
 
+  // State for the "Add Order" form
+  const [patientInfo, setPatientInfo] = useState(initialPatientState);
+  const [tests, setTests] = useState([]);
+  const [selectedTests, setSelectedTests] = useState([]);
+  const [isTestsLoading, setIsTestsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Effect for fetching dashboard statistics
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchStats = async () => {
+      setIsStatsLoading(true);
       try {
-        const itemsQuery = query(collection(db, "inventoryItems"));
-        const itemsSnapshot = await getDocs(itemsQuery);
+        const ordersQuery = query(collection(db, 'orders'));
+        const testsQuery = query(collection(db, 'tests'));
+        const pendingOrdersQuery = query(collection(db, 'orders'), where('status', '==', 'Pending'));
         
-        const lowStockAlerts = [];
-        const expiringAlerts = [];
-        const now = new Date();
-        const thirtyDaysFromNow = new Date();
-        thirtyDaysFromNow.setDate(now.getDate() + 30);
-
-        await Promise.all(itemsSnapshot.docs.map(async (itemDoc) => {
-          const item = { id: itemDoc.id, ...itemDoc.data() };
-          const lotsQuery = query(collection(db, "inventoryItems", item.id, "lots"));
-          const lotsSnapshot = await getDocs(lotsQuery);
-          let totalQuantity = 0;
-          lotsSnapshot.forEach(lotDoc => {
-            const lot = lotDoc.data();
-            if (typeof lot.quantity === 'number') totalQuantity += lot.quantity;
-            if (lot.expiryDate?.toDate) {
-              const expiryDate = lot.expiryDate.toDate();
-              if (expiryDate < thirtyDaysFromNow && expiryDate > now) {
-                expiringAlerts.push({ ...item, lotNumber: lot.lotNumber, expiryDate });
-              }
-            }
-          });
-          if (typeof item.lowStockThreshold === 'number' && totalQuantity <= item.lowStockThreshold) {
-            lowStockAlerts.push({ ...item, totalQuantity });
-          }
-        }));
-
-        setLowStockItems(lowStockAlerts);
-        setExpiringItems(expiringAlerts);
-
-        const ordersQuery = query(collection(db, "testOrders"), where("status", "in", ["Completed", "Verified", "Amended"]));
-        const ordersSnapshot = await getDocs(ordersQuery);
-        const testCounts = {};
-        ordersSnapshot.forEach(doc => {
-            const order = doc.data();
-            order.tests.forEach(testName => {
-                testCounts[testName] = (testCounts[testName] || 0) + 1;
-            });
+        const [ordersSnapshot, testsSnapshot, pendingOrdersSnapshot] = await Promise.all([
+          getDocs(ordersQuery),
+          getDocs(testsQuery),
+          getDocs(pendingOrdersQuery)
+        ]);
+        
+        setStats({
+          ordersCount: ordersSnapshot.size,
+          testsCount: testsSnapshot.size,
+          pendingOrders: pendingOrdersSnapshot.size,
         });
-        const chartData = Object.entries(testCounts)
-            .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value);
-        
-        setTestVolumeData(chartData);
-
-      } catch (e) {
-        console.error("Failed to fetch dashboard data:", e);
-        setError("Could not load dashboard data. Please try again later.");
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+        toast.error(t('errors.fetchStats'));
       } finally {
-        setLoading(false);
+        setIsStatsLoading(false);
       }
     };
+    fetchStats();
+  }, [t]);
 
-    fetchData();
-  }, []);
+  // Effect for fetching tests for the form
+  useEffect(() => {
+    const fetchTests = async () => {
+      setIsTestsLoading(true);
+      try {
+        const testsCollectionRef = collection(db, 'tests');
+        const data = await getDocs(testsCollectionRef);
+        const fetchedTests = data.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setTests(fetchedTests);
+      } catch (error) {
+        console.error("Error fetching tests:", error);
+        toast.error(t('errors.fetchTests'));
+      } finally {
+        setIsTestsLoading(false);
+      }
+    };
+    fetchTests();
+  }, [t]);
+  
+  const handlePatientInfoChange = (e) => {
+    const { name, value } = e.target;
+    setPatientInfo((prevInfo) => ({ ...prevInfo, [name]: value }));
+  };
+
+  const handleTestsChange = (selectedOptions) => {
+    setSelectedTests(selectedOptions || []);
+  };
+
+  const totalPrice = useMemo(() => {
+    return selectedTests.reduce((total, test) => total + Number(test.price), 0);
+  }, [selectedTests]);
+
+  const resetForm = () => {
+    setPatientInfo(initialPatientState);
+    setSelectedTests([]);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!patientInfo.patientName || !patientInfo.patientAge || selectedTests.length === 0) {
+      toast.warn(t('warnings.fillAllFields'));
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const orderData = {
+        ...patientInfo,
+        tests: selectedTests.map(t => ({ id: t.id, name: t.name, price: t.price })),
+        totalPrice,
+        createdAt: serverTimestamp(),
+        status: 'Pending',
+      };
+
+      const docRef = await addDoc(collection(db, 'orders'), orderData);
+      setLastOrderId(docRef.id);
+      
+      toast.success(t('success.orderAdded'));
+      resetForm();
+      navigate(`/app/print-order/${docRef.id}`);
+
+    } catch (error) {
+      console.error("Error adding order: ", error);
+      toast.error(t('errors.addOrder'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const testOptions = tests.map(test => ({
+    value: test.id,
+    label: `${test.name} - ${test.price} IQD`,
+    price: test.price,
+    name: a.name,
+    id: test.id,
+  }));
 
   return (
-    <PageContainer>
-        <FullWidthCard>
-            <CardHeader><FaBell /> {t('dashboard_alerts_header')}</CardHeader>
-            {loading ? <p>Loading alerts...</p> : error ? <p style={{color: 'red'}}>{error}</p> : (
-                <AlertList>
-                    {lowStockItems.length === 0 && expiringItems.length === 0 && <p>{t('dashboard_alerts_none')}</p>}
-                    
-                    {lowStockItems.map(item => (
-                        <AlertItem key={item.id} type="error">
-                            <FaExclamationTriangle/>
-                            <div>
-                                <strong>{t('dashboard_alerts_lowStock')}</strong> 
-                                <AlertLink to={`/inventory/${item.id}`}>{item.name}</AlertLink> {t('dashboard_alerts_lowStock_part2')} {item.totalQuantity} {t('dashboard_alerts_lowStock_part3')}
-                            </div>
-                        </AlertItem>
-                    ))}
-                    
-                    {expiringItems.map(item => (
-                        <AlertItem key={`${item.id}-${item.lotNumber}`} type="warning">
-                             <FaExclamationTriangle/>
-                             <div>
-                                <strong>{t('dashboard_alerts_expiry')}</strong> {t('dashboard_alerts_expiry_part2')} {item.lotNumber} {t('dashboard_alerts_expiry_part3')} 
-                                <AlertLink to={`/inventory/${item.id}`}>{item.name}</AlertLink> {t('dashboard_alerts_expiry_part4')} {item.expiryDate.toLocaleDateString()}.
-                             </div>
-                        </AlertItem>
-                    ))}
-                </AlertList>
-            )}
-        </FullWidthCard>
+    <DashboardContainer>
+      {/* --- Dashboard Stats Section --- */}
+      <StatsGrid>
+        <StatCard color="#3498db">
+          <StatIcon color="#3498db"><FaBox /></StatIcon>
+          <StatInfo>
+            <h3>{t('dashboard.totalOrders')}</h3>
+            <p>{isStatsLoading ? '...' : stats.ordersCount}</p>
+          </StatInfo>
+        </StatCard>
+        <StatCard color="#2ecc71">
+          <StatIcon color="#2ecc71"><FaFlask /></StatIcon>
+          <StatInfo>
+            <h3>{t('dashboard.totalTests')}</h3>
+            <p>{isStatsLoading ? '...' : stats.testsCount}</p>
+          </StatInfo>
+        </StatCard>
+        <StatCard color="#f39c12">
+          <StatIcon color="#f39c12"><FaClock /></StatIcon>
+          <StatInfo>
+            <h3>{t('dashboard.pendingOrders')}</h3>
+            <p>{isStatsLoading ? '...' : stats.pendingOrders}</p>
+          </StatInfo>
+        </StatCard>
+      </StatsGrid>
+      
+      {/* --- Add Order Form Section --- */}
+      <FormContainer>
+        <h2>{t('addOrder.title')}</h2>
+        <form onSubmit={handleSubmit}>
+          <FormGroup>
+            <Label htmlFor="patientName">{t('addOrder.patientName')}</Label>
+            <Input
+              type="text"
+              id="patientName"
+              name="patientName"
+              value={patientInfo.patientName}
+              onChange={handlePatientInfoChange}
+              required
+            />
+          </FormGroup>
 
-        <Card>
-            <CardHeader><FaChartPie /> Test Volume</CardHeader>
-            {loading ? <p>Loading chart data...</p> : (
-                <ChartWrapper>
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie data={testVolumeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label>
-                                {testVolumeData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={PIE_CHART_COLORS[index % PIE_CHART_COLORS.length]} />
-                                ))}
-                            </Pie>
-                            <Tooltip />
-                            <Legend />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </ChartWrapper>
-            )}
-        </Card>
+          <FormGroup>
+            <Label htmlFor="patientAge">{t('addOrder.patientAge')}</Label>
+            <Input
+              type="number"
+              id="patientAge"
+              name="patientAge"
+              value={patientInfo.patientAge}
+              onChange={handlePatientInfoChange}
+              required
+            />
+          </FormGroup>
 
-        <Card>
-            <CardHeader>Other Stats</CardHeader>
-            <p>Future analytics will be displayed here.</p>
-        </Card>
-    </PageContainer>
+          <FormGroup>
+            <Label>{t('addOrder.gender')}</Label>
+            <GenderSelector>
+              <GenderButton
+                type="button"
+                active={patientInfo.patientGender === 'Male'}
+                onClick={() => setPatientInfo(prev => ({ ...prev, patientGender: 'Male' }))}
+              >
+                {t('addOrder.male')}
+              </GenderButton>
+              <GenderButton
+                type="button"
+                active={patientInfo.patientGender === 'Female'}
+                onClick={() => setPatientInfo(prev => ({ ...prev, patientGender: 'Female' }))}
+              >
+                {t('addOrder.female')}
+              </GenderButton>
+            </GenderSelector>
+          </FormGroup>
+
+          <SelectWrapper>
+            <Label>{t('addOrder.selectTests')}</Label>
+            <Select
+                options={testOptions}
+                isMulti
+                onChange={handleTestsChange}
+                value={selectedTests}
+                isLoading={isTestsLoading}
+                placeholder={t('addOrder.selectPlaceholder')}
+                noOptionsMessage={() => t('addOrder.noOptions')}
+              />
+          </SelectWrapper>
+
+          {selectedTests.length > 0 && (
+            <Summary>
+              <SummaryText>
+                {t('addOrder.totalPrice')}: {totalPrice.toLocaleString()} IQD
+              </SummaryText>
+            </Summary>
+          )}
+
+          <SubmitButton type="submit" disabled={isSubmitting || isTestsLoading}>
+            {isSubmitting ? t('addOrder.submitting') : t('addOrder.submit')}
+          </SubmitButton>
+        </form>
+      </FormContainer>
+    </DashboardContainer>
   );
 };
 
-export default ManagerDashboard;
+export default Dashboard;

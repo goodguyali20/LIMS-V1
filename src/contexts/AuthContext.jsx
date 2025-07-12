@@ -1,65 +1,46 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase/config';
-import { logAuditEvent } from '../utils/auditLogger';
+import React, { createContext, useState, useEffect, useMemo } from 'react';
+import { auth } from '/src/firebase-config.js'; // Corrected with absolute path
+import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 
-const AuthContext = createContext();
+export const AuthContext = createContext(null);
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
-
-export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // Fetch user role and other details from Firestore
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setCurrentUser({ 
-            uid: user.uid, 
-            email: user.email, 
-            ...userData 
-          });
-          // Log login event only once per session
-          if(sessionStorage.getItem('loginEventLogged') !== 'true') {
-            await logAuditEvent('User Logged In', { userId: user.uid, email: user.email });
-            sessionStorage.setItem('loginEventLogged', 'true');
-          }
-        } else {
-          setCurrentUser(user);
-        }
-      } else {
-        setCurrentUser(null);
-      }
-      setLoading(false);
+    // Subscribe to Firebase auth state changes
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setIsLoading(false);
     });
 
-    return unsubscribe;
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
-  const logout = async () => {
-    if (currentUser) {
-        await logAuditEvent('User Logged Out', { userId: currentUser.uid, email: currentUser.email });
-        sessionStorage.removeItem('loginEventLogged');
+  const signOut = async () => {
+    try {
+      await firebaseSignOut(auth);
+      // setUser(null) will be handled by the onAuthStateChanged listener
+    } catch (error) {
+      console.error('Error signing out:', error);
+      // Optionally, show a toast notification for sign-out errors
     }
-    await signOut(auth);
   };
 
-  const value = {
-    currentUser,
-    logout,
-  };
+  const isAuthenticated = !!user;
 
-  return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = useMemo(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated,
+      signOut,
+    }),
+    [user, isLoading, isAuthenticated]
   );
-}
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
