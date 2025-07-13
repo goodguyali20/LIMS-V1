@@ -1,37 +1,31 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import AdvancedAnalytics from '../../components/Analytics/AdvancedAnalytics';
-import { createMockUser } from '../utils/test-utils';
+import { render, screen } from '@testing-library/react';
+import { BrowserRouter } from 'react-router-dom';
+import { ThemeProvider } from '../../contexts/ThemeContext.jsx';
+import { AuthProvider } from '../../contexts/AuthContext.jsx';
+import { TestProvider } from '../../contexts/TestContext.jsx';
+import { NotificationProvider } from '../../contexts/NotificationContext.tsx';
+import { OrderProvider } from '../../contexts/OrderContext.jsx';
+import { SettingsProvider } from '../../contexts/SettingsContext.jsx';
+import AdvancedAnalytics from '../../components/Analytics/AdvancedAnalytics.jsx';
 
-// Mock the theme context
-vi.mock('../../contexts/ThemeContext', () => ({
-  useTheme: () => ({
-    theme: {
-      colors: {
-        primary: '#2563eb',
-        success: '#10b981',
-        warning: '#f59e0b',
-        error: '#ef4444',
-        info: '#3b82f6',
-        text: '#1e293b',
-        textSecondary: '#64748b',
-        border: '#e2e8f0',
-      },
+// Mock the translation hook
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key) => key,
+    i18n: {
+      changeLanguage: jest.fn(),
     },
   }),
 }));
 
-// Mock recharts
-vi.mock('recharts', () => ({
-  LineChart: ({ children }: any) => <div data-testid="line-chart">{children}</div>,
-  BarChart: ({ children }: any) => <div data-testid="bar-chart">{children}</div>,
-  AreaChart: ({ children }: any) => <div data-testid="area-chart">{children}</div>,
-  PieChart: ({ children }: any) => <div data-testid="pie-chart">{children}</div>,
+// Mock Recharts components
+jest.mock('recharts', () => ({
+  LineChart: ({ children }) => <div data-testid="line-chart">{children}</div>,
   Line: () => <div data-testid="line" />,
+  BarChart: ({ children }) => <div data-testid="bar-chart">{children}</div>,
   Bar: () => <div data-testid="bar" />,
-  Area: () => <div data-testid="area" />,
+  PieChart: ({ children }) => <div data-testid="pie-chart">{children}</div>,
   Pie: () => <div data-testid="pie" />,
   Cell: () => <div data-testid="cell" />,
   XAxis: () => <div data-testid="x-axis" />,
@@ -39,261 +33,92 @@ vi.mock('recharts', () => ({
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   Tooltip: () => <div data-testid="tooltip" />,
   Legend: () => <div data-testid="legend" />,
-  ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
+  ResponsiveContainer: ({ children }) => <div data-testid="responsive-container">{children}</div>,
+  AreaChart: ({ children }) => <div data-testid="area-chart">{children}</div>,
+  Area: () => <div data-testid="area" />,
+  ScatterChart: ({ children }) => <div data-testid="scatter-chart">{children}</div>,
+  Scatter: () => <div data-testid="scatter" />,
 }));
 
+// Mock date-fns
+jest.mock('date-fns', () => ({
+  format: jest.fn((date) => 'Jan 01'),
+  subDays: jest.fn((date, days) => new Date()),
+}));
+
+const renderWithProviders = (component) => {
+  return render(
+    <BrowserRouter>
+      <ThemeProvider>
+        <AuthProvider>
+          <TestProvider>
+            <NotificationProvider>
+              <OrderProvider>
+                <SettingsProvider>
+                  {component}
+                </SettingsProvider>
+              </OrderProvider>
+            </NotificationProvider>
+          </TestProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </BrowserRouter>
+  );
+};
+
 describe('AdvancedAnalytics', () => {
-  const mockData = {
-    orders: {
-      total: 1247,
-      pending: 89,
-      completed: 1158,
-      cancelled: 23,
-    },
-    revenue: {
-      daily: 12500,
-      weekly: 87500,
-      monthly: 375000,
-    },
-    tests: {
-      total: 3421,
-      byDepartment: {
-        'Chemistry': 1247,
-        'Hematology': 892,
-        'Serology': 456,
-        'Virology': 234,
-        'Microbiology': 592,
-      },
-    },
-    performance: {
-      averageTurnaroundTime: 4.2,
-      onTimeDelivery: 94.5,
-    },
-  };
-
-  const defaultProps = {
-    data: mockData,
-    dateRange: '30d' as const,
-    onDateRangeChange: vi.fn(),
-    onExport: vi.fn(),
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('renders without crashing', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    expect(screen.getByText('Advanced Analytics')).toBeInTheDocument();
-  });
-
-  it('displays all metric cards', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
+  it('renders analytics dashboard', () => {
+    renderWithProviders(<AdvancedAnalytics />);
     
-    expect(screen.getByText('1,247')).toBeInTheDocument(); // Total Orders
-    expect(screen.getByText('$375,000')).toBeInTheDocument(); // Monthly Revenue
-    expect(screen.getByText('4.2h')).toBeInTheDocument(); // Avg Turnaround
-    expect(screen.getByText('94.5%')).toBeInTheDocument(); // On-Time Delivery
+    expect(screen.getByText('analytics.title')).toBeInTheDocument();
   });
 
-  it('displays metric labels correctly', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
+  it('renders summary statistics', () => {
+    renderWithProviders(<AdvancedAnalytics />);
     
     expect(screen.getByText('Total Orders')).toBeInTheDocument();
-    expect(screen.getByText('Monthly Revenue')).toBeInTheDocument();
+    expect(screen.getByText('Completed')).toBeInTheDocument();
+    expect(screen.getByText('Avg Revenue')).toBeInTheDocument();
+    expect(screen.getByText('Quality Score')).toBeInTheDocument();
     expect(screen.getByText('Avg Turnaround')).toBeInTheDocument();
-    expect(screen.getByText('On-Time Delivery')).toBeInTheDocument();
+    expect(screen.getByText('Completion Rate')).toBeInTheDocument();
   });
 
-  it('shows trend indicators', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
+  it('renders chart components', () => {
+    renderWithProviders(<AdvancedAnalytics />);
     
-    // Check for trend arrows
-    const trendArrows = screen.getAllByTestId('trend-icon');
-    expect(trendArrows.length).toBeGreaterThan(0);
+    expect(screen.getByText('Orders Trend')).toBeInTheDocument();
+    expect(screen.getByText('Revenue Analysis')).toBeInTheDocument();
+    expect(screen.getByText('Test Types')).toBeInTheDocument();
+    expect(screen.getByText('Quality Score')).toBeInTheDocument();
+    expect(screen.getByText('Order Status')).toBeInTheDocument();
+    expect(screen.getByText('Turnaround vs Quality')).toBeInTheDocument();
   });
 
-  it('displays chart containers', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
+  it('renders chart containers', () => {
+    renderWithProviders(<AdvancedAnalytics />);
     
-    expect(screen.getByText('Order Trends')).toBeInTheDocument();
-    expect(screen.getByText('Tests by Department')).toBeInTheDocument();
-  });
-
-  it('renders responsive containers for charts', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    const responsiveContainers = screen.getAllByTestId('responsive-container');
-    expect(responsiveContainers.length).toBeGreaterThan(0);
-  });
-
-  it('displays date range selector', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    const dateRangeSelect = screen.getByRole('combobox');
-    expect(dateRangeSelect).toBeInTheDocument();
-    expect(dateRangeSelect).toHaveValue('30d');
-  });
-
-  it('calls onDateRangeChange when date range is changed', async () => {
-    const user = userEvent.setup();
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    const dateRangeSelect = screen.getByRole('combobox');
-    await user.selectOptions(dateRangeSelect, '7d');
-    
-    expect(defaultProps.onDateRangeChange).toHaveBeenCalledWith('7d');
-  });
-
-  it('displays export button', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    const exportButton = screen.getByRole('button', { name: /export/i });
-    expect(exportButton).toBeInTheDocument();
-  });
-
-  it('calls onExport when export button is clicked', async () => {
-    const user = userEvent.setup();
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    const exportButton = screen.getByRole('button', { name: /export/i });
-    await user.click(exportButton);
-    
-    expect(defaultProps.onExport).toHaveBeenCalled();
-  });
-
-  it('displays key trends section', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    expect(screen.getByText('Key Trends')).toBeInTheDocument();
-    expect(screen.getByText('Order Volume')).toBeInTheDocument();
-    expect(screen.getByText('Revenue')).toBeInTheDocument();
-    expect(screen.getByText('Turnaround Time')).toBeInTheDocument();
-    expect(screen.getByText('Customer Satisfaction')).toBeInTheDocument();
-  });
-
-  it('shows trend values correctly', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    expect(screen.getByText('+12.5%')).toBeInTheDocument();
-    expect(screen.getByText('+8.3%')).toBeInTheDocument();
-    expect(screen.getByText('-15.2%')).toBeInTheDocument();
-    expect(screen.getByText('+2.1%')).toBeInTheDocument();
-  });
-
-  it('handles empty data gracefully', () => {
-    render(<AdvancedAnalytics data={undefined} />);
-    
-    // Should still render the component with default/mock data
-    expect(screen.getByText('Advanced Analytics')).toBeInTheDocument();
-  });
-
-  it('applies correct styling classes', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    const container = screen.getByText('Advanced Analytics').closest('div');
-    expect(container).toHaveClass('analytics-container');
-  });
-
-  it('displays department data in pie chart', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    // Check if pie chart is rendered
-    expect(screen.getByTestId('pie-chart')).toBeInTheDocument();
-  });
-
-  it('shows positive trend indicators in green', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    const positiveTrends = screen.getAllByText(/\+/);
-    positiveTrends.forEach(trend => {
-      expect(trend).toHaveClass('positive-trend');
-    });
-  });
-
-  it('shows negative trend indicators in red', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    const negativeTrends = screen.getAllByText(/-/);
-    negativeTrends.forEach(trend => {
-      expect(trend).toHaveClass('negative-trend');
-    });
-  });
-
-  it('formats currency values correctly', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    expect(screen.getByText('$375,000')).toBeInTheDocument();
-  });
-
-  it('formats percentage values correctly', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    expect(screen.getByText('94.5%')).toBeInTheDocument();
-  });
-
-  it('formats time values correctly', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    expect(screen.getByText('4.2h')).toBeInTheDocument();
-  });
-
-  it('handles responsive design correctly', () => {
-    // Mock window resize
-    Object.defineProperty(window, 'innerWidth', {
-      writable: true,
-      configurable: true,
-      value: 768,
-    });
-
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    // Component should still render without errors
-    expect(screen.getByText('Advanced Analytics')).toBeInTheDocument();
-  });
-
-  it('displays loading state when data is loading', () => {
-    render(<AdvancedAnalytics {...defaultProps} data={undefined} />);
-    
-    // Should show some loading or default state
-    expect(screen.getByText('Advanced Analytics')).toBeInTheDocument();
-  });
-
-  it('handles chart type switching', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    // Default should be line chart
+    expect(screen.getAllByTestId('responsive-container')).toHaveLength(6);
     expect(screen.getByTestId('line-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
+    expect(screen.getAllByTestId('pie-chart')).toHaveLength(2);
+    expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('scatter-chart')).toBeInTheDocument();
   });
 
-  it('displays correct number of metric cards', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
+  it('renders control buttons', () => {
+    renderWithProviders(<AdvancedAnalytics />);
     
-    const metricCards = screen.getAllByTestId('metric-card');
-    expect(metricCards).toHaveLength(4); // 4 metric cards
+    expect(screen.getByText('Refresh')).toBeInTheDocument();
+    expect(screen.getByText('Hide Legend')).toBeInTheDocument();
   });
 
-  it('shows trend analysis with correct number of items', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
+  it('renders date range selector', () => {
+    renderWithProviders(<AdvancedAnalytics />);
     
-    const trendItems = screen.getAllByTestId('trend-item');
-    expect(trendItems).toHaveLength(4); // 4 trend items
-  });
-
-  it('displays chart titles correctly', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    expect(screen.getByText('Order Trends')).toBeInTheDocument();
-    expect(screen.getByText('Tests by Department')).toBeInTheDocument();
-  });
-
-  it('handles accessibility attributes', () => {
-    render(<AdvancedAnalytics {...defaultProps} />);
-    
-    const exportButton = screen.getByRole('button', { name: /export/i });
-    expect(exportButton).toBeInTheDocument();
-    
-    const dateRangeSelect = screen.getByRole('combobox');
-    expect(dateRangeSelect).toBeInTheDocument();
+    expect(screen.getByDisplayValue('7d')).toBeInTheDocument();
+    expect(screen.getByText('Last 7 Days')).toBeInTheDocument();
+    expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
+    expect(screen.getByText('Last 90 Days')).toBeInTheDocument();
   });
 }); 
