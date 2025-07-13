@@ -1,4 +1,16 @@
 {
+  "sidebar": {
+    "dashboard": "لوحة التحكم",
+    "orders": "الطلبات",
+    "patientRegistration": "تسجيل مريض",
+    "workQueue": "قائمة العمل",
+    "phlebotomist": "فني سحب الدم",
+    "qualityControl": "مراقبة الجودة",
+    "inventory": "المخزون",
+    "workload": "عبء العمل",
+    "auditLog": "سجل التدقيق",
+    "logout": "تسجيل الخروج"
+  },
   "greeting": "أهلاً بك",
   "dashboard": {
     "title": "لوحة التحكم",
