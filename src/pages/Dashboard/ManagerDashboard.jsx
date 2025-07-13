@@ -276,6 +276,186 @@ const SkeletonCard = styled(motion.create('div'))`
   justify-content: center;
 `;
 
+// Premium Recent Activity Components
+const RecentActivityCard = styled(motion.div)`
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 2.5rem;
+  margin-top: 2rem;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #f5576c 75%, 
+      #4facfe 100%);
+    border-radius: 20px 20px 0 0;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
+`;
+
+const ActivityHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+`;
+
+const ActivityTitle = styled.h3`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const ActivityIcon = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+`;
+
+const ActivityBadge = styled.span`
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  animation: pulse 2s infinite;
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  }
+`;
+
+const ActivityList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: relative;
+  z-index: 1;
+`;
+
+const ActivityItem = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.05) 0%, 
+    rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  
+  &:hover {
+    background: linear-gradient(145deg, 
+      rgba(255, 255, 255, 0.1) 0%, 
+      rgba(255, 255, 255, 0.05) 100%);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const ActivityDot = styled.div`
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: ${({ color }) => color};
+  box-shadow: 0 0 0 4px ${({ color }) => color}20;
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+`;
+
+const ActivityContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const ActivityText = styled.p`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 0.95rem;
+  margin: 0 0 0.25rem 0;
+  line-height: 1.4;
+  
+  strong {
+    color: ${({ theme }) => theme.colors.primary};
+    font-weight: 600;
+  }
+`;
+
+const ActivityTime = styled.span`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 0.8rem;
+  font-weight: 500;
+`;
+
+const ActivityIconSmall = styled.div`
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
 // Custom tooltip component for premium look
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -751,86 +931,101 @@ const ManagerDashboard = () => {
         </ChartsGrid>
       )}
 
-      <motion.div
+      <RecentActivityCard
         variants={itemVariants}
-        style={{
-          background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '20px',
-          padding: '2.5rem',
-          marginTop: '2rem',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-          backdropFilter: 'blur(20px)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
         whileHover={{ 
           scale: 1.02,
           boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
         }}
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '4px',
-          background: 'linear-gradient(90deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
-          borderRadius: '20px 20px 0 0'
-        }}></div>
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%)',
-          pointerEvents: 'none'
-        }}></div>
-        <h3 style={{ 
-          marginBottom: '1.5rem', 
-          color: 'var(--text-color)',
-          fontSize: '1.5rem',
-          fontWeight: '700',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem',
-          position: 'relative',
-          zIndex: 1
-        }}>
-          <span style={{
-            width: '6px',
-            height: '24px',
-            background: 'linear-gradient(180deg, #667eea, #764ba2)',
-            borderRadius: '3px',
-            boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
-          }}></span>
-          Recent Activity
-        </h3>
-        <div style={{ 
-          color: 'var(--text-secondary-color)',
-          position: 'relative',
-          zIndex: 1
-        }}>
-          <p style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#667eea', fontSize: '1.2rem' }}>•</span>
-            New order #1234 received from Dr. Smith
-          </p>
-          <p style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#764ba2', fontSize: '1.2rem' }}>•</span>
-            Test results completed for patient #5678
-          </p>
-          <p style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#f093fb', fontSize: '1.2rem' }}>•</span>
-            QC sample passed validation
-          </p>
-          <p style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#f5576c', fontSize: '1.2rem' }}>•</span>
-            Inventory alert: Low stock for Test Tube A
-          </p>
-        </div>
-      </motion.div>
+        <ActivityHeader>
+          <ActivityTitle>
+            <ActivityIcon>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </ActivityIcon>
+            Recent Activity
+          </ActivityTitle>
+          <ActivityBadge>Live</ActivityBadge>
+        </ActivityHeader>
+        
+        <ActivityList>
+          <ActivityItem>
+            <ActivityDot color="#667eea" />
+            <ActivityContent>
+              <ActivityText>New order <strong>#1234</strong> received from <strong>Dr. Smith</strong></ActivityText>
+              <ActivityTime>2 minutes ago</ActivityTime>
+            </ActivityContent>
+            <ActivityIconSmall>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
+              </svg>
+            </ActivityIconSmall>
+          </ActivityItem>
+          
+          <ActivityItem>
+            <ActivityDot color="#764ba2" />
+            <ActivityContent>
+              <ActivityText>Test results completed for <strong>patient #5678</strong></ActivityText>
+              <ActivityTime>5 minutes ago</ActivityTime>
+            </ActivityContent>
+            <ActivityIconSmall>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
+              </svg>
+            </ActivityIconSmall>
+          </ActivityItem>
+          
+          <ActivityItem>
+            <ActivityDot color="#f093fb" />
+            <ActivityContent>
+              <ActivityText><strong>QC sample</strong> passed validation</ActivityText>
+              <ActivityTime>8 minutes ago</ActivityTime>
+            </ActivityContent>
+            <ActivityIconSmall>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
+              </svg>
+            </ActivityIconSmall>
+          </ActivityItem>
+          
+          <ActivityItem>
+            <ActivityDot color="#f5576c" />
+            <ActivityContent>
+              <ActivityText><strong>Inventory alert:</strong> Low stock for Test Tube A</ActivityText>
+              <ActivityTime>12 minutes ago</ActivityTime>
+            </ActivityContent>
+            <ActivityIconSmall>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.64 21H20.36A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 9V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 17H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </ActivityIconSmall>
+          </ActivityItem>
+          
+          <ActivityItem>
+            <ActivityDot color="#4facfe" />
+            <ActivityContent>
+              <ActivityText>New <strong>patient registration</strong> completed</ActivityText>
+              <ActivityTime>15 minutes ago</ActivityTime>
+            </ActivityContent>
+            <ActivityIconSmall>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </ActivityIconSmall>
+          </ActivityItem>
+        </ActivityList>
+      </RecentActivityCard>
     </DashboardContainer>
   );
 };
