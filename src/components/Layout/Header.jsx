@@ -11,7 +11,7 @@ import LanguageSwitcher from '../common/LanguageSwitcher';
 import PremiumBarcodeScanner from '../common/PremiumBarcodeScanner';
 import { trackEvent } from '../../utils/errorMonitoring';
 
-const HeaderContainer = styled(motion.create('header'))`
+const HeaderContainer = styled.header`
   position: fixed;
   top: 0;
   left: 0;
@@ -26,21 +26,23 @@ const HeaderContainer = styled(motion.create('header'))`
   align-items: center;
   justify-content: space-between;
   gap: 2rem;
+  height: 80px;
   
   @media (max-width: 768px) {
     padding: 1rem;
     gap: 1rem;
+    height: 70px;
   }
 `;
 
-const LogoSection = styled(motion.create('div'))`
+const LogoSection = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
   flex-shrink: 0;
 `;
 
-const Logo = styled(motion.create('div'))`
+const Logo = styled.div`
   font-size: 1.5rem;
   font-weight: 700;
   color: ${({ theme }) => theme.colors.text};
@@ -61,7 +63,7 @@ const Logo = styled(motion.create('div'))`
   }
 `;
 
-const SearchSection = styled(motion.create('div'))`
+const SearchSection = styled.div`
   flex: 1;
   max-width: 500px;
   position: relative;
@@ -71,7 +73,7 @@ const SearchSection = styled(motion.create('div'))`
   }
 `;
 
-const SearchInput = styled(motion.create('input'))`
+const SearchInput = styled.input`
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 3rem;
   border: 1px solid ${({ theme }) => theme.colors.border};
@@ -92,7 +94,7 @@ const SearchInput = styled(motion.create('input'))`
   }
 `;
 
-const SearchIcon = styled(motion.create('div'))`
+const SearchIcon = styled.div`
   position: absolute;
   left: 1rem;
   top: 50%;
@@ -101,13 +103,19 @@ const SearchIcon = styled(motion.create('div'))`
   pointer-events: none;
 `;
 
-const ActionsSection = styled(motion.create('div'))`
+const ActionsSection = styled.div`
   display: flex;
   align-items: center;
   gap: 1.5rem;
 `;
 
-const Avatar = styled(motion.create(Link))`
+const HeaderSwitcher = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const Avatar = styled(Link)`
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -142,7 +150,7 @@ const Avatar = styled(motion.create(Link))`
   }
 `;
 
-const NotificationButton = styled(motion.create('button'))`
+const NotificationButton = styled.button`
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -199,80 +207,29 @@ const NotificationButton = styled(motion.create('button'))`
       height: 12px;
       background: #ef4444;
       border-radius: 50%;
-      border: 2px solid rgba(255, 255, 255, 0.9);
+      border: 2px solid white;
       animation: pulse 2s infinite;
     }
   `}
-`;
 
-const SettingsButton = styled(motion.create('button'))`
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.4);
-    transform: scale(1.05);
-    
-    &::before {
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
       opacity: 1;
     }
-    
-    svg {
-      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+    50% {
+      transform: scale(1.2);
+      opacity: 0.7;
     }
-  }
-
-  svg {
-    font-size: 1.25rem;
-    transition: all 0.3s ease;
-  }
-`;
-
-// Simple wrapper to style the button for the dashboard
-const HeaderSwitcher = styled(motion.create('div'))`
-  button {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: ${({ theme }) => theme.colors.text};
-    border-radius: 12px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      background: rgba(59, 130, 246, 0.1);
-      border-color: rgba(59, 130, 246, 0.3);
-      transform: translateY(-2px);
+    100% {
+      transform: scale(1);
+      opacity: 1;
     }
   }
 `;
 
 // Particle component for background effects
-const Particle = styled(motion.create('div'))`
+const Particle = styled(motion.div)`
   position: absolute;
   width: 4px;
   height: 4px;
@@ -376,97 +333,108 @@ const Header = () => {
   };
 
   return (
-    <HeaderContainer
+    <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      {/* Particles */}
-      {particles.map(particle => (
-        <Particle
-          key={particle.id}
-          style={{
-            left: particle.x,
-            top: particle.y
-          }}
-          animate={{
-            x: particle.vx * 100,
-            y: particle.vy * 100,
-            opacity: [1, 0],
-            scale: [1, 0]
-          }}
-          transition={{
-            duration: 3,
-            ease: "easeOut"
-          }}
-        />
-      ))}
-
-      <LogoSection variants={itemVariants}>
-        <Logo
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <div className="logo-icon">🧪</div>
-          SmartLab
-        </Logo>
-      </LogoSection>
-
-      <SearchSection variants={itemVariants}>
-        <SearchInput
-          ref={searchInputRef}
-          type="text"
-          placeholder={t('header.searchPlaceholder')}
-          value={searchValue}
-          onChange={handleSearchChange}
-          onKeyDown={handleSearchKeyDown}
-          whileFocus={{ scale: 1.02 }}
-        />
-        <SearchIcon>
-          <Search size={20} />
-        </SearchIcon>
-      </SearchSection>
-
-      <ActionsSection variants={itemVariants}>
-        <PremiumBarcodeScanner onScan={handleBarcodeScan} />
-        
-        <LanguageSwitcher />
-        
-        <HeaderSwitcher>
-          <motion.button
-            onClick={() => navigate('/app/settings')}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+      <HeaderContainer>
+        {/* Particles */}
+        {particles.map(particle => (
+          <Particle
+            key={particle.id}
             style={{
-              padding: '0.5rem',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              color: 'var(--text-color)'
+              left: particle.x,
+              top: particle.y
             }}
-          >
-            <Settings size={20} />
-          </motion.button>
-        </HeaderSwitcher>
+            animate={{
+              x: particle.vx * 100,
+              y: particle.vy * 100,
+              opacity: [1, 0],
+              scale: [1, 0]
+            }}
+            transition={{
+              duration: 3,
+              ease: "easeOut"
+            }}
+          />
+        ))}
 
-        <NotificationButton
-          $hasNotifications={unreadCount > 0}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => navigate('/app/notifications')}
-        >
-          <Bell size={20} />
-        </NotificationButton>
+        <motion.div variants={itemVariants}>
+          <LogoSection>
+            <Logo
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <div className="logo-icon">🧪</div>
+              SmartLab
+            </Logo>
+          </LogoSection>
+        </motion.div>
 
-        <Avatar
-          to="/app/profile"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          {user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
-        </Avatar>
-      </ActionsSection>
-    </HeaderContainer>
+        <motion.div variants={itemVariants}>
+          <SearchSection>
+            <SearchInput
+              ref={searchInputRef}
+              type="text"
+              placeholder={t('header.searchPlaceholder')}
+              value={searchValue}
+              onChange={handleSearchChange}
+              onKeyDown={handleSearchKeyDown}
+            />
+            <SearchIcon>
+              <Search size={20} />
+            </SearchIcon>
+          </SearchSection>
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
+          <ActionsSection>
+            <PremiumBarcodeScanner onScan={handleBarcodeScan} />
+            
+            <LanguageSwitcher />
+            
+            <HeaderSwitcher>
+              <motion.button
+                onClick={() => navigate('/app/settings')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                  padding: '0.5rem',
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-color)'
+                }}
+              >
+                <Settings size={20} />
+              </motion.button>
+            </HeaderSwitcher>
+
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <NotificationButton
+                $hasNotifications={unreadCount > 0}
+                onClick={() => navigate('/app/notifications')}
+              >
+                <Bell size={20} />
+              </NotificationButton>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Avatar to="/app/profile">
+                {user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+              </Avatar>
+            </motion.div>
+          </ActionsSection>
+        </motion.div>
+      </HeaderContainer>
+    </motion.div>
   );
 };
 
