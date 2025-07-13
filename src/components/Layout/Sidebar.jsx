@@ -63,10 +63,7 @@ import {
   Thermometer,
   Droplets,
   Gauge,
-  Timer,
-  Stopwatch,
-  CalendarDays,
-  Clock3
+  Timer
 } from 'lucide-react';
 
 const SidebarContainer = styled(motion.create('aside'))`
