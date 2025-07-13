@@ -1,4 +1,16 @@
 {
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "orders": "Orders",
+    "patientRegistration": "Patient Registration",
+    "workQueue": "Work Queue",
+    "phlebotomist": "Phlebotomist",
+    "qualityControl": "Quality Control",
+    "inventory": "Inventory",
+    "workload": "Workload",
+    "auditLog": "Audit Log",
+    "logout": "Logout"
+  },
   "greeting": "Welcome",
   "dashboard": {
     "title": "Dashboard",
