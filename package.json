@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
+    "@hookform/resolvers": "^5.1.1",
     "@react-pdf/renderer": "^3.4.5",
     "@sentry/react": "^7.108.0",
     "@sentry/tracing": "^7.108.0",

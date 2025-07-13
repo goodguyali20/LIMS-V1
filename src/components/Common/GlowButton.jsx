@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const ButtonContainer = styled(motion.button)`
+const ButtonContainer = styled(motion.create('button'))`
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -108,13 +108,13 @@ const ButtonContainer = styled(motion.button)`
   }
 
   /* Loading state */
-  ${({ loading }) => loading && `
+  ${({ $loading }) => $loading && `
     cursor: wait;
     pointer-events: none;
   `}
 `;
 
-const RippleEffect = styled(motion.div)`
+const RippleEffect = styled(motion.create('div'))`
   position: absolute;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.3);
@@ -123,7 +123,7 @@ const RippleEffect = styled(motion.div)`
   pointer-events: none;
 `;
 
-const Particle = styled(motion.div)`
+const Particle = styled(motion.create('div'))`
   position: absolute;
   width: 4px;
   height: 4px;
@@ -132,7 +132,7 @@ const Particle = styled(motion.div)`
   pointer-events: none;
 `;
 
-const LoadingSpinner = styled(motion.div)`
+const LoadingSpinner = styled(motion.create('div'))`
   width: 16px;
   height: 16px;
   border: 2px solid rgba(255, 255, 255, 0.3);
@@ -229,7 +229,7 @@ const GlowButton = ({
     <ButtonContainer
       variant={variant}
       size={size}
-      loading={loading}
+      $loading={loading}
       disabled={disabled}
       onClick={handleClick}
       className={className}

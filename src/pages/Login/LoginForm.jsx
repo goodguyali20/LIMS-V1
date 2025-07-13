@@ -1,152 +1,130 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
+import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../firebase/config';
-import toast from 'react-hot-toast';
-import { useTheme } from '../../contexts/ThemeContext.jsx';
+import GlowButton from '../../components/common/GlowButton';
 
-const Form = styled(motion.form)`
+const Form = styled(motion.create('form'))`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  width: 100%;
-  max-width: 400px;
 `;
 
-const InputGroup = styled(motion.div)`
-  text-align: left;
-  position: relative;
+const InputGroup = styled(motion.create('div'))`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const Input = styled.input`
+  padding: 0.75rem 1rem;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 8px;
+  background: ${({ theme }) => theme.colors.surface};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1rem;
+  transition: all 0.3s ease;
   
-  label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    font-size: 0.9rem;
-    color: ${({ theme }) => theme.colors.textSecondary};
-    transition: color 0.3s ease;
-  }
-  
-  input {
-    width: 100%;
-    padding: 1rem 1.2rem;
-    border-radius: 12px;
-    border: 2px solid ${({ theme }) => theme.colors.border};
-    background: ${({ theme }) => theme.colors.input};
-    color: ${({ theme }) => theme.colors.text};
-    font-size: 1rem;
+  &:focus {
     outline: none;
-    transition: all 0.3s ease;
-    position: relative;
-    
-    &:focus {
-      border-color: ${({ theme }) => theme.colors.primary};
-      box-shadow: ${({ theme }) => theme.isDarkMode ? theme.shadows.glow.primary : '0 0 0 3px rgba(37, 99, 235, 0.1)'};
-      transform: translateY(-1px);
-    }
-    
-    &:hover {
-      border-color: ${({ theme }) => theme.colors.primary};
-    }
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  &::placeholder {
+    color: ${({ theme }) => theme.colors.textSecondary};
   }
 `;
 
-const LoginButton = styled(motion.button)`
-  padding: 1rem 2rem;
-  border: none;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  background: linear-gradient(135deg, ${({ theme }) => theme.colors.primary}, ${({ theme }) => theme.colors.info});
+const Label = styled.label`
+  font-weight: 500;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 0.875rem;
+`;
+
+const LoginButton = styled(motion.create('button'))`
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: white;
+  border: none;
+  border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s ease;
-  }
-  
-  &:hover::before {
-    left: 100%;
-  }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-    transform: none;
+  }
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
   }
 `;
 
-const LoadingSpinner = styled(motion.div)`
-  width: 20px;
-  height: 20px;
+const LoadingSpinner = styled(motion.create('div'))`
+  width: 16px;
+  height: 16px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top: 2px solid white;
   border-radius: 50%;
-  margin: 0 auto;
+  animation: spin 1s linear infinite;
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 `;
 
-const ErrorMessage = styled(motion.div)`
-  color: ${({ theme }) => theme.colors.error};
+const ErrorMessage = styled(motion.create('div'))`
+  color: #ef4444;
   font-size: 0.875rem;
   text-align: center;
-  margin-top: 0.5rem;
   padding: 0.5rem;
-  background: ${({ theme }) => theme.isDarkMode ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)'};
-  border-radius: 8px;
-  border: 1px solid ${({ theme }) => theme.isDarkMode ? 'rgba(239, 68, 68, 0.3)' : 'rgba(239, 68, 68, 0.2)'};
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
 `;
 
-const LoginForm = () => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
+const LoginForm = ({ setIsLoading }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
-    sessionStorage.setItem('loginEventLogged', 'false');
+    setIsSubmitting(true);
+    setIsLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      toast.success('Login successful! Welcome back.');
+      await login(email, password);
       navigate('/app/dashboard');
-    } catch (error) {
-      console.error("Login Error:", error);
-      const errorMessage = error.message.includes('auth/invalid-credential') 
-        ? 'Invalid email or password.' 
-        : 'An error occurred during login.';
-      setError(errorMessage);
-      toast.error(errorMessage);
+    } catch (err) {
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
-  const containerVariants = {
+  const formVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.6,
-        ease: "easeOut",
+        duration: 0.5,
         staggerChildren: 0.1
       }
     }
@@ -157,92 +135,67 @@ const LoginForm = () => {
     visible: {
       opacity: 1,
       y: 0,
-      transition: {
-        duration: 0.4,
-        ease: "easeOut"
-      }
-    }
-  };
-
-  const buttonVariants = {
-    hover: {
-      scale: 1.02,
-      boxShadow: theme.isDarkMode ? theme.shadows.glow.primary : "0 8px 25px rgba(37, 99, 235, 0.3)",
-      transition: {
-        duration: 0.2,
-        ease: "easeOut"
-      }
-    },
-    tap: {
-      scale: 0.98,
-      transition: {
-        duration: 0.1
-      }
+      transition: { duration: 0.3 }
     }
   };
 
   return (
     <Form
-      onSubmit={handleLogin}
-      variants={containerVariants}
+      onSubmit={handleSubmit}
+      variants={formVariants}
       initial="hidden"
       animate="visible"
     >
       <InputGroup variants={itemVariants}>
-        <label htmlFor="email">{t('emailLabel')}</label>
-        <motion.input
+        <Label htmlFor="email">Email</Label>
+        <Input
           id="email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
           required
-          whileFocus={{ scale: 1.01 }}
-          transition={{ duration: 0.2 }}
         />
       </InputGroup>
-      
+
       <InputGroup variants={itemVariants}>
-        <label htmlFor="password">{t('passwordLabel')}</label>
-        <motion.input
+        <Label htmlFor="password">Password</Label>
+        <Input
           id="password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter your password"
           required
-          whileFocus={{ scale: 1.01 }}
-          transition={{ duration: 0.2 }}
         />
       </InputGroup>
-      
+
+      {error && (
+        <ErrorMessage
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+        >
+          {error}
+        </ErrorMessage>
+      )}
+
       <LoginButton
         type="submit"
-        disabled={loading}
-        variants={buttonVariants}
-        whileHover="hover"
-        whileTap="tap"
+        disabled={isSubmitting}
+        variants={itemVariants}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
       >
-        {loading ? (
-          <LoadingSpinner
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          />
+        {isSubmitting ? (
+          <>
+            <LoadingSpinner />
+            Signing in...
+          </>
         ) : (
-          t('loginButton')
+          'Sign In'
         )}
       </LoginButton>
-      
-      <AnimatePresence>
-        {error && (
-          <ErrorMessage
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-          >
-            {error}
-          </ErrorMessage>
-        )}
-      </AnimatePresence>
     </Form>
   );
 };

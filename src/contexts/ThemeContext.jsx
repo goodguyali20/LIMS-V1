@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { theme } from '../styles/theme';
 
 const ThemeContext = createContext();
@@ -23,7 +24,6 @@ export const ThemeProvider = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
-    
     // Apply theme to document body for global styles
     if (isDarkMode) {
       document.body.classList.add('dark-mode');
@@ -60,7 +60,9 @@ export const ThemeProvider = ({ children }) => {
 
   return (
     <ThemeContext.Provider value={{ theme: currentTheme, isDarkMode, toggleTheme }}>
-      {children}
+      <StyledThemeProvider theme={currentTheme}>
+        {children}
+      </StyledThemeProvider>
     </ThemeContext.Provider>
   );
 };
