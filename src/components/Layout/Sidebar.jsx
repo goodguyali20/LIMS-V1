@@ -66,17 +66,7 @@ import {
   Timer,
   Stopwatch,
   CalendarDays,
-  Clock3,
-  CalendarCheck,
-  CalendarX,
-  CalendarPlus,
-  CalendarMinus,
-  CalendarRange,
-  CalendarSearch,
-  CalendarHeart,
-  CalendarStar,
-  CalendarClock,
-  CalendarOff
+  Clock3
 } from 'lucide-react';
 
 const SidebarContainer = styled(motion.create('aside'))`
