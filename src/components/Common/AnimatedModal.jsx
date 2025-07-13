@@ -4,40 +4,29 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
 import { X } from 'lucide-react';
 
-const ModalOverlay = styled(motion.div)`
+const ModalOverlay = styled(motion.create('div'))`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 1rem;
+  backdrop-filter: blur(4px);
 `;
 
-const ModalContent = styled(motion.div)`
+const ModalContent = styled(motion.create('div'))`
   background: ${({ theme }) => theme.colors.surface};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  box-shadow: ${({ theme }) => theme.shadows.large};
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   border: 1px solid ${({ theme }) => theme.colors.border};
-  max-width: ${({ size }) => {
-    switch (size) {
-      case 'sm': return '400px';
-      case 'md': return '600px';
-      case 'lg': return '800px';
-      case 'xl': return '1200px';
-      case 'full': return '95vw';
-      default: return '600px';
-    }
-  }};
-  max-height: ${({ size }) => size === 'full' ? '95vh' : '90vh'};
-  width: 100%;
-  overflow: hidden;
-  position: relative;
 `;
 
 const CloseButton = styled.button`
@@ -62,13 +51,7 @@ const CloseButton = styled.button`
   }
 `;
 
-const AnimatedModal = ({ 
-  isOpen, 
-  onClose, 
-  children, 
-  size = 'md',
-  title 
-}) => {
+const AnimatedModal = ({ isOpen, onClose, children, title }) => {
   const { theme } = useTheme();
 
   const overlayVariants = {
@@ -76,26 +59,25 @@ const AnimatedModal = ({
     visible: { opacity: 1 }
   };
 
-  const modalVariants = {
+  const contentVariants = {
     hidden: { 
       opacity: 0, 
-      scale: 0.8, 
-      y: 20 
+      scale: 0.8,
+      y: 50
     },
     visible: { 
       opacity: 1, 
-      scale: 1, 
+      scale: 1,
       y: 0,
       transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 30
+        duration: 0.3,
+        ease: "easeOut"
       }
     },
-    exit: { 
-      opacity: 0, 
-      scale: 0.8, 
-      y: 20,
+    exit: {
+      opacity: 0,
+      scale: 0.8,
+      y: 50,
       transition: {
         duration: 0.2
       }
@@ -113,26 +95,34 @@ const AnimatedModal = ({
           onClick={onClose}
         >
           <ModalContent
-            size={size}
-            variants={modalVariants}
+            variants={contentVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
             onClick={(e) => e.stopPropagation()}
           >
             {title && (
-              <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-                <h2 className="text-xl font-semibold text-slate-800 dark:text-white">
-                  {title}
-                </h2>
-              </div>
+              <motion.h2
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                style={{
+                  marginBottom: '1rem',
+                  color: 'var(--text-color)',
+                  fontSize: '1.5rem',
+                  fontWeight: 600
+                }}
+              >
+                {title}
+              </motion.h2>
             )}
-            
-            <CloseButton onClick={onClose}>
-              <X className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-            </CloseButton>
-            
-            {children}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              {children}
+            </motion.div>
           </ModalContent>
         </ModalOverlay>
       )}

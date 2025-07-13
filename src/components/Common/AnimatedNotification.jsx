@@ -4,52 +4,37 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 
-const NotificationContainer = styled(motion.div)`
+const NotificationContainer = styled(motion.create('div'))`
   position: fixed;
-  top: 1rem;
-  right: 1rem;
+  top: 20px;
+  right: 20px;
   z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   max-width: 400px;
-  width: 100%;
 `;
 
-const NotificationCard = styled(motion.div)`
-  background: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme, type }) => {
+const NotificationCard = styled(motion.create('div'))`
+  background: ${({ theme, type }) => {
     switch (type) {
-      case 'success': return theme.colors.success;
-      case 'error': return theme.colors.error;
-      case 'warning': return theme.colors.warning;
-      case 'info': return theme.colors.info;
-      default: return theme.colors.border;
+      case 'success': return '#10b981';
+      case 'error': return '#ef4444';
+      case 'warning': return '#f59e0b';
+      case 'info': return '#3b82f6';
+      default: return '#6b7280';
     }
   }};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  box-shadow: ${({ theme }) => theme.shadows.large};
-  padding: 1rem;
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: ${({ theme, type }) => {
-      switch (type) {
-        case 'success': return theme.colors.success;
-        case 'error': return theme.colors.error;
-        case 'warning': return theme.colors.warning;
-        case 'info': return theme.colors.info;
-        default: return theme.colors.primary;
-      }
-    }};
-  }
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 `;
 
 const IconContainer = styled.div`
