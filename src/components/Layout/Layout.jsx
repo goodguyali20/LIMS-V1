@@ -39,6 +39,7 @@ const MainContent = styled.main`
   overflow: hidden;
   position: relative;
   z-index: 1;
+  margin-left: 280px;
 `;
 
 const ContentArea = styled(motion.div)`
