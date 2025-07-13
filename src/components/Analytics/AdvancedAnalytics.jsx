@@ -168,7 +168,7 @@ const AdvancedAnalytics = () => {
   const [showLegend, setShowLegend] = useState(true);
 
   // Generate sample data based on date range
-  const generateData = (days: number) => {
+  const generateData = (days) => {
     const data = [];
     const today = new Date();
     
@@ -246,7 +246,7 @@ const AdvancedAnalytics = () => {
           <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', color: theme.colors.text }}>
             {label}
           </p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry, index) => (
             <p key={index} style={{ 
               margin: '4px 0', 
               color: entry.color,
@@ -272,7 +272,7 @@ const AdvancedAnalytics = () => {
         marginTop: '1rem',
         flexWrap: 'wrap'
       }}>
-        {payload?.map((entry: any, index: number) => (
+        {payload?.map((entry, index) => (
           <div key={index} style={{ 
             display: 'flex', 
             alignItems: 'center', 
