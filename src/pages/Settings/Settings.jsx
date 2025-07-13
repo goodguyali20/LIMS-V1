@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useTestCatalog } from '../../contexts/TestContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { FaSave, FaPlus, FaEdit, FaTrash, FaExclamationCircle } from 'react-icons/fa';
+import { FaSave, FaPlus, FaEdit, FaTrash, FaExclamationCircle, FaFlask } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Components
 import Modal from '../../components/Common/Modal';
@@ -20,15 +21,15 @@ const TabsContainer = styled.div`
   margin-bottom: 2rem;
 `;
 
-const TabButton = styled.button`
+const TabButton = styled(motion.button)`
   padding: 1rem 1.5rem;
   border: none;
   background: none;
   cursor: pointer;
   font-size: 1.1rem;
   font-weight: 600;
-  color: ${({ theme, active }) => active ? theme.colors.primary : theme.colors.textSecondary};
-  border-bottom: 3px solid ${({ theme, active }) => active ? theme.colors.primary : 'transparent'};
+  color: ${({ theme, $active }) => $active ? theme.colors.primary : theme.colors.textSecondary};
+  border-bottom: 3px solid ${({ theme, $active }) => $active ? theme.colors.primary : 'transparent'};
   transition: all 0.2s ease-in-out;
 
   &:hover {
@@ -36,8 +37,23 @@ const TabButton = styled.button`
   }
 `;
 
-const TabContent = styled.div`
+const TabContent = styled(motion.div)`
   animation: fadeIn 0.5s;
+`;
+
+const SkeletonCard = styled(motion.div)`
+  background: ${({ theme }) => theme.colors.surface};
+  border-radius: ${({ theme }) => theme.shapes.squircle};
+  padding: 1.5rem;
+  min-height: 100px;
+  margin-bottom: 1.5rem;
+  box-shadow: ${({ theme }) => theme.shadows.main};
+  opacity: 0.7;
+  animation: pulse 1.5s infinite alternate;
+  @keyframes pulse {
+    0% { background: ${({ theme }) => theme.colors.surface}; }
+    100% { background: ${({ theme }) => theme.colors.surfaceSecondary}; }
+  }
 `;
 
 const Section = styled.div`
@@ -278,71 +294,128 @@ const Settings = () => {
 
   return (
     <SettingsContainer>
-      <h1>Settings</h1>
+      <motion.h1 initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+        Settings
+      </motion.h1>
       <TabsContainer>
-        <TabButton active={activeTab === 'general'} onClick={() => setActiveTab('general')}>General</TabButton>
-        <TabButton active={activeTab === 'catalog'} onClick={() => setActiveTab('catalog')}>Test Catalog</TabButton>
+        <TabButton 
+          $active={activeTab === 'general'} 
+          onClick={() => setActiveTab('general')}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          General
+        </TabButton>
+        <TabButton 
+          $active={activeTab === 'catalog'} 
+          onClick={() => setActiveTab('catalog')}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          Test Catalog
+        </TabButton>
         {/* <TabButton active={activeTab === 'panels'} onClick={() => setActiveTab('panels')}>Test Panels</TabButton> */}
       </TabsContainer>
 
-      <TabContent>
-        {activeTab === 'general' && (
-          <Section>
-            <form onSubmit={handleGeneralSubmit}>
+      <AnimatePresence mode="wait">
+        <TabContent
+          key={activeTab}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          {activeTab === 'general' && (
+            <Section as={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <form onSubmit={handleGeneralSubmit}>
+                <SectionHeader>
+                  <h2>General Settings</h2>
+                  <ActionButton 
+                    type="submit" 
+                    disabled={settingsLoading}
+                    as={motion.button}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <FaSave /> {settingsLoading ? 'Saving...' : 'Save Changes'}
+                  </ActionButton>
+                </SectionHeader>
+                <Form>
+                  <Input name="hospitalName" value={generalFormState.hospitalName || ''} onChange={handleGeneralInputChange} placeholder="Hospital Name" />
+                  <Input name="hospitalAddress" value={generalFormState.hospitalAddress || ''} onChange={handleGeneralInputChange} placeholder="Hospital Address" />
+                  <Input name="hospitalPhone" value={generalFormState.hospitalPhone || ''} onChange={handleGeneralInputChange} placeholder="Hospital Phone" />
+                </Form>
+              </form>
+            </Section>
+          )}
+
+          {activeTab === 'catalog' && (
+            <Section as={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <SectionHeader>
-                <h2>General Settings</h2>
-                <ActionButton type="submit" disabled={settingsLoading}>
-                  <FaSave /> {settingsLoading ? 'Saving...' : 'Save Changes'}
+                <h2>Test Catalog</h2>
+                <ActionButton 
+                  onClick={() => handleOpenModal()}
+                  as={motion.button}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <FaPlus /> Add New Test
                 </ActionButton>
               </SectionHeader>
-              <Form>
-                <Input name="hospitalName" value={generalFormState.hospitalName || ''} onChange={handleGeneralInputChange} placeholder="Hospital Name" />
-                <Input name="hospitalAddress" value={generalFormState.hospitalAddress || ''} onChange={handleGeneralInputChange} placeholder="Hospital Address" />
-                <Input name="hospitalPhone" value={generalFormState.hospitalPhone || ''} onChange={handleGeneralInputChange} placeholder="Hospital Phone" />
-              </Form>
-            </form>
-          </Section>
-        )}
+              <TestList>
+                {testsLoading ? (
+                  [...Array(3)].map((_, i) => (
+                    <SkeletonCard key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} />
+                  ))
+                ) : labTests.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}
+                  >
+                    <FaFlask size={48} style={{ marginBottom: 16, opacity: 0.5 }} />
+                    <p>No tests found. Add your first test to get started.</p>
+                  </motion.div>
+                ) : (
+                  labTests.map((test, index) => (
+                    <TestListItem 
+                      key={test.id}
+                      as={motion.li}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      whileHover={{ scale: 1.02 }}
+                    >
+                      <TestInfo>
+                        <strong>{test.name}</strong>
+                        <span>({test.department})</span>
+                        {test.requiresSpecialSlip && (
+                          <SpecialBadge>
+                            <FaExclamationCircle size={12} />
+                            Special Slip
+                          </SpecialBadge>
+                        )}
+                      </TestInfo>
+                      <TestActions>
+                        <FaEdit onClick={() => handleOpenModal(test)} title="Edit Test"/>
+                        <FaTrash onClick={() => handleDeleteTest(test.id, test.name)} title="Delete Test"/>
+                      </TestActions>
+                    </TestListItem>
+                  ))
+                )}
+              </TestList>
+            </Section>
+          )}
 
-        {activeTab === 'catalog' && (
-          <Section>
-            <SectionHeader>
-              <h2>Test Catalog</h2>
-              <ActionButton onClick={() => handleOpenModal()}>
-                <FaPlus /> Add New Test
-              </ActionButton>
-            </SectionHeader>
-            <TestList>
-              {testsLoading ? <p>Loading tests...</p> : labTests.map((test) => (
-                <TestListItem key={test.id}>
-                  <TestInfo>
-                    <strong>{test.name}</strong>
-                    <span>({test.department})</span>
-                    {test.requiresSpecialSlip && (
-                      <SpecialBadge>
-                        <FaExclamationCircle size={12} />
-                        Special Slip
-                      </SpecialBadge>
-                    )}
-                  </TestInfo>
-                  <TestActions>
-                    <FaEdit onClick={() => handleOpenModal(test)} title="Edit Test"/>
-                    <FaTrash onClick={() => handleDeleteTest(test.id, test.name)} title="Delete Test"/>
-                  </TestActions>
-                </TestListItem>
-              ))}
-            </TestList>
-          </Section>
-        )}
-
-        {/* {activeTab === 'panels' && (
-          <Section>
-            <SectionHeader>
-              <h2>Test Panels</h2>
-            </SectionHeader>
-          </Section>
-        )} */}
-      </TabContent>
+          {/* {activeTab === 'panels' && (
+            <Section>
+              <SectionHeader>
+                <h2>Test Panels</h2>
+              </SectionHeader>
+            </Section>
+          )} */}
+        </TabContent>
+      </AnimatePresence>
 
       <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingTest ? 'Edit Test' : 'Add New Test'}>
         <ModalForm onSubmit={handleSaveTest}>

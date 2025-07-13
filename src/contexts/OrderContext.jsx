@@ -1,12 +1,9 @@
-import React, { createContext, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import { OrderContext } from './OrderContextBase.js';
 
-// Create the context with a default value
-export const OrderContext = createContext({
-  lastOrderId: null,
-  setLastOrderId: () => {},
-});
+// Re-export OrderContext for direct imports
+export { OrderContext };
 
-// Create the provider component
 export const OrderProvider = ({ children }) => {
   const [lastOrderId, setLastOrderId] = useState(null);
 

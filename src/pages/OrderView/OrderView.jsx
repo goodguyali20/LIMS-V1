@@ -3,9 +3,9 @@ import { useParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import styled from 'styled-components';
-import { fadeIn } from '../../styles/animations';
+import { advancedVariants } from '../../styles/animations';
 import { toast } from 'react-toastify';
-import { FaUser, FaIdCard, FaBirthdayCake, FaVenusMars, FaCalendarAlt, FaStethoscope, FaFlask, FaExclamationTriangle, FaPrint, FaTicketAlt } from 'react-icons/fa';
+import { FaUser, FaIdCard, FaBirthdayCake, FaVenusMars, FaCalendarAlt, FaStethoscope, FaFlask, FaExclamationTriangle, FaPrint, FaTicketAlt, FaBarcode } from 'react-icons/fa';
 import { useReactToPrint } from 'react-to-print';
 import { useTestCatalog } from '../../contexts/TestContext';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -14,16 +14,17 @@ import { useSettings } from '../../contexts/SettingsContext';
 import AmendmentModal from '../../components/Modals/AmendmentModal';
 import PrintableReport from '../../components/Report/PrintableReport';
 import RequisitionForm from '../../components/Report/RequisitionForm';
-import StatusBadge from '../../components/Common/StatusBadge'; // <<< THIS PATH IS NOW CORRECT
+import StatusBadge from '../../components/common/StatusBadge';
 import A4PrintGrid from '../../components/Print/A4PrintGrid';
 import MasterSlip from '../../components/Print/MasterSlip';
 import DepartmentSlip from '../../components/Print/DepartmentSlip';
 import TubeIdSlip from '../../components/Print/TubeIdSlip';
 import PageLoader from '../../components/Loaders/PageLoader';
+import PrintCenter from '../../components/common/PrintCenter';
 
 // Styled Components
 const PageContainer = styled.div`
-  animation: ${fadeIn} 0.5s ease-in-out;
+  animation: ${advancedVariants.fadeIn} 0.5s ease-in-out;
 `;
 const DetailsCard = styled.div`
   max-width: 1000px;
@@ -158,6 +159,12 @@ const OrderView = () => {
   const slipPrintRef = useRef();
   const handleSlipPrint = useReactToPrint({ content: () => slipPrintRef.current });
 
+  const [printCenterOpen, setPrintCenterOpen] = useState(false);
+  const [selectedDocIndex, setSelectedDocIndex] = useState(0);
+  const [printSettings, setPrintSettings] = useState({ paperSize: 'A4', orientation: 'portrait', colorMode: 'color' });
+  const [printLoading, setPrintLoading] = useState(false);
+  const [printFeedback, setPrintFeedback] = useState(null);
+
   useEffect(() => {
     const fetchOrder = async () => {
       if (!orderId) return;
@@ -187,18 +194,75 @@ const OrderView = () => {
     }, {});
   }, [order, labTests]);
 
-  // This is the placeholder function from our first implementation
-  const generateSlipsForPrinting = () => {
-      if (!order) return [];
-      let allSlips = [];
-      allSlips.push(<MasterSlip order={order} />);
-      Object.entries(testsByDept).forEach(([dept, tests]) => {
-          allSlips.push(<DepartmentSlip order={order} department={dept} tests={tests} />);
-      });
-      for (let i = 0; i < 3; i++) {
-        allSlips.push(<TubeIdSlip order={order} />);
-      }
-      return allSlips;
+  // Prepare print documents (A4, slips, requisition, etc.)
+  const printDocuments = useMemo(() => {
+    if (!order) return [];
+    return [
+      {
+        id: 'a4',
+        title: 'A4 Report',
+        icon: <FaPrint />,
+        preview: <PrintableReport order={order} settings={settings} />,
+        type: 'a4',
+      },
+      {
+        id: 'requisition',
+        title: 'Requisition Form',
+        icon: <FaTicketAlt />,
+        preview: <RequisitionForm order={order} settings={settings} ref={requisitionPrintRef} />,
+        type: 'requisition',
+      },
+      {
+        id: 'master-slip',
+        title: 'Master Slip',
+        icon: <FaIdCard />,
+        preview: <MasterSlip order={order} ref={slipPrintRef} />,
+        type: 'master-slip',
+      },
+      ...Object.entries(testsByDept).map(([dept, tests], idx) => ({
+        id: `dept-slip-${dept}`,
+        title: `Department Slip: ${dept}`,
+        icon: <FaFlask />,
+        preview: <DepartmentSlip order={order} department={dept} tests={tests} />,
+        type: 'department-slip',
+      })),
+      ...Array(3).fill(0).map((_, i) => ({
+        id: `tube-slip-${i}`,
+        title: `Tube ID Slip ${i+1}`,
+        icon: <FaBarcode />,
+        preview: <TubeIdSlip order={order} />,
+        type: 'tube-slip',
+      })),
+    ];
+  }, [order, settings, testsByDept]);
+
+  // Print handler
+  const handlePrint = async () => {
+    setPrintLoading(true);
+    setPrintFeedback(null);
+    try {
+      // Use window.print() for now, or implement per-document printing
+      window.print();
+      setPrintFeedback({ type: 'success', message: 'Sent to printer!' });
+    } catch (e) {
+      setPrintFeedback({ type: 'error', message: 'Print failed.' });
+    } finally {
+      setPrintLoading(false);
+    }
+  };
+
+  // PDF handler (placeholder, implement with jsPDF or similar)
+  const handleDownloadPDF = async () => {
+    setPrintLoading(true);
+    setPrintFeedback(null);
+    try {
+      // TODO: Implement PDF download logic
+      setPrintFeedback({ type: 'success', message: 'PDF downloaded!' });
+    } catch (e) {
+      setPrintFeedback({ type: 'error', message: 'PDF download failed.' });
+    } finally {
+      setPrintLoading(false);
+    }
   };
 
   const handleAmendClick = () => {
@@ -217,6 +281,39 @@ const OrderView = () => {
     }
   };
 
+  // Generate slips for printing
+  const generateSlipsForPrinting = () => {
+    if (!order) return [];
+    
+    const slips = [];
+    
+    // Add master slip
+    slips.push({
+      type: 'master',
+      content: <MasterSlip order={order} />
+    });
+    
+    // Add department slips
+    Object.entries(testsByDept).forEach(([dept, tests]) => {
+      slips.push({
+        type: 'department',
+        department: dept,
+        content: <DepartmentSlip order={order} department={dept} tests={tests} />
+      });
+    });
+    
+    // Add tube ID slips
+    for (let i = 0; i < 3; i++) {
+      slips.push({
+        type: 'tube',
+        index: i,
+        content: <TubeIdSlip order={order} />
+      });
+    }
+    
+    return slips;
+  };
+
   if (loading || testsLoading) return <PageLoader />;
   if (!order) return <p>Order not found.</p>;
 
@@ -227,8 +324,8 @@ const OrderView = () => {
           <CardHeader>
             <h2>Order #{order.id.substring(0, 6)}...</h2>
             <ButtonGroup>
-              <ReportButton onClick={() => setShowReport(prev => !prev)}>
-                {showReport ? 'Hide Report' : 'View Report'}
+              <ReportButton onClick={() => setPrintCenterOpen(true)}>
+                <FaPrint /> Print
               </ReportButton>
               <AmendButton onClick={handleAmendClick}>
                   <FaExclamationTriangle /> Amend Report
@@ -243,7 +340,7 @@ const OrderView = () => {
                 <InfoItem><FaIdCard /><strong>Patient ID:</strong> {order.patientId}</InfoItem>
                 <InfoItem><FaBirthdayCake /><strong>Age:</strong> {order.age}</InfoItem>
                 <InfoItem><FaVenusMars /><strong>Gender:</strong> {order.gender}</InfoItem>
-                <InfoItem><FaCalendarAlt /><strong>Order Date:</strong> {order.createdAt.toDate().toLocaleDateString()}</InfoItem>
+                <InfoItem><FaCalendarAlt /><strong>Order Date:</strong> {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A'}</InfoItem>
                 <InfoItem><FaStethoscope /><strong>Doctor:</strong> {order.referringDoctor || 'N/A'}</InfoItem>
             </InfoGrid>
             <StatusBadge status={order.status} />
@@ -297,6 +394,20 @@ const OrderView = () => {
           onClose={handleModalClose} 
         />
       )}
+
+      <PrintCenter
+        open={printCenterOpen}
+        onClose={() => setPrintCenterOpen(false)}
+        documents={printDocuments}
+        onPrint={handlePrint}
+        onDownloadPDF={handleDownloadPDF}
+        loading={printLoading}
+        feedback={printFeedback}
+        selectedDocIndex={selectedDocIndex}
+        onSelectDoc={setSelectedDocIndex}
+        printSettings={printSettings}
+        onChangeSettings={setPrintSettings}
+      />
     </>
   );
 };

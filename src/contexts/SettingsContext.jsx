@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { SettingsContext } from './SettingsContextBase.js';
 
-const SettingsContext = createContext();
-
-export const useSettings = () => useContext(SettingsContext);
+// Re-export useSettings for direct imports
+export { useSettings } from './SettingsContextBase.js';
 
 export const SettingsProvider = ({ children }) => {
   const [settings, setSettings] = useState({
@@ -18,39 +18,43 @@ export const SettingsProvider = ({ children }) => {
     const fetchSettings = async () => {
       setLoading(true);
       // We'll store all settings in a single document for simplicity
-      const docRef = doc(db, 'settings', 'main');
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        setSettings(prev => ({...prev, ...docSnap.data()}));
+      const docRef = doc(db, 'settings', 'general');
+      
+      try {
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setSettings(docSnap.data());
+        } else {
+          // Create default settings if they don't exist
+          await setDoc(docRef, settings);
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchSettings();
   }, []);
 
-  const updateSettings = async (newSettings) => {
-    setLoading(true);
-    const docRef = doc(db, 'settings', 'main');
+  const saveSettings = useCallback(async (newSettings) => {
     try {
-      await setDoc(docRef, newSettings, { merge: true });
-      setSettings(prev => ({...prev, ...newSettings}));
+      const docRef = doc(db, 'settings', 'general');
+      await setDoc(docRef, newSettings);
+      setSettings(newSettings);
+      return true;
     } catch (error) {
-      console.error("Failed to update settings: ", error);
+      console.error('Error saving settings:', error);
+      return false;
     }
-    setLoading(false);
-  };
+  }, []);
 
   const value = {
     settings,
     loading,
-    updateSettings,
+    saveSettings,
   };
 
-  return (
-    <SettingsContext.Provider value={value}>
-      {children}
-    </SettingsContext.Provider>
-  );
+  return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 };

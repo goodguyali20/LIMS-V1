@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaExclamationTriangle } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
 
 const ModalBackdrop = styled.div`
   position: fixed;
@@ -62,6 +63,7 @@ const AcknowledgeButton = styled.button`
 
 const CriticalValueModal = ({ criticalInfo, onConfirm }) => {
   const [canAcknowledge, setCanAcknowledge] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Force the user to wait 2 seconds before they can acknowledge
@@ -78,13 +80,13 @@ const CriticalValueModal = ({ criticalInfo, onConfirm }) => {
         <IconWrapper>
           <FaExclamationTriangle />
         </IconWrapper>
-        <Header>CRITICAL VALUE ALERT</Header>
+        <Header>{t('criticalValueAlert')}</Header>
         <SubText>
-          The result for <strong>{criticalInfo.test}</strong> ({criticalInfo.value}) is a critical value.
+          {t('criticalValueMessage', { test: criticalInfo.test, value: criticalInfo.value })}
         </SubText>
-        <p>You must notify the responsible physician immediately according to hospital protocol.</p>
+        <p>{t('criticalValueNotifyInstruction')}</p>
         <AcknowledgeButton onClick={onConfirm} disabled={!canAcknowledge}>
-          {canAcknowledge ? "I Acknowledge & Will Notify" : "Reading..."}
+          {canAcknowledge ? t('acknowledgeAndNotify') : t('reading')}
         </AcknowledgeButton>
       </ModalContent>
     </ModalBackdrop>

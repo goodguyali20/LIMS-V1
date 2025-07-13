@@ -1,330 +1,959 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { db } from '../../firebase/config';
-import { collection, addDoc, onSnapshot } from 'firebase/firestore';
-import { toast } from 'react-toastify';
-import { fadeIn } from '../../styles/animations';
-import { useAuth } from '../../contexts/AuthContext';
-import { logAuditEvent } from '../../utils/auditLogger';
-import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  UserPlus, 
+  Users, 
+  Search, 
+  Filter, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Eye,
+  Calendar,
+  Phone,
+  Mail,
+  MapPin,
+  User,
+  Shield,
+  AlertCircle,
+  CheckCircle,
+  Clock
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useTestCatalog, departmentColors } from '../../contexts/TestContext';
-import { FaUser, FaVial, FaCheckCircle, FaChevronRight, FaChevronLeft } from 'react-icons/fa';
+import { GlowCard, GlowButton, AnimatedModal, AnimatedNotification } from '../../components/common';
+import { useAuth } from '../../contexts/AuthContext';
 
-// --- Main Container ---
-const WizardContainer = styled.div`
-  animation: ${fadeIn} 0.5s ease-in-out;
-  max-width: 1000px;
-  margin: auto;
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  box-shadow: ${({ theme }) => theme.shadows.main};
-  overflow: hidden;
+// Styled Components
+const RegistrationContainer = styled(motion.div)`
+  min-height: 100vh;
+  background: ${({ theme }) => theme.isDarkMode 
+    ? `linear-gradient(135deg, ${theme.colors.dark.background} 0%, #1a1a2e 50%, #16213e 100%)`
+    : `linear-gradient(135deg, ${theme.colors.background} 0%, #f1f5f9 50%, #e2e8f0 100%)`
+  };
+  padding: 2rem;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `;
 
-// --- Progress Bar ---
-const ProgressBar = styled.div`
-  display: flex;
-  background-color: ${({ theme }) => theme.colors.background};
-`;
-
-const Step = styled.div`
-  flex: 1;
-  padding: 1rem;
-  text-align: center;
-  font-weight: 600;
-  border-bottom: 3px solid transparent;
-  color: ${({ theme, active }) => active ? theme.colors.primaryPlain : theme.colors.textSecondary};
-  border-color: ${({ theme, active }) => active ? theme.colors.primaryPlain : 'transparent'};
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  opacity: ${({ active, completed }) => (active || completed ? 1 : 0.5)};
-`;
-
-// --- Step Content ---
-const StepContent = styled.div`
-  padding: 2.5rem;
-`;
-
-const StepHeader = styled.h3`
-  font-size: 1.5rem;
-  margin-top: 0;
+const RegistrationHeader = styled(motion.div)`
   margin-bottom: 2rem;
 `;
 
-// --- Step 1: Patient Info ---
-const PatientInfoGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem 2rem;
+const RegistrationTitle = styled.h1`
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: ${({ theme }) => theme.colors.text};
+  margin: 0 0 0.5rem 0;
+  
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
 `;
 
-// --- Step 2: Test Selection ---
-const TestSelectionLayout = styled.div`
-    display: grid;
-    grid-template-columns: 250px 1fr;
-    gap: 2rem;
-    height: 50vh;
-    min-height: 400px;
+const RegistrationDescription = styled.p`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 1.1rem;
+  margin: 0;
 `;
 
-const DeptList = styled.div`
-    border-right: 1px solid ${({ theme }) => theme.colors.border};
-    overflow-y: auto;
-    padding-right: 1rem;
-`;
-
-const DeptItem = styled.div`
-    padding: 0.75rem 1rem;
-    cursor: pointer;
-    font-weight: 600;
-    border-radius: 8px;
-    margin-bottom: 0.5rem;
-    background-color: ${({ active, color }) => active ? color : 'transparent'};
-    color: ${({ active, theme }) => active ? 'white' : theme.colors.text};
-    transition: all 0.2s ease-in-out;
-
-    &:hover {
-        background-color: ${({ active, color, theme }) => active ? color : theme.colors.background};
-        transform: translateX(3px);
-    }
-`;
-
-const TestsGrid = styled.div`
-    overflow-y: auto;
-    padding-right: 1rem;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
     gap: 1rem;
+  }
 `;
 
-// --- Step 3: Review ---
-const ReviewGrid = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    h4 {
-        border-bottom: 2px solid ${({ theme }) => theme.colors.border};
-        padding-bottom: 0.5rem;
-    }
-    ul {
-        list-style: none;
-        padding-left: 0;
-    }
-    li {
-        margin-bottom: 0.5rem;
-        background-color: ${({ theme }) => theme.colors.background};
-        padding: 0.5rem;
-        border-radius: 8px;
-    }
+const StatCard = styled(motion.div)`
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: ${({ color }) => color};
+  }
 `;
 
-// --- Common Components ---
-const InputGroup = styled.div`
+const StatIcon = styled.div`
+  font-size: 2rem;
+  color: ${({ color }) => color};
+  margin-bottom: 1rem;
+`;
+
+const StatValue = styled.div`
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: ${({ theme }) => theme.colors.text};
+  margin-bottom: 0.5rem;
+`;
+
+const StatLabel = styled.div`
+  font-size: 0.9rem;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-weight: 500;
+`;
+
+const SearchAndFilterContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  
+  @media (min-width: 640px) {
+    flex-direction: row;
+  }
+`;
+
+const SearchContainer = styled.div`
+  flex: 1;
+  position: relative;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
+  }
+  
+  &::placeholder {
+    color: ${({ theme }) => theme.colors.textSecondary};
+  }
+`;
+
+const SearchIcon = styled(Search)`
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: ${({ theme }) => theme.colors.textSecondary};
+  width: 1.25rem;
+  height: 1.25rem;
+`;
+
+const FilterSelect = styled.select`
+  padding: 0.75rem 1rem;
+  padding-inline-end: 2.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: ${({ theme }) => theme.colors.text};
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="%23999" height="16" viewBox="0 0 20 20" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7.293 7.293a1 1 0 011.414 0L10 8.586l1.293-1.293a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0l-2-2a1 1 0 010-1.414z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 1.2rem center;
+  background-size: 1.2rem 1.2rem;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
+  }
+  &::-ms-expand {
+    display: none;
+  }
+`;
+
+const AddButtonContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const PatientsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+`;
+
+const PatientCard = styled(motion.div)`
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
+`;
+
+const CardContent = styled(GlowCard)`
+  padding: 1.5rem;
+  height: 100%;
+`;
+
+const CardHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+`;
+
+const PatientInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const PatientAvatar = styled.div`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ color }) => color}20;
+  color: ${({ color }) => color};
+  font-weight: 600;
+  font-size: 1.2rem;
+`;
+
+const PatientDetails = styled.div``;
+
+const PatientName = styled.h3`
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.text};
+  margin: 0 0 0.25rem 0;
+`;
+
+const PatientId = styled.p`
+  font-size: 0.875rem;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  margin: 0;
+`;
+
+const StatusBadge = styled.span`
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: ${({ $status, theme }) => {
+    switch ($status) {
+      case 'active': return theme.colors.success + '20';
+      case 'inactive': return theme.colors.textSecondary + '20';
+      default: return theme.colors.textSecondary + '20';
+    }
+  }};
+  color: ${({ $status, theme }) => {
+    switch ($status) {
+      case 'active': return theme.colors.success;
+      case 'inactive': return theme.colors.textSecondary;
+      default: return theme.colors.textSecondary;
+    }
+  }};
+`;
+
+const PatientStats = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+`;
+
+const StatRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+`;
+
+const PatientStatIcon = styled.div`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  width: 1rem;
+`;
+
+const StatText = styled.span`
+  color: ${({ theme }) => theme.colors.text};
+`;
+
+const CardActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const ActionButton = styled(GlowButton)`
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+`;
+
+const DeleteButton = styled(GlowButton)`
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  background: ${({ theme }) => theme.colors.error}20;
+  color: ${({ theme }) => theme.colors.error};
+  border: 1px solid ${({ theme }) => theme.colors.error}30;
+  
+  &:hover {
+    background: ${({ theme }) => theme.colors.error}30;
+  }
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 3rem 1rem;
+`;
+
+const EmptyIcon = styled.div`
+  width: 96px;
+  height: 96px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem auto;
+  color: ${({ theme }) => theme.colors.textSecondary};
+`;
+
+const EmptyTitle = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.text};
+  margin: 0 0 0.5rem 0;
+`;
+
+const EmptyDescription = styled.p`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  margin: 0;
+`;
+
+const PatientRegistration = () => {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingPatient, setEditingPatient] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [notification, setNotification] = useState(null);
+
+  // Mock data
+  useEffect(() => {
+    const mockPatients = [
+      {
+        id: 1,
+        name: 'Ahmed Hassan',
+        age: 35,
+        gender: 'male',
+        phone: '+966501234567',
+        email: 'ahmed.hassan@email.com',
+        address: 'Riyadh, Saudi Arabia',
+        registrationDate: '2024-01-15',
+        status: 'active',
+        medicalHistory: 'Hypertension, Diabetes',
+        emergencyContact: '+966509876543'
+      },
+      {
+        id: 2,
+        name: 'Fatima Al-Zahra',
+        age: 28,
+        gender: 'female',
+        phone: '+966507654321',
+        email: 'fatima.alzahra@email.com',
+        address: 'Jeddah, Saudi Arabia',
+        registrationDate: '2024-01-10',
+        status: 'active',
+        medicalHistory: 'None',
+        emergencyContact: '+966501112223'
+      },
+      {
+        id: 3,
+        name: 'Omar Khalil',
+        age: 45,
+        gender: 'male',
+        phone: '+966505556667',
+        email: 'omar.khalil@email.com',
+        address: 'Dammam, Saudi Arabia',
+        registrationDate: '2024-01-08',
+        status: 'inactive',
+        medicalHistory: 'Asthma',
+        emergencyContact: '+966508889990'
+      }
+    ];
+    
+    setTimeout(() => {
+      setPatients(mockPatients);
+      setLoading(false);
+    }, 1000);
+  }, []);
+
+  const handleSubmit = (formData) => {
+    if (editingPatient) {
+      setPatients(prev => prev.map(p => p.id === editingPatient.id ? { ...p, ...formData } : p));
+      setNotification({
+        type: 'success',
+        message: t('patient.updatedSuccessfully'),
+        icon: CheckCircle
+      });
+    } else {
+      const newPatient = {
+        id: Date.now(),
+        ...formData,
+        registrationDate: new Date().toISOString().split('T')[0],
+        status: 'active'
+      };
+      setPatients(prev => [newPatient, ...prev]);
+      setNotification({
+        type: 'success',
+        message: t('patient.registeredSuccessfully'),
+        icon: CheckCircle
+      });
+    }
+    setShowModal(false);
+    setEditingPatient(null);
+  };
+
+  const handleDelete = (patientId) => {
+    setPatients(prev => prev.filter(p => p.id !== patientId));
+    setNotification({
+      type: 'success',
+      message: t('patient.deletedSuccessfully'),
+      icon: CheckCircle
+    });
+  };
+
+  const filteredPatients = patients.filter(patient => {
+    const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         patient.phone.includes(searchTerm) ||
+                         patient.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterStatus === 'all' || patient.status === filterStatus;
+    return matchesSearch && matchesFilter;
+  });
+
+  const stats = {
+    totalPatients: patients.length,
+    activePatients: patients.filter(p => p.status === 'active').length,
+    newThisMonth: patients.filter(p => {
+      const regDate = new Date(p.registrationDate);
+      const now = new Date();
+      return regDate.getMonth() === now.getMonth() && regDate.getFullYear() === now.getFullYear();
+    }).length
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: 'spring',
+        stiffness: 300,
+        damping: 25
+      }
+    },
+    hover: {
+      y: -5,
+      scale: 1.02,
+      transition: {
+        type: 'spring',
+        stiffness: 400,
+        damping: 25
+      }
+    }
+  };
+
+  const statCardVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: {
+        type: 'spring',
+        stiffness: 300,
+        damping: 25
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <RegistrationContainer>
+        <RegistrationHeader
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <RegistrationTitle>{t('patient.registration')}</RegistrationTitle>
+          <RegistrationDescription>{t('patient.registrationDescription')}</RegistrationDescription>
+        </RegistrationHeader>
+        
+        <StatsGrid>
+          {[1, 2, 3].map(i => (
+            <StatCard key={i} color="#3B82F6">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ height: '1rem', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', marginBottom: '0.5rem', width: '60%' }}></div>
+                  <div style={{ height: '2rem', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', width: '40%' }}></div>
+                </div>
+                <div style={{ width: '48px', height: '48px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '12px' }}></div>
+              </div>
+            </StatCard>
+          ))}
+        </StatsGrid>
+        
+        <PatientsGrid>
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <StatCard key={i} color="#3B82F6">
+              <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                Loading...
+              </div>
+            </StatCard>
+          ))}
+        </PatientsGrid>
+      </RegistrationContainer>
+    );
+  }
+
+  return (
+    <RegistrationContainer
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <RegistrationHeader>
+        <RegistrationTitle>{t('patient.registration')}</RegistrationTitle>
+        <RegistrationDescription>{t('patient.registrationDescription')}</RegistrationDescription>
+      </RegistrationHeader>
+
+      <StatsGrid>
+        <StatCard
+          variants={statCardVariants}
+          color="#3B82F6"
+          whileHover="hover"
+        >
+          <StatIcon color="#3B82F6">
+            <Users />
+          </StatIcon>
+          <StatValue>{stats.totalPatients}</StatValue>
+          <StatLabel>{t('patient.stats.totalPatients')}</StatLabel>
+        </StatCard>
+
+        <StatCard
+          variants={statCardVariants}
+          color="#10B981"
+          whileHover="hover"
+        >
+          <StatIcon color="#10B981">
+            <CheckCircle />
+          </StatIcon>
+          <StatValue>{stats.activePatients}</StatValue>
+          <StatLabel>{t('patient.stats.activePatients')}</StatLabel>
+        </StatCard>
+
+        <StatCard
+          variants={statCardVariants}
+          color="#F59E0B"
+          whileHover="hover"
+        >
+          <StatIcon color="#F59E0B">
+            <UserPlus />
+          </StatIcon>
+          <StatValue>{stats.newThisMonth}</StatValue>
+          <StatLabel>{t('patient.stats.newThisMonth')}</StatLabel>
+        </StatCard>
+      </StatsGrid>
+
+      <SearchAndFilterContainer>
+        <SearchContainer>
+          <SearchIcon />
+          <SearchInput
+            type="text"
+            placeholder={t('patient.search.placeholder')}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </SearchContainer>
+
+        <FilterSelect
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+        >
+          <option value="all">{t('patient.filters.allStatus')}</option>
+          <option value="active">{t('patient.filters.active')}</option>
+          <option value="inactive">{t('patient.filters.inactive')}</option>
+        </FilterSelect>
+
+        <AddButtonContainer>
+          <GlowButton
+            onClick={() => {
+              setEditingPatient(null);
+              setShowModal(true);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <Plus size={20} />
+            {t('patient.addPatient')}
+          </GlowButton>
+        </AddButtonContainer>
+      </SearchAndFilterContainer>
+
+      <PatientsGrid>
+        {filteredPatients.map((patient) => (
+          <PatientCard
+            key={patient.id}
+            variants={cardVariants}
+            whileHover="hover"
+          >
+            <CardContent>
+              <CardHeader>
+                <PatientInfo>
+                  <PatientAvatar color="#3B82F6">
+                    {patient.name.charAt(0)}
+                  </PatientAvatar>
+                  <PatientDetails>
+                    <PatientName>{patient.name}</PatientName>
+                    <PatientId>ID: {patient.id}</PatientId>
+                  </PatientDetails>
+                </PatientInfo>
+                <StatusBadge $status={patient.status}>
+                  {t(`patient.status.${patient.status}`)}
+                </StatusBadge>
+              </CardHeader>
+
+                             <PatientStats>
+                 <StatRow>
+                   <PatientStatIcon>
+                     <Calendar size={16} />
+                   </PatientStatIcon>
+                   <StatText>{patient.age} years old</StatText>
+                 </StatRow>
+
+                 <StatRow>
+                   <PatientStatIcon>
+                     <Phone size={16} />
+                   </PatientStatIcon>
+                   <StatText>{patient.phone}</StatText>
+                 </StatRow>
+
+                 <StatRow>
+                   <PatientStatIcon>
+                     <Mail size={16} />
+                   </PatientStatIcon>
+                   <StatText>{patient.email}</StatText>
+                 </StatRow>
+
+                 <StatRow>
+                   <PatientStatIcon>
+                     <MapPin size={16} />
+                   </PatientStatIcon>
+                   <StatText>{patient.address}</StatText>
+                 </StatRow>
+               </PatientStats>
+
+              <CardActions>
+                <ActionButton
+                  size="small"
+                  variant="primary"
+                  onClick={() => {
+                    setEditingPatient(patient);
+                    setShowModal(true);
+                  }}
+                >
+                  <Edit size={16} />
+                  {t('patient.edit')}
+                </ActionButton>
+                <DeleteButton
+                  size="small"
+                  onClick={() => handleDelete(patient.id)}
+                >
+                  <Trash2 size={16} />
+                  {t('patient.delete')}
+                </DeleteButton>
+              </CardActions>
+            </CardContent>
+          </PatientCard>
+        ))}
+      </PatientsGrid>
+
+      {filteredPatients.length === 0 && (
+        <EmptyState>
+          <EmptyIcon>
+            <Users size={48} />
+          </EmptyIcon>
+          <EmptyTitle>{t('patient.noPatients')}</EmptyTitle>
+          <EmptyDescription>{t('patient.noPatientsDescription')}</EmptyDescription>
+        </EmptyState>
+      )}
+
+      <AnimatePresence>
+        {showModal && (
+          <AnimatedModal
+            isOpen={showModal}
+            onClose={() => {
+              setShowModal(false);
+              setEditingPatient(null);
+            }}
+            title={editingPatient ? t('patient.editPatient') : t('patient.addPatient')}
+          >
+            <PatientForm
+              patient={editingPatient}
+              onSubmit={handleSubmit}
+              onCancel={() => {
+                setShowModal(false);
+                setEditingPatient(null);
+              }}
+            />
+          </AnimatedModal>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {notification && (
+          <AnimatedNotification
+            type={notification.type}
+            message={notification.message}
+            onClose={() => setNotification(null)}
+          />
+        )}
+      </AnimatePresence>
+    </RegistrationContainer>
+  );
+};
+
+// Patient Form Component
+const FormContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 `;
-const Input = styled.input`
-  padding: 0.8rem;
-  border-radius: 12px;
+
+const FormLabel = styled.label`
+  font-weight: 500;
+  color: ${({ theme }) => theme.colors.text};
+`;
+
+const FormInput = styled.input`
+  padding: 0.75rem;
   border: 1px solid ${({ theme }) => theme.colors.border};
-`;
-const CheckboxGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  label { cursor: pointer; }
-  input { cursor: pointer; }
-`;
-const UrgentCheckbox = styled(CheckboxGroup)`
-    margin-top: 2rem;
-    padding: 1rem;
-    background-color: #fff0f0;
-    border: 1px solid ${({ theme }) => theme.colors.error};
-    border-radius: 12px;
-    color: ${({ theme }) => theme.colors.error};
-    font-weight: bold;
-`;
-const ButtonContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-top: 2.5rem;
-  border-top: 1px solid ${({ theme }) => theme.colors.border};
-  padding-top: 1.5rem;
-`;
-const WizardButton = styled.button`
-  padding: 0.8rem 1.5rem;
-  border: none;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  cursor: pointer;
-  font-weight: 600;
-  color: white;
-  background: ${({ theme }) => theme.colors.primary};
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  border-radius: 8px;
+  background: ${({ theme }) => theme.colors.input};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1rem;
   
-  &:disabled { 
-    background: ${({ theme }) => theme.colors.border};
-    color: ${({ theme }) => theme.colors.textSecondary};
-    cursor: not-allowed;
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
   }
 `;
 
-const PatientRegistration = () => {
-    const [step, setStep] = useState(1);
-    const { t } = useTranslation();
-    const { currentUser } = useAuth();
-    const navigate = useNavigate();
-    const { labTests } = useTestCatalog();
+const FormSelect = styled.select`
+  padding: 0.75rem;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 8px;
+  background: ${({ theme }) => theme.colors.input};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1rem;
+  cursor: pointer;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
+  }
+`;
 
-    const [patientName, setPatientName] = useState('');
-    const [age, setAge] = useState('');
-    const [patientId, setPatientId] = useState('');
-    const [referringDoctor, setReferringDoctor] = useState('');
-    const [selectedTests, setSelectedTests] = useState(new Set());
-    const [isUrgent, setIsUrgent] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    
-    const [activeDept, setActiveDept] = useState('Chemistry');
+const FormTextarea = styled.textarea`
+  padding: 0.75rem;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 8px;
+  background: ${({ theme }) => theme.colors.input};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 100px;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
+  }
+`;
 
-    const handleTestSelection = (testName) => {
-        setSelectedTests(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(testName)) newSet.delete(testName);
-            else newSet.add(testName);
-            return newSet;
-        });
-    };
+const FormActions = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+`;
 
-    const grouped_tests = useMemo(() => labTests.reduce((acc, test) => {
-        const dept = test.department || 'General';
-        if (!acc[dept]) acc[dept] = [];
-        acc[dept].push(test);
-        return acc;
-    }, {}), [labTests]);
+const PatientForm = ({ patient, onSubmit, onCancel }) => {
+  const { t } = useTranslation();
+  const [formData, setFormData] = useState({
+    name: patient?.name || '',
+    age: patient?.age || '',
+    gender: patient?.gender || 'male',
+    phone: patient?.phone || '',
+    email: patient?.email || '',
+    address: patient?.address || '',
+    medicalHistory: patient?.medicalHistory || '',
+    emergencyContact: patient?.emergencyContact || ''
+  });
 
-    const handleNext = () => setStep(prev => prev + 1);
-    const handleBack = () => setStep(prev => prev - 1);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!patientName || !age || selectedTests.size === 0) {
-            toast.error("Patient Name, Age, and at least one test are required.");
-            return;
-        }
-        setIsSubmitting(true);
-        try {
-            const orderData = {
-                patientName, age,
-                patientId: patientId || "N/A",
-                referringDoctor: referringDoctor || "N/A",
-                tests: Array.from(selectedTests),
-                priority: isUrgent ? "Urgent" : "Normal",
-                status: "Pending Sample",
-                createdAt: new Date(),
-                createdBy: currentUser.email,
-            };
-            const newOrderRef = await addDoc(collection(db, "testOrders"), orderData);
-            await logAuditEvent("Patient Registered", { orderId: newOrderRef.id, patientName });
-            toast.success(`Order for ${patientName} created successfully!`);
-            navigate(`/order/${newOrderRef.id}`);
-        } catch (error) { toast.error("Failed to create order."); } 
-        finally { setIsSubmitting(false); }
-    };
-    
-    const renderStepContent = () => {
-        switch(step) {
-            case 1:
-                return (
-                    <>
-                        <StepHeader>{t('registration_patientInfo')}</StepHeader>
-                        <PatientInfoGrid>
-                           <InputGroup><label>{t('registration_patientName')}*</label><Input value={patientName} onChange={e => setPatientName(e.target.value)} required /></InputGroup>
-                           <InputGroup><label>{t('registration_age')}*</label><Input type="number" value={age} onChange={e => setAge(e.target.value)} required /></InputGroup>
-                           <InputGroup><label>{t('registration_patientId')}</label><Input value={patientId} onChange={e => setPatientId(e.target.value)} /></InputGroup>
-                           <InputGroup><label>{t('registration_referringDoctor')}</label><Input value={referringDoctor} onChange={e => setReferringDoctor(e.target.value)} /></InputGroup>
-                        </PatientInfoGrid>
-                    </>
-                );
-            case 2:
-                return (
-                    <>
-                        <StepHeader>{t('registration_testSelection')}</StepHeader>
-                        <TestSelectionLayout>
-                            <DeptList>
-                                {Object.keys(grouped_tests).sort().map(dept => (
-                                    <DeptItem key={dept} active={activeDept === dept} color={departmentColors[dept]} onClick={() => setActiveDept(dept)}>
-                                        {dept}
-                                    </DeptItem>
-                                ))}
-                            </DeptList>
-                            <TestsGrid>
-                                {grouped_tests[activeDept]?.map(test => (
-                                    <CheckboxGroup key={test.id}>
-                                        <input type="checkbox" id={test.id} checked={selectedTests.has(test.name)} onChange={() => handleTestSelection(test.name)} />
-                                        <label htmlFor={test.id}>{test.name}</label>
-                                    </CheckboxGroup>
-                                ))}
-                            </TestsGrid>
-                        </TestSelectionLayout>
-                    </>
-                );
-            case 3:
-                return (
-                    <>
-                        <StepHeader>Review Order</StepHeader>
-                        <ReviewGrid>
-                            <div>
-                                <h4>{t('registration_patientInfo')}</h4>
-                                <ul>
-                                    <li><strong>{t('registration_patientName')}:</strong> {patientName}</li>
-                                    <li><strong>{t('registration_age')}:</strong> {age}</li>
-                                    {patientId && <li><strong>{t('registration_patientId')}:</strong> {patientId}</li>}
-                                    {referringDoctor && <li><strong>{t('registration_referringDoctor')}:</strong> {referringDoctor}</li>}
-                                </ul>
-                            </div>
-                            <div>
-                                <h4>{t('registration_testSelection')} ({selectedTests.size})</h4>
-                                <ul>{Array.from(selectedTests).map(test => <li key={test}>{test}</li>)}</ul>
-                            </div>
-                        </ReviewGrid>
-                        <UrgentCheckbox>
-                            <input type="checkbox" id="urgent" checked={isUrgent} onChange={e => setIsUrgent(e.target.checked)} />
-                            <label htmlFor="urgent">{t('registration_urgent')}</label>
-                        </UrgentCheckbox>
-                    </>
-                );
-            default:
-                return null;
-        }
-    };
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
-    return (
-        <WizardContainer>
-            <ProgressBar>
-                <Step active={step === 1} completed={step > 1}><FaUser /> {t('registration_patientInfo')}</Step>
-                <Step active={step === 2} completed={step > 2}><FaVial /> {t('registration_testSelection')}</Step>
-                <Step active={step === 3}><FaCheckCircle /> Review & Submit</Step>
-            </ProgressBar>
-            <StepContent>
-                {renderStepContent()}
-                <ButtonContainer>
-                    {step > 1 && <WizardButton type="button" onClick={handleBack}><FaChevronLeft /> Back</WizardButton>}
-                    <div style={{flex: 1}} /> {/* Spacer */}
-                    {step < 3 ? 
-                        <WizardButton type="button" onClick={handleNext} disabled={ (step === 1 && (!patientName || !age)) || (step === 2 && selectedTests.size === 0) }><FaChevronRight /> Next</WizardButton>
-                        :
-                        <WizardButton type="button" onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? t('registration_submitting') : t('registration_submit_button')}</WizardButton>
-                    }
-                </ButtonContainer>
-            </StepContent>
-        </WizardContainer>
-    );
+  return (
+    <form onSubmit={handleSubmit}>
+      <FormContainer>
+        <FormGroup>
+          <FormLabel>{t('patient.form.name')}</FormLabel>
+          <FormInput
+            type="text"
+            value={formData.name}
+            onChange={(e) => handleChange('name', e.target.value)}
+            required
+          />
+        </FormGroup>
+
+        <FormGroup>
+          <FormLabel>{t('patient.form.age')}</FormLabel>
+          <FormInput
+            type="number"
+            value={formData.age}
+            onChange={(e) => handleChange('age', parseInt(e.target.value) || '')}
+            min="0"
+            max="150"
+            required
+          />
+        </FormGroup>
+
+        <FormGroup>
+          <FormLabel>{t('patient.form.gender')}</FormLabel>
+          <FormSelect
+            value={formData.gender}
+            onChange={(e) => handleChange('gender', e.target.value)}
+          >
+            <option value="male">{t('patient.form.male')}</option>
+            <option value="female">{t('patient.form.female')}</option>
+            <option value="other">{t('patient.form.other')}</option>
+          </FormSelect>
+        </FormGroup>
+
+        <FormGroup>
+          <FormLabel>{t('patient.form.phone')}</FormLabel>
+          <FormInput
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => handleChange('phone', e.target.value)}
+            required
+          />
+        </FormGroup>
+
+        <FormGroup>
+          <FormLabel>{t('patient.form.email')}</FormLabel>
+          <FormInput
+            type="email"
+            value={formData.email}
+            onChange={(e) => handleChange('email', e.target.value)}
+            required
+          />
+        </FormGroup>
+
+        <FormGroup>
+          <FormLabel>{t('patient.form.address')}</FormLabel>
+          <FormInput
+            type="text"
+            value={formData.address}
+            onChange={(e) => handleChange('address', e.target.value)}
+            required
+          />
+        </FormGroup>
+
+        <FormGroup>
+          <FormLabel>{t('patient.form.emergencyContact')}</FormLabel>
+          <FormInput
+            type="tel"
+            value={formData.emergencyContact}
+            onChange={(e) => handleChange('emergencyContact', e.target.value)}
+            required
+          />
+        </FormGroup>
+
+        <FormGroup>
+          <FormLabel>{t('patient.form.medicalHistory')}</FormLabel>
+          <FormTextarea
+            value={formData.medicalHistory}
+            onChange={(e) => handleChange('medicalHistory', e.target.value)}
+            placeholder={t('patient.form.medicalHistoryPlaceholder')}
+          />
+        </FormGroup>
+
+        <FormActions>
+          <GlowButton type="submit" variant="primary">
+            {patient ? t('patient.update') : t('patient.add')}
+          </GlowButton>
+          <GlowButton type="button" onClick={onCancel}>
+            {t('patient.cancel')}
+          </GlowButton>
+        </FormActions>
+      </FormContainer>
+    </form>
+  );
 };
 
 export default PatientRegistration;

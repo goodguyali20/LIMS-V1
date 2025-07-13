@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { db } from '../../firebase/config';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { logAuditEvent } from '../../utils/auditLogger';
+import { useTranslation } from 'react-i18next';
 
 const ModalBackdrop = styled.div`
   position: fixed;
@@ -83,18 +83,18 @@ const CancelButton = styled(Button)`
   color: ${({ theme }) => theme.colors.textSecondary};
 `;
 
-const REJECTION_REASONS = [
-  "Sample Hemolyzed",
-  "Insufficient Quantity",
-  "Improperly Labeled",
-  "Clotted Sample",
-  "Contaminated Sample",
-  "Other",
-];
-
 const RejectionModal = ({ order, onClose }) => {
+  const { user } = useAuth();
   const { t } = useTranslation();
-  const { currentUser } = useAuth();
+  
+  const REJECTION_REASONS = [
+    t('rejectionReason.sampleHemolyzed'),
+    t('rejectionReason.insufficientQuantity'),
+    t('rejectionReason.improperlyLabeled'),
+    t('rejectionReason.clottedSample'),
+    t('rejectionReason.contaminatedSample'),
+    t('rejectionReason.other'),
+  ];
   const [reason, setReason] = useState(REJECTION_REASONS[0]);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,7 +111,7 @@ const RejectionModal = ({ order, onClose }) => {
         rejectionDetails: {
           reason: reason,
           notes: notes,
-          rejectedBy: currentUser.email,
+          rejectedBy: user.email,
           rejectedAt: new Date()
         }
       });
@@ -135,9 +135,9 @@ const RejectionModal = ({ order, onClose }) => {
   return (
     <ModalBackdrop onClick={onClose}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
-        <ModalHeader>Reject Sample for Order #{order.id}</ModalHeader>
+        <ModalHeader>{t('rejectionModal.title', { id: order.id })}</ModalHeader>
         <Form onSubmit={handleSubmit}>
-          <label htmlFor="rejectionReason">Rejection Reason</label>
+          <label htmlFor="rejectionReason">{t('rejectionModal.reasonLabel')}</label>
           <Select
             id="rejectionReason"
             value={reason}
@@ -148,7 +148,7 @@ const RejectionModal = ({ order, onClose }) => {
             ))}
           </Select>
 
-          <label htmlFor="rejectionNotes">Additional Notes (Optional)</label>
+          <label htmlFor="rejectionNotes">{t('rejectionModal.notesLabel')}</label>
           <Textarea
             id="rejectionNotes"
             value={notes}
@@ -156,9 +156,9 @@ const RejectionModal = ({ order, onClose }) => {
           />
 
           <ButtonGroup>
-            <CancelButton type="button" onClick={onClose}>Cancel</CancelButton>
+            <CancelButton type="button" onClick={onClose}>{t('cancel')}</CancelButton>
             <RejectButton type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Reject Sample"}
+              {isSubmitting ? t('rejectionModal.submitting') : t('rejectionModal.rejectButton')}
             </RejectButton>
           </ButtonGroup>
         </Form>

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import styled from 'styled-components';
 import { FaTimes } from 'react-icons/fa';
-import { fadeIn, slideIn } from '../../styles/animations';
+import { advancedVariants } from '../../styles/animations';
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -9,24 +9,24 @@ const ModalOverlay = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(5px);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  animation: ${fadeIn} 0.3s ease-in-out;
+  animation: ${advancedVariants.fadeIn} 0.2s ease-in-out;
 `;
 
 const ModalContent = styled.div`
   background: ${({ theme }) => theme.colors.surface};
-  padding: 2.5rem;
   border-radius: ${({ theme }) => theme.shapes.squircle};
-  width: 90%;
-  max-width: 600px;
-  box-shadow: ${({ theme }) => theme.shadows.modal};
+  padding: 2rem;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
   position: relative;
-  animation: ${slideIn} 0.4s ease-out;
+  animation: ${advancedVariants.slideInLeft} 0.3s ease-out;
+  box-shadow: ${({ theme }) => theme.shadows.main};
 `;
 
 const CloseButton = styled.button`
@@ -35,13 +35,15 @@ const CloseButton = styled.button`
   right: 1rem;
   background: none;
   border: none;
+  font-size: 1.5rem;
   cursor: pointer;
   color: ${({ theme }) => theme.colors.textSecondary};
-  font-size: 1.5rem;
-  transition: color 0.2s ease;
-
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+  
   &:hover {
-    color: ${({ theme }) => theme.colors.primary};
+    background-color: ${({ theme }) => theme.colors.border};
   }
 `;
 
@@ -57,7 +59,25 @@ const ModalHeader = styled.div`
 `;
 
 
-const Modal = ({ isOpen, onClose, title, children }) => {
+const Modal = React.memo(({ isOpen, onClose, children, title }) => {
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -66,13 +86,13 @@ const Modal = ({ isOpen, onClose, title, children }) => {
         <CloseButton onClick={onClose}>
           <FaTimes />
         </CloseButton>
-        <ModalHeader>
-          <h2>{title}</h2>
-        </ModalHeader>
+        {title && <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>{title}</h2>}
         {children}
       </ModalContent>
     </ModalOverlay>
   );
-};
+});
+
+Modal.displayName = 'Modal';
 
 export default Modal;

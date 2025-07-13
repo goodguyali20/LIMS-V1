@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import { fadeIn } from '../../styles/animations';
+import { advancedVariants } from '../../styles/animations';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { auth } from '../../firebase/config';
 import { useTranslation } from 'react-i18next'; // Import useTranslation
+import { motion, AnimatePresence } from 'framer-motion';
 
 const PageContainer = styled.div`
-  animation: ${fadeIn} 0.5s ease-in-out;
+  animation: ${advancedVariants.fadeIn} 0.5s ease-in-out;
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 2rem;
@@ -16,11 +17,26 @@ const PageContainer = styled.div`
   margin: auto;
 `;
 
-const Card = styled.div`
+const Card = styled(motion.div)`
   background: ${({ theme }) => theme.colors.surface};
   padding: 2rem;
   border-radius: ${({ theme }) => theme.shapes.squircle};
   box-shadow: ${({ theme }) => theme.shadows.main};
+`;
+
+const SkeletonCard = styled(motion.div)`
+  background: ${({ theme }) => theme.colors.surface};
+  border-radius: ${({ theme }) => theme.shapes.squircle};
+  padding: 2rem;
+  min-height: 200px;
+  margin-bottom: 1.5rem;
+  box-shadow: ${({ theme }) => theme.shadows.main};
+  opacity: 0.7;
+  animation: pulse 1.5s infinite alternate;
+  @keyframes pulse {
+    0% { background: ${({ theme }) => theme.colors.surface}; }
+    100% { background: ${({ theme }) => theme.colors.surfaceSecondary}; }
+  }
 `;
 
 const CardHeader = styled.h2`
@@ -58,7 +74,7 @@ const Input = styled.input`
   border: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
-const SubmitButton = styled.button`
+const SubmitButton = styled(motion.button)`
   margin-top: 1rem;
   padding: 0.8rem 1.5rem;
   border: none;
@@ -77,7 +93,7 @@ const SubmitButton = styled.button`
 
 const Profile = () => {
   const { t } = useTranslation(); // <-- Add this
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -117,34 +133,69 @@ const Profile = () => {
 
   return (
     <PageContainer>
-        <Card>
-            <CardHeader>{t('profile_details_header')}</CardHeader>
-            <InfoGrid>
-                <p><strong>{t('profile_displayName')}:</strong> <span>{currentUser.displayName}</span></p>
-                <p><strong>{t('profile_email')}:</strong> <span>{currentUser.email}</span></p>
-                <p><strong>{t('profile_role')}:</strong> <span>{currentUser.role}</span></p>
-            </InfoGrid>
-        </Card>
-        <Card>
-            <CardHeader>{t('profile_changePassword_header')}</CardHeader>
-            <Form onSubmit={handleSubmit}>
-                <InputGroup>
-                    <label>{t('profile_currentPassword')}</label>
-                    <Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required />
-                </InputGroup>
-                <InputGroup>
-                    <label>{t('profile_newPassword')}</label>
-                    <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
-                </InputGroup>
-                <InputGroup>
-                    <label>{t('profile_confirmNewPassword')}</label>
-                    <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
-                </InputGroup>
-                <SubmitButton type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? t('profile_updating') : t('profile_update_button')}
-                </SubmitButton>
-            </Form>
-        </Card>
+      <Card
+        as={motion.div}
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5 }}
+        whileHover={{ scale: 1.02 }}
+      >
+        <CardHeader>{t('profile_details_header')}</CardHeader>
+        <InfoGrid>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <strong>{t('profile_displayName')}:</strong> <span>{user.displayName}</span>
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <strong>{t('profile_email')}:</strong> <span>{user.email}</span>
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <strong>{t('profile_role')}:</strong> <span>{user.role}</span>
+          </motion.p>
+        </InfoGrid>
+      </Card>
+      <Card
+        as={motion.div}
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        whileHover={{ scale: 1.02 }}
+      >
+        <CardHeader>{t('profile_changePassword_header')}</CardHeader>
+        <Form onSubmit={handleSubmit}>
+          <InputGroup>
+            <label>{t('profile_currentPassword')}</label>
+            <Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required />
+          </InputGroup>
+          <InputGroup>
+            <label>{t('profile_newPassword')}</label>
+            <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
+          </InputGroup>
+          <InputGroup>
+            <label>{t('profile_confirmNewPassword')}</label>
+            <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+          </InputGroup>
+          <SubmitButton 
+            type="submit" 
+            disabled={isSubmitting}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {isSubmitting ? t('profile_updating') : t('profile_update_button')}
+          </SubmitButton>
+        </Form>
+      </Card>
     </PageContainer>
   );
 };

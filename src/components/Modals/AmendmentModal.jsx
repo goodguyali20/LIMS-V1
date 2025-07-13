@@ -5,6 +5,7 @@ import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import { logAuditEvent } from '../../utils/auditLogger';
+import { useTranslation } from 'react-i18next';
 
 const ModalBackdrop = styled.div`
   position: fixed;
@@ -85,7 +86,8 @@ const CancelButton = styled(Button)`
 
 
 const AmendmentModal = ({ order, testToAmend, onClose }) => {
-  const { currentUser } = useAuth();
+  const { t } = useTranslation();
+  const { user } = useAuth();
   const [newResult, setNewResult] = useState('');
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,7 +98,7 @@ const AmendmentModal = ({ order, testToAmend, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!reason) {
-      toast.error("A reason for the amendment is required.");
+      toast.error(t('amendmentModal.reasonRequired'));
       return;
     }
     
@@ -109,7 +111,7 @@ const AmendmentModal = ({ order, testToAmend, onClose }) => {
         originalResult: originalResult,
         amendedResult: newResult,
         reason: reason,
-        amendedBy: currentUser.email,
+        amendedBy: user.email,
         amendedAt: new Date()
       };
 
@@ -121,12 +123,12 @@ const AmendmentModal = ({ order, testToAmend, onClose }) => {
       });
 
       await logAuditEvent('Report Amended', { orderId: order.id, ...amendmentData });
-      toast.success(`Report for order ${order.id} has been amended.`);
+      toast.success(t('amendmentModal.success', { id: order.id }));
       onClose(); // Close the modal
 
     } catch (error) {
       console.error("Error amending report:", error);
-      toast.error("Failed to amend report.");
+      toast.error(t('amendmentModal.failed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -135,10 +137,10 @@ const AmendmentModal = ({ order, testToAmend, onClose }) => {
   return (
     <ModalBackdrop onClick={onClose}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
-        <ModalHeader>Amend Result for {testToAmend}</ModalHeader>
-        <p><strong>Original Result:</strong> {originalResult}</p>
+        <ModalHeader>{t('amendmentModal.title', { test: testToAmend })}</ModalHeader>
+        <p><strong>{t('amendmentModal.originalResult')}:</strong> {originalResult}</p>
         <Form onSubmit={handleSubmit}>
-          <label htmlFor="newResult">New / Corrected Result</label>
+          <label htmlFor="newResult">{t('amendmentModal.newResult')}</label>
           <Input
             id="newResult"
             value={newResult}
@@ -146,19 +148,19 @@ const AmendmentModal = ({ order, testToAmend, onClose }) => {
             required
           />
 
-          <label htmlFor="amendmentReason">Reason for Amendment</label>
+          <label htmlFor="amendmentReason">{t('amendmentModal.reasonLabel')}</label>
           <Textarea
             id="amendmentReason"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="e.g., Clerical error, sample mix-up, etc."
+            placeholder={t('amendmentModal.reasonPlaceholder')}
             required
           />
 
           <ButtonGroup>
-            <CancelButton type="button" onClick={onClose}>Cancel</CancelButton>
+            <CancelButton type="button" onClick={onClose}>{t('cancel')}</CancelButton>
             <AmendButton type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Submit Amendment"}
+              {isSubmitting ? t('amendmentModal.submitting') : t('amendmentModal.submitButton')}
             </AmendButton>
           </ButtonGroup>
         </Form>

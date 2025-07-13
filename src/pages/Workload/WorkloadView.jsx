@@ -3,10 +3,11 @@ import styled from 'styled-components';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { fadeIn } from '../../styles/animations';
+import { advancedVariants } from '../../styles/animations';
+import { useTranslation } from 'react-i18next';
 
 const PageContainer = styled.div`
-  animation: ${fadeIn} 0.5s ease-in-out;
+  animation: ${advancedVariants.fadeIn} 0.5s ease-in-out;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -27,6 +28,7 @@ const ChartContainer = styled.div`
 const WorkloadView = () => {
   const [workloadData, setWorkloadData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchWorkload = async () => {
@@ -66,15 +68,15 @@ const WorkloadView = () => {
     };
 
     fetchWorkload();
-  }, []);
+  }, [setWorkloadData, setLoading]);
 
   if (loading) {
-    return <p>Loading workload data...</p>;
+    return <p>{t('loadingWorkload')}</p>;
   }
 
   return (
     <PageContainer>
-      <PageHeader>Technician Workload</PageHeader>
+      <PageHeader>{t('technicianWorkload')}</PageHeader>
       <ChartContainer>
         {workloadData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
@@ -91,7 +93,7 @@ const WorkloadView = () => {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <p>No completed test data found to display.</p>
+          <p>{t('noCompletedTestData')}</p>
         )}
       </ChartContainer>
     </PageContainer>
