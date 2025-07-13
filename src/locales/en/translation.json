@@ -594,5 +594,14 @@
     }
   },
   "labwork": "Lab Work",
-  "results": "Results"
+  "results": "Results",
+  "barcodeScanner": {
+    "title": "Barcode Scanner",
+    "scanning": "Scanning barcode...",
+    "clickToFocus": "Click to focus or scan barcode",
+    "enterManually": "Enter barcode manually...",
+    "scanBtn": "Scan",
+    "scanningBtn": "Scanning...",
+    "scanButtonAria": "Scan barcode"
+  }
 }

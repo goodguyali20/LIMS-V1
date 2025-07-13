@@ -90,8 +90,9 @@ const ScannerArea = styled(motion.div)`
 `;
 
 const ScannerContent = styled.div`
-  text-align: center;
+  text-align: ${({ dir }) => dir === 'rtl' ? 'right' : 'center'};
   color: ${({ theme }) => theme.colors.textSecondary};
+  direction: ${({ dir }) => dir || 'ltr'};
   
   svg {
     font-size: 3rem;
@@ -309,8 +310,8 @@ const ScanItem = styled(motion.div)`
 
 const PremiumBarcodeScanner = ({ 
   onScan, 
-  placeholder = "Enter barcode manually...",
-  title = "Barcode Scanner",
+  placeholder,
+  title,
   showHistory = true
 }) => {
   const [isScanning, setIsScanning] = useState(false);
@@ -318,7 +319,8 @@ const PremiumBarcodeScanner = ({
   const [feedback, setFeedback] = useState(null);
   const [scanHistory, setScanHistory] = useState([]);
   const inputRef = useRef(null);
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
 
   const handleScan = async (code) => {
     setIsScanning(true);
@@ -382,11 +384,12 @@ const PremiumBarcodeScanner = ({
       variants={advancedVariants.card}
       initial="hidden"
       animate="visible"
+      dir={isRTL ? 'rtl' : 'ltr'}
     >
       <ScannerHeader>
         <h3>
           <FaBarcode />
-          {title}
+          {title || t('barcodeScanner.title')}
         </h3>
       </ScannerHeader>
 
@@ -407,7 +410,7 @@ const PremiumBarcodeScanner = ({
           />
         )}
         
-        <ScannerContent>
+        <ScannerContent dir={isRTL ? 'rtl' : 'ltr'}>
           {isScanning ? (
             <>
               <motion.div
@@ -416,12 +419,12 @@ const PremiumBarcodeScanner = ({
               >
                 <FaSpinner />
               </motion.div>
-              <p>Scanning barcode...</p>
+              <p>{t('barcodeScanner.scanning')}</p>
             </>
           ) : (
             <>
               <FaBarcode />
-              <p>Click to focus or scan barcode</p>
+              <p>{t('barcodeScanner.clickToFocus')}</p>
             </>
           )}
         </ScannerContent>
@@ -434,7 +437,7 @@ const PremiumBarcodeScanner = ({
           value={scanInput}
           onChange={(e) => setScanInput(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder={placeholder}
+          placeholder={placeholder || t('barcodeScanner.enterManually')}
           $error={feedback?.type === 'error'}
           variants={microInteractions.inputFocus}
           whileFocus="focus"
@@ -445,10 +448,11 @@ const PremiumBarcodeScanner = ({
           disabled={isScanning || !scanInput.trim()}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          style={i18n.language === 'ar' ? { fontSize: '0.9rem', maxWidth: 100 } : undefined}
+          style={isRTL ? { fontSize: '0.9rem', maxWidth: 100 } : undefined}
+          aria-label={t('barcodeScanner.scanButtonAria')}
         >
           {isScanning ? <FaSpinner /> : <FaSearch />}
-          {isScanning ? (i18n.language === 'ar' ? 'جارٍ المسح...' : 'Scanning...') : (i18n.language === 'ar' ? 'مسح' : 'Scan')}
+          {isScanning ? t('barcodeScanner.scanningBtn') : t('barcodeScanner.scanBtn')}
         </ScanButton>
       </InputContainer>
 

@@ -607,5 +607,14 @@
     "notes": "ملاحظات"
   },
   "labwork": "عمل المختبر",
-  "results": "النتائج"
+  "results": "النتائج",
+  "barcodeScanner": {
+    "title": "ماسح الباركود",
+    "scanning": "جارٍ مسح الباركود...",
+    "clickToFocus": "انقر للتركيز أو لمسح الباركود",
+    "enterManually": "أدخل الباركود يدويًا...",
+    "scanBtn": "مسح",
+    "scanningBtn": "جارٍ المسح...",
+    "scanButtonAria": "مسح الباركود"
+  }
 }
