@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { toast } from 'react-toastify';
+import toast from 'react-hot-toast';
 import { TestContext, departmentColors } from './TestContextBase.js';
 
 // Re-export useTestCatalog and departmentColors for direct imports

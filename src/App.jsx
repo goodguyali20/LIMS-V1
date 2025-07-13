@@ -1,108 +1,64 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
-import { ThemeProvider, useTheme } from './contexts/ThemeContext.jsx';
-import { AuthProvider } from './contexts/AuthContext.jsx';
-import { OrderProvider } from './contexts/OrderContext.jsx';
-import { TestProvider } from './contexts/TestContext.jsx';
-import { SettingsProvider } from './contexts/SettingsContext.jsx';
-import { GlobalStyles } from './styles/GlobalStyles.js';
+import { BrowserRouter as Router } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'react-hot-toast';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { TestProvider } from './contexts/TestContext';
+import { NotificationProvider } from './contexts/NotificationContext';
+import { OrderProvider } from './contexts/OrderContext';
+import { SettingsProvider } from './contexts/SettingsContext';
+import AppRoutes from './AppRoutes';
+import ErrorBoundary from './components/common/ErrorBoundary';
+import { GlobalStyles } from './styles/GlobalStyles';
 
-// Pages & Components
-import ManagerDashboard from './pages/Dashboard/ManagerDashboard.jsx';
-import PrintOrder from './pages/PrintOrder.jsx';
-import Orders from './pages/Orders.jsx';
-import Settings from './pages/Settings/Settings.jsx';
-import General from './pages/Settings/General.jsx';
-import Tests from './pages/Settings/Tests.jsx';
-import Users from './pages/Settings/Users.jsx';
-import LoginPage from './pages/Login/LoginPage.jsx';
-import Layout from './components/Layout/Layout.jsx';
-import AuthRequired from './components/Auth/AuthRequired.jsx';
-import PatientRegistration from './pages/PatientRegistration/PatientRegistration.jsx';
-import PatientHistory from './pages/PatientHistory/PatientHistory.jsx';
-import WorkQueue from './pages/WorkQueue/WorkQueue.jsx';
-import QualityControl from './pages/QualityControl/QualityControl.jsx';
-import Inventory from './pages/Inventory/Inventory.jsx';
-import WorkloadView from './pages/Workload/WorkloadView.jsx';
-import AuditLog from './pages/AuditLog/AuditLog.jsx';
-import Profile from './pages/Profile/Profile.jsx';
-import OrderView from './pages/OrderView/OrderView.jsx';
-import ResultEntry from './pages/ResultEntry/ResultEntry.jsx';
-import Phlebotomist from './pages/Phlebotomist/Phlebotomist.jsx';
-import ErrorBoundary from './components/common/ErrorBoundary.jsx';
-import SearchResults from './pages/SearchResults.jsx';
-
-// Wrapper component that uses theme context
-const AppContent = () => {
-  const { theme } = useTheme();
-  
-  return (
-    <StyledThemeProvider theme={theme}>
-      <AuthProvider>
-        <OrderProvider>
-          <TestProvider>
-            <SettingsProvider>
-              <GlobalStyles />
-              <BrowserRouter
-                future={{
-                  v7_startTransition: true,
-                  v7_relativeSplatPath: true
-                }}
-              >
-                <Routes>
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route
-                    path="/app"
-                    element={
-                      <AuthRequired>
-                        <Layout />
-                      </AuthRequired>
-                    }
-                  >
-                    <Route index element={<Navigate to="dashboard" replace />} />
-                    <Route path="dashboard" element={<ManagerDashboard />} />
-                    {/* The route for adding an order is now just the dashboard */}
-                    <Route path="add-order" element={<Navigate to="/app/dashboard" replace />} />
-                    <Route path="orders" element={<Orders />} />
-                    <Route path="print-order/:orderId" element={<PrintOrder />} />
-                    <Route path="register" element={<PatientRegistration />} />
-                    <Route path="patient-history" element={<PatientHistory />} />
-                    <Route path="work-queue" element={<WorkQueue />} />
-                    <Route path="phlebotomist" element={<Phlebotomist />} />
-                    <Route path="quality-control" element={<QualityControl />} />
-                    <Route path="inventory" element={<Inventory />} />
-                    <Route path="workload" element={<WorkloadView />} />
-                    <Route path="audit-log" element={<AuditLog />} />
-                    <Route path="profile" element={<Profile />} />
-                    <Route path="order/:orderId" element={<OrderView />} />
-                    <Route path="order/:orderId/enter-results" element={<ResultEntry />} />
-                    <Route path="search" element={<SearchResults />} />
-                    <Route path="settings" element={<Settings />}>
-                      <Route index element={<Navigate to="general" replace />} />
-                      <Route path="general" element={<General />} />
-                      <Route path="tests" element={<Tests />} />
-                      <Route path="users" element={<Users />} />
-                    </Route>
-                  </Route>
-                  <Route path="*" element={<Navigate to="/app" replace />} />
-                </Routes>
-              </BrowserRouter>
-            </SettingsProvider>
-          </TestProvider>
-        </OrderProvider>
-      </AuthProvider>
-    </StyledThemeProvider>
-  );
-};
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
   return (
-    <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AppContent />
+        <AuthProvider>
+          <TestProvider>
+            <NotificationProvider>
+              <OrderProvider>
+                <SettingsProvider>
+                  <Router>
+                    <ErrorBoundary>
+                      <GlobalStyles />
+                      <AppRoutes />
+                      <Toaster 
+                        position="top-right"
+                        toastOptions={{
+                          duration: 4000,
+                          style: {
+                            background: 'rgba(255, 255, 255, 0.95)',
+                            backdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: '12px',
+                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                          },
+                        }}
+                      />
+                    </ErrorBoundary>
+                  </Router>
+                </SettingsProvider>
+              </OrderProvider>
+            </NotificationProvider>
+          </TestProvider>
+        </AuthProvider>
       </ThemeProvider>
-    </ErrorBoundary>
+    </QueryClientProvider>
   );
 }
 

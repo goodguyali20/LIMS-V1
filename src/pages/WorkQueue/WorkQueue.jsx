@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, limit, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { 
   FaSpinner, FaFilter, FaSort, FaClock, FaCheckCircle, FaExclamationTriangle,
   FaSearch, FaTimes, FaEye, FaPrint, FaDownload, FaUpload, FaCog, FaBell,
@@ -21,8 +23,6 @@ import RequisitionForm from '../../components/Print/RequisitionForm';
 import MasterSlip from '../../components/Print/MasterSlip';
 import DepartmentSlip from '../../components/Print/DepartmentSlip';
 import TubeIdSlip from '../../components/Print/TubeIdSlip';
-
-import { toast } from 'react-toastify';
 
 const PageContainer = styled(motion.div)`
   display: flex;
@@ -235,35 +235,37 @@ const StatsContainer = styled(motion.div)`
   }
 `;
 
-const StatCard = styled(GlowCard)`
+const StatCard = styled.div`
+  background: ${({ theme }) => theme.colors.surface};
+  border-radius: ${({ theme }) => theme.shapes.squircle};
   padding: 1.5rem;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
+  box-shadow: ${({ theme }) => theme.shadows.soft};
+  border-left: 4px solid ${({ color }) => color};
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
   
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: ${({ $type, theme }) => {
-      switch ($type) {
-        case 'pending': return `linear-gradient(90deg, ${theme.colors.warning}, ${theme.colors.info})`;
-        case 'collected': return `linear-gradient(90deg, ${theme.colors.primary}, ${theme.colors.secondary})`;
-        case 'inProgress': return `linear-gradient(90deg, ${theme.colors.success}, ${theme.colors.success})`;
-        case 'rejected': return `linear-gradient(90deg, ${theme.colors.error}, ${theme.colors.error})`;
-        default: return `linear-gradient(90deg, ${theme.colors.textSecondary}, ${theme.colors.textSecondary})`;
-      }
-    }};
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: ${({ theme }) => theme.shadows.medium};
   }
 `;
 
 const StatIcon = styled.div`
-  font-size: 2rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: ${({ color }) => color}20;
   color: ${({ color }) => color};
-  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+`;
+
+const StatContent = styled.div`
+  flex: 1;
 `;
 
 const StatValue = styled.div`
@@ -370,9 +372,8 @@ const EmptyState = styled(GlowCard)`
 const WorkQueue = () => {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const [orders, setOrders] = useState([]);
+  const queryClient = useQueryClient();
   const [filteredOrders, setFilteredOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -385,21 +386,21 @@ const WorkQueue = () => {
   const [printLoading, setPrintLoading] = useState(false);
   const [printFeedback, setPrintFeedback] = useState(null);
 
-  useEffect(() => {
-    // Optimized query with proper indexing and data fetching
-    const q = query(
-      collection(db, "testOrders"), 
-      where("status", "in", ["Pending Sample", "Sample Collected", "In Progress", "Rejected"]),
-      orderBy("createdAt", "desc"),
-      // Add limit to prevent loading too much data at once
-      limit(50)
-    );
-
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+  // React Query for fetching orders
+  const { data: orders = [], isLoading, error } = useQuery({
+    queryKey: ['workQueue', 'orders'],
+    queryFn: async () => {
+      const q = query(
+        collection(db, "testOrders"), 
+        where("status", "in", ["Pending Sample", "Sample Collected", "In Progress", "Rejected"]),
+        orderBy("createdAt", "desc"),
+        limit(50)
+      );
+      
+      const querySnapshot = await getDocs(q);
       const ordersData = [];
       querySnapshot.forEach((doc) => {
         const data = { id: doc.id, ...doc.data() };
-        // Set default values efficiently without additional queries
         ordersData.push({
           ...data,
           priority: data.priority || 'normal',
@@ -407,7 +408,41 @@ const WorkQueue = () => {
           assignedTo: data.assignedTo || null,
           notes: data.notes || '',
           qualityChecks: data.qualityChecks || [],
-          // Add computed fields for better performance
+          isUrgent: data.priority === 'urgent',
+          isCritical: data.priority === 'critical',
+          hasNotes: Boolean(data.notes),
+          testCount: Array.isArray(data.tests) ? data.tests.length : 0
+        });
+      });
+      return ordersData;
+    },
+    staleTime: 30000, // 30 seconds
+    refetchInterval: autoRefresh ? 60000 : false, // 1 minute if auto-refresh is on
+    retry: 2,
+  });
+
+  // Real-time updates with React Query
+  useEffect(() => {
+    if (!orders.length) return;
+
+    const q = query(
+      collection(db, "testOrders"), 
+      where("status", "in", ["Pending Sample", "Sample Collected", "In Progress", "Rejected"]),
+      orderBy("createdAt", "desc"),
+      limit(50)
+    );
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const ordersData = [];
+      querySnapshot.forEach((doc) => {
+        const data = { id: doc.id, ...doc.data() };
+        ordersData.push({
+          ...data,
+          priority: data.priority || 'normal',
+          estimatedTime: data.estimatedTime || 30,
+          assignedTo: data.assignedTo || null,
+          notes: data.notes || '',
+          qualityChecks: data.qualityChecks || [],
           isUrgent: data.priority === 'urgent',
           isCritical: data.priority === 'critical',
           hasNotes: Boolean(data.notes),
@@ -415,17 +450,33 @@ const WorkQueue = () => {
         });
       });
       
-      setOrders(ordersData);
-      setFilteredOrders(ordersData);
-      setLoading(false);
+      // Update React Query cache with real-time data
+      queryClient.setQueryData(['workQueue', 'orders'], ordersData);
     }, (error) => {
       console.error('Error fetching orders:', error);
       toast.error('Failed to load work queue');
-      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [orders.length, queryClient]);
+
+  // Mutation for updating order status
+  const updateOrderMutation = useMutation({
+    mutationFn: async ({ orderId, updates }) => {
+      await updateDoc(doc(db, "testOrders", orderId), {
+        ...updates,
+        updatedAt: new Date()
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['workQueue', 'orders']);
+      toast.success('Order updated successfully');
+    },
+    onError: (error) => {
+      console.error('Error updating order:', error);
+      toast.error('Failed to update order');
+    },
+  });
 
   useEffect(() => {
     let filtered = orders;
@@ -635,9 +686,7 @@ const WorkQueue = () => {
     }
   };
 
-
-
-  if (loading) {
+  if (isLoading) {
     return (
       <PageContainer
         initial={{ opacity: 0 }}
@@ -657,6 +706,21 @@ const WorkQueue = () => {
           </motion.div>
           <p>Loading work queue...</p>
         </LoadingContainer>
+      </PageContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageContainer>
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <FaExclamationTriangle size={48} style={{ color: theme.colors.error, marginBottom: '1rem' }} />
+          <h3>Error loading work queue</h3>
+          <p>{error.message}</p>
+          <GlowButton onClick={() => window.location.reload()}>
+            <FaRedo /> Retry
+          </GlowButton>
+        </div>
       </PageContainer>
     );
   }
@@ -705,7 +769,7 @@ const WorkQueue = () => {
             {autoRefresh ? t('workQueue.autoRefresh') : t('workQueue.manual')}
           </GlowButton>
           <GlowButton
-            onClick={() => window.location.reload()}
+            onClick={() => queryClient.invalidateQueries(['workQueue', 'orders'])}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -723,52 +787,55 @@ const WorkQueue = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
       >
-        <StatCard $type="pending">
-          <StatIcon color="#F59E0B">
-            <FaClock />
-          </StatIcon>
-          <StatValue>{stats.pending}</StatValue>
-          <StatLabel>{t('workQueue.stats.pendingSamples')}</StatLabel>
-          <StatChange $positive={false}>
-            {stats.urgent} {t('workQueue.stats.urgentSamples')}
-          </StatChange>
+        <StatCard color="#3B82F6">
+          <StatIcon><FaClock /></StatIcon>
+          <StatContent>
+            <StatValue>{stats.pending}</StatValue>
+            <StatLabel>{t('workQueue.stats.pending')}</StatLabel>
+          </StatContent>
         </StatCard>
 
-        <StatCard $type="collected">
-          <StatIcon color="#3B82F6">
-            <FaCheckCircle />
-          </StatIcon>
-          <StatValue>{stats.collected}</StatValue>
-          <StatLabel>{t('workQueue.stats.sampleCollected')}</StatLabel>
-          <StatChange $positive={true}>
-            {t('workQueue.stats.readyForProcessing')}
-          </StatChange>
+        <StatCard color="#10B981">
+          <StatIcon><FaCheckCircle /></StatIcon>
+          <StatContent>
+            <StatValue>{stats.collected}</StatValue>
+            <StatLabel>{t('workQueue.stats.collected')}</StatLabel>
+          </StatContent>
         </StatCard>
 
-        <StatCard $type="inProgress">
-          <StatIcon color="#10B981">
-            <FaSpinner />
-          </StatIcon>
-          <StatValue>{stats.inProgress}</StatValue>
-          <StatLabel>{t('workQueue.stats.inProgress')}</StatLabel>
-          <StatChange $positive={true}>
-            {stats.completionRate}% {t('workQueue.stats.completionRate')}
-          </StatChange>
+        <StatCard color="#F59E0B">
+          <StatIcon><FaSpinner /></StatIcon>
+          <StatContent>
+            <StatValue>{stats.inProgress}</StatValue>
+            <StatLabel>{t('workQueue.stats.inProgress')}</StatLabel>
+          </StatContent>
         </StatCard>
 
-        <StatCard $type="rejected">
-          <StatIcon color="#EF4444">
-            <FaExclamationTriangle />
-          </StatIcon>
-          <StatValue>{stats.rejected}</StatValue>
-          <StatLabel>{t('workQueue.stats.rejected')}</StatLabel>
-          <StatChange $positive={false}>
-            {t('workQueue.stats.requiresAttention')}
-          </StatChange>
+        <StatCard color="#EF4444">
+          <StatIcon><FaExclamationTriangle /></StatIcon>
+          <StatContent>
+            <StatValue>{stats.rejected}</StatValue>
+            <StatLabel>{t('workQueue.stats.rejected')}</StatLabel>
+          </StatContent>
+        </StatCard>
+
+        <StatCard color="#8B5CF6">
+          <StatIcon><FaBell /></StatIcon>
+          <StatContent>
+            <StatValue>{stats.urgent}</StatValue>
+            <StatLabel>{t('workQueue.stats.urgent')}</StatLabel>
+          </StatContent>
+        </StatCard>
+
+        <StatCard color="#06B6D4">
+          <StatIcon><FaChartLine /></StatIcon>
+          <StatContent>
+            <StatValue>{stats.completionRate}%</StatValue>
+            <StatLabel>{t('workQueue.stats.completionRate')}</StatLabel>
+          </StatContent>
         </StatCard>
       </StatsContainer>
 
-      {/* Enhanced Search & Filters */}
       <SearchAndFilterContainer>
         <FilterGrid>
           <SearchInput>
@@ -802,58 +869,20 @@ const WorkQueue = () => {
             <option value="normal">{t('workQueue.filters.normal')}</option>
             <option value="low">{t('workQueue.filters.low')}</option>
           </FilterSelect>
-        </FilterGrid>
 
-        <FilterActions>
-          <SortContainer>
-            <span>{t('workQueue.sort.by')}:</span>
-            <SortButton
-              $active={sortBy === 'createdAt'}
-              onClick={() => handleSort('createdAt')}
-            >
-              {t('workQueue.sort.created')} {getSortIcon('createdAt')}
-            </SortButton>
-            <SortButton
-              $active={sortBy === 'patientName'}
-              onClick={() => handleSort('patientName')}
-            >
-              {t('workQueue.sort.patient')} {getSortIcon('patientName')}
-            </SortButton>
-            <SortButton
-              $active={sortBy === 'priority'}
-              onClick={() => handleSort('priority')}
-            >
-              {t('workQueue.sort.priority')} {getSortIcon('priority')}
-            </SortButton>
-          </SortContainer>
-
-          <ClearFiltersButton onClick={clearFilters}>
+          <GlowButton
+            onClick={clearFilters}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
             <FaTimes /> {t('workQueue.clearFilters')}
-          </ClearFiltersButton>
-        </FilterActions>
+          </GlowButton>
+        </FilterGrid>
       </SearchAndFilterContainer>
 
-      {/* Status Filter Buttons */}
-      <FilterContainer
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
-      >
-        {statusFilters.map((filter) => (
-          <FilterButton
-            key={filter.key}
-            $active={statusFilter === filter.key}
-            onClick={() => setStatusFilter(filter.key)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {filter.icon}
-            {filter.label}
-          </FilterButton>
-        ))}
-      </FilterContainer>
-
-      {/* Work Queue List */}
       <GlowCard style={{ minHeight: 400 }}>
         <div style={{ padding: '1.5rem' }}>
           <h3 style={{ marginBottom: '1rem', color: theme.colors.text }}>

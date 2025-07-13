@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../firebase/config';
-import { toast } from 'react-toastify';
+import toast from 'react-hot-toast';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
 
 const Form = styled(motion.form)`

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { toast } from 'react-toastify';
+import toast from 'react-hot-toast';
 import { Notification, RealtimeUpdate } from '../types';
 import { useAuth } from './AuthContext';
 import { trackEvent } from '../utils/errorMonitoring';
@@ -153,12 +153,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   // Show toast notification
   const showToastNotification = useCallback((notification: Notification) => {
     const toastOptions = {
+      duration: 5000,
       position: 'top-right' as const,
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
     };
 
     switch (notification.type) {
@@ -169,10 +165,24 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         toast.error(notification.message, toastOptions);
         break;
       case 'warning':
-        toast.warning(notification.message, toastOptions);
+        toast(notification.message, {
+          ...toastOptions,
+          icon: '⚠️',
+          style: {
+            background: '#fbbf24',
+            color: '#fff',
+          },
+        });
         break;
       default:
-        toast.info(notification.message, toastOptions);
+        toast(notification.message, {
+          ...toastOptions,
+          icon: 'ℹ️',
+          style: {
+            background: '#3b82f6',
+            color: '#fff',
+          },
+        });
     }
   }, []);
 
