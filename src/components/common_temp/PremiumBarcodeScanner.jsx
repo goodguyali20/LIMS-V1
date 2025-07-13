@@ -7,6 +7,7 @@ import {
   FaBarcode, FaQrcode, FaCheckCircle, FaExclamationTriangle,
   FaTimes, FaSearch, FaCamera, FaSpinner, FaHistory
 } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
 
 const ScannerContainer = styled(motion.div)`
   background: ${({ theme }) => theme.colors.surface};
@@ -161,6 +162,15 @@ const ScanButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
+  max-width: 140px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  @media (max-width: 480px) {
+    font-size: 0.95rem;
+    max-width: 100px;
+  }
   
   &:hover {
     background: ${({ theme }) => theme.colors.primary + 'dd'};
@@ -308,6 +318,7 @@ const PremiumBarcodeScanner = ({
   const [feedback, setFeedback] = useState(null);
   const [scanHistory, setScanHistory] = useState([]);
   const inputRef = useRef(null);
+  const { i18n } = useTranslation();
 
   const handleScan = async (code) => {
     setIsScanning(true);
@@ -434,9 +445,10 @@ const PremiumBarcodeScanner = ({
           disabled={isScanning || !scanInput.trim()}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
+          style={i18n.language === 'ar' ? { fontSize: '0.9rem', maxWidth: 100 } : undefined}
         >
           {isScanning ? <FaSpinner /> : <FaSearch />}
-          {isScanning ? 'Scanning...' : 'Scan'}
+          {isScanning ? (i18n.language === 'ar' ? 'جارٍ المسح...' : 'Scanning...') : (i18n.language === 'ar' ? 'مسح' : 'Scan')}
         </ScanButton>
       </InputContainer>
 
