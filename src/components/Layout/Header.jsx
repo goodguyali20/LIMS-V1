@@ -295,6 +295,7 @@ const WelcomeCard = styled.div`
 const Header = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState('');
   const [particles, setParticles] = useState([]);

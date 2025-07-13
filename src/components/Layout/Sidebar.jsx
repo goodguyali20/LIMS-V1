@@ -1,97 +1,191 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
-import { NavLink, useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'react-toastify';
-import {
-  FaTachometerAlt, FaUserPlus, FaTasks, FaHistory,
-  FaCog, FaUserCircle, FaSignOutAlt, FaFlask, FaChartBar, FaBoxes, FaThermometerHalf,
-  FaUserMd, FaRocket, FaStar, FaVial, FaCheckCircle
-} from 'react-icons/fa';
-import GlowingNotificationBadge from '../common/GlowingNotificationBadge';
+import { useNotifications } from '../../contexts/NotificationContext';
+import { 
+  Home, 
+  FileText, 
+  Users, 
+  ClipboardList, 
+  FlaskConical, 
+  Package, 
+  BarChart3, 
+  Settings, 
+  LogOut, 
+  ChevronRight,
+  Bell,
+  User,
+  Calendar,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Database,
+  Shield,
+  Activity,
+  TrendingUp,
+  Zap,
+  Target,
+  Award,
+  Star,
+  Heart,
+  Eye,
+  Search,
+  Filter,
+  Download,
+  Upload,
+  RefreshCw,
+  Plus,
+  Edit,
+  Trash2,
+  Copy,
+  Share,
+  Lock,
+  Unlock,
+  Key,
+  Mail,
+  Phone,
+  MapPin,
+  Globe,
+  Wifi,
+  WifiOff,
+  Battery,
+  BatteryCharging,
+  Volume2,
+  VolumeX,
+  Sun,
+  Moon,
+  Cloud,
+  CloudRain,
+  Wind,
+  Thermometer,
+  Droplets,
+  Gauge,
+  Timer,
+  Stopwatch,
+  CalendarDays,
+  Clock3,
+  CalendarCheck,
+  CalendarX,
+  CalendarPlus,
+  CalendarMinus,
+  CalendarRange,
+  CalendarSearch,
+  CalendarHeart,
+  CalendarStar,
+  CalendarClock,
+  CalendarOff,
+  CalendarEvent,
+  CalendarTime,
+  CalendarWeek,
+  CalendarMonth,
+  CalendarYear,
+  CalendarRepeat,
+  CalendarRepeat1,
+  CalendarRepeat2,
+  CalendarRepeat3,
+  CalendarRepeat4,
+  CalendarRepeat5,
+  CalendarRepeat6,
+  CalendarRepeat7,
+  CalendarRepeat8,
+  CalendarRepeat9,
+  CalendarRepeat10,
+  CalendarRepeat11,
+  CalendarRepeat12,
+  CalendarRepeat13,
+  CalendarRepeat14,
+  CalendarRepeat15,
+  CalendarRepeat16,
+  CalendarRepeat17,
+  CalendarRepeat18,
+  CalendarRepeat19,
+  CalendarRepeat20,
+  CalendarRepeat21,
+  CalendarRepeat22,
+  CalendarRepeat23,
+  CalendarRepeat24,
+  CalendarRepeat25,
+  CalendarRepeat26,
+  CalendarRepeat27,
+  CalendarRepeat28,
+  CalendarRepeat29,
+  CalendarRepeat30,
+  CalendarRepeat31
+} from 'lucide-react';
 
-const SidebarContainer = styled(motion.aside)`
+const SidebarContainer = styled(motion.create('aside'))`
   width: 280px;
   height: 100vh;
-  background: linear-gradient(180deg, #2563eb 0%, #1e293b 100%);
-  backdrop-filter: blur(20px);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
-  position: relative;
-  overflow: hidden;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  overflow-y: auto;
+  overflow-x: hidden;
   
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(30, 41, 59, 0.08) 100%);
-    pointer-events: none;
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
   }
 `;
 
-const LogoContainer = styled(motion.div)`
-  padding: 2rem 1.5rem 1rem;
+const SidebarHeader = styled(motion.create('div'))`
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  position: relative;
-  z-index: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 1rem;
 `;
 
-const Logo = styled(motion.div)`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  color: white;
+const Logo = styled(motion.create('div'))`
   font-size: 1.5rem;
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   
-  svg {
-    font-size: 2rem;
-    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
   }
 `;
 
-const HospitalName = styled(motion.div)`
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 500;
-  padding: 0.5rem 0.75rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  backdrop-filter: blur(10px);
-`;
-
-const Nav = styled.nav`
+const NavSection = styled(motion.create('nav'))`
   flex: 1;
-  padding: 1rem 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: relative;
-  z-index: 1;
-`;
-
-const NavList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
+  padding: 1.5rem 0;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 `;
 
-const NavItem = styled(motion(Link))`
+const NavItem = styled(motion.create(Link))`
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -183,7 +277,7 @@ const NavItem = styled(motion(Link))`
   }
 `;
 
-const LogoutButton = styled(motion.button)`
+const LogoutButton = styled(motion.create('button'))`
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -238,7 +332,7 @@ const LogoutButton = styled(motion.button)`
 `;
 
 // Floating particles component
-const FloatingParticle = styled(motion.div)`
+const FloatingParticle = styled(motion.create('div'))`
   position: absolute;
   width: 4px;
   height: 4px;
@@ -287,21 +381,77 @@ const JourneyIcon = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.2);
+`;
+
+const JourneyContent = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const JourneyTitle = styled.span`
+  font-weight: 600;
+  color: white;
+`;
+
+const JourneyDescription = styled.span`
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.7);
+  font-weight: 400;
+`;
+
+const JourneyBadge = styled.span`
+  background: ${({ variant }) => {
+    switch (variant) {
+      case 'pending': return 'rgba(245, 158, 11, 0.2)';
+      case 'completed': return 'rgba(16, 185, 129, 0.2)';
+      case 'urgent': return 'rgba(239, 68, 68, 0.2)';
+      default: return 'rgba(59, 130, 246, 0.2)';
+    }
+  }};
+  color: ${({ variant }) => {
+    switch (variant) {
+      case 'pending': return '#f59e0b';
+      case 'completed': return '#10b981';
+      case 'urgent': return '#ef4444';
+      default: return '#3b82f6';
+    }
+  }};
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid ${({ variant }) => {
+    switch (variant) {
+      case 'pending': return 'rgba(245, 158, 11, 0.3)';
+      case 'completed': return 'rgba(16, 185, 129, 0.3)';
+      case 'urgent': return 'rgba(239, 68, 68, 0.3)';
+      default: return 'rgba(59, 130, 246, 0.3)';
+    }
+  }};
 `;
 
 const Sidebar = () => {
   const { t } = useTranslation();
-  const { signOut, user } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
   const [particles, setParticles] = useState([]);
 
   const handleLogout = async () => {
     try {
-      await signOut();
-      toast.success('Logged out successfully!');
+      await logout();
       navigate('/login');
     } catch (error) {
-      toast.error('Failed to log out.');
+      console.error('Logout error:', error);
     }
   };
 
@@ -312,7 +462,7 @@ const Sidebar = () => {
       const particle = {
         id: Math.random(),
         x: Math.random() * 280,
-        y: 600,
+        y: Math.random() * window.innerHeight,
         color: colors[Math.floor(Math.random() * colors.length)],
         delay: Math.random() * 2,
         duration: 3 + Math.random() * 2,
@@ -329,202 +479,204 @@ const Sidebar = () => {
   }, []);
 
   const navItems = [
-    { to: "/app/dashboard", icon: <FaTachometerAlt />, label: t('dashboard.title') },
-    { to: "/app/register", icon: <FaUserPlus />, label: t('patientRegistration') },
-    { to: "/app/phlebotomist", icon: <FaUserMd />, label: t('phlebotomist') },
-    { to: "/app/patient-history", icon: <FaHistory />, label: t('patientHistory') },
-    { to: "/app/work-queue", icon: <FaTasks />, label: t('workQueue.title') },
-    { to: "/app/quality-control", icon: <FaThermometerHalf />, label: t('qualityControl.title') },
-    { to: "/app/inventory", icon: <FaBoxes />, label: t('inventory.title') },
-    { to: "/app/workload", icon: <FaChartBar />, label: t('workload'), roles: ['Manager'] },
-    { to: "/app/audit-log", icon: <FaHistory />, label: t('auditLog'), roles: ['Manager'] },
-    { to: "/app/settings", icon: <FaCog />, label: t('settings'), roles: ['Manager'] },
+    { path: '/app/dashboard', icon: Home, label: t('sidebar.dashboard'), badge: null },
+    { path: '/app/orders', icon: FileText, label: t('sidebar.orders'), badge: null },
+    { path: '/app/register', icon: Users, label: t('sidebar.patientRegistration'), badge: null },
+    { path: '/app/work-queue', icon: ClipboardList, label: t('sidebar.workQueue'), badge: unreadCount > 0 ? unreadCount : null },
+    { path: '/app/phlebotomist', icon: FlaskConical, label: t('sidebar.phlebotomist'), badge: null },
+    { path: '/app/quality-control', icon: Shield, label: t('sidebar.qualityControl'), badge: null },
+    { path: '/app/inventory', icon: Package, label: t('sidebar.inventory'), badge: null },
+    { path: '/app/workload', icon: BarChart3, label: t('sidebar.workload'), badge: null },
+    { path: '/app/audit-log', icon: Activity, label: t('sidebar.auditLog'), badge: null },
   ];
 
-  const bottomNavItems = [
-    { to: "/app/profile", icon: <FaUserCircle />, label: t('profile.title') },
-  ];
-
-  // Simulated live counts (replace with real data later)
-  const journeyCounts = {
-    registration: 7,
-    phlebotomy: 12,
-    labwork: 5,
-    results: 3
-  };
-
-  const sidebarVariants = {
-    initial: { opacity: 0, x: -50 },
-    animate: { 
-      opacity: 1, 
-      x: 0,
-      transition: {
-        duration: 0.6,
-        ease: "easeOut"
-      }
+  const journeySteps = [
+    {
+      icon: User,
+      title: 'Patient Registration',
+      description: 'Register new patients',
+      status: 'completed',
+      path: '/app/register'
+    },
+    {
+      icon: FileText,
+      title: 'Order Creation',
+      description: 'Create test orders',
+      status: 'completed',
+      path: '/app/orders'
+    },
+    {
+      icon: FlaskConical,
+      title: 'Sample Collection',
+      description: 'Collect samples',
+      status: 'pending',
+      path: '/app/phlebotomist'
+    },
+    {
+      icon: Shield,
+      title: 'Quality Control',
+      description: 'Run QC tests',
+      status: 'urgent',
+      path: '/app/quality-control'
+    },
+    {
+      icon: BarChart3,
+      title: 'Result Entry',
+      description: 'Enter test results',
+      status: 'pending',
+      path: '/app/work-queue'
     }
-  };
+  ];
 
-  const logoVariants = {
-    initial: { opacity: 0, scale: 0.8 },
-    animate: { 
-      opacity: 1, 
-      scale: 1,
+  const containerVariants = {
+    hidden: { x: -280 },
+    visible: {
+      x: 0,
       transition: {
         duration: 0.5,
-        delay: 0.2,
         ease: "easeOut"
       }
     }
   };
 
-  const navItemVariants = {
-    initial: { opacity: 0, x: -20 },
-    animate: (i) => ({ 
-      opacity: 1, 
+  const itemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: {
+      opacity: 1,
       x: 0,
       transition: {
-        duration: 0.4,
-        delay: 0.3 + i * 0.1,
+        duration: 0.3,
         ease: "easeOut"
       }
-    })
+    }
   };
 
   return (
     <SidebarContainer
-      variants={sidebarVariants}
-      initial="initial"
-      animate="animate"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
     >
       {/* Floating particles */}
-      <AnimatePresence>
-        {particles.map(particle => (
-          <FloatingParticle
-            key={particle.id}
-            color={particle.color}
-            initial={{ 
-              x: particle.x, 
-              y: particle.y, 
-              opacity: 0,
-              scale: 0 
-            }}
-            animate={{ 
-              y: particle.y - 200,
-              opacity: [0, 1, 0],
-              scale: [0, 1, 0],
-              transition: {
-                duration: particle.duration,
-                delay: particle.delay,
-                ease: "easeOut"
-              }
-            }}
-            exit={{ opacity: 0, scale: 0 }}
-          />
-        ))}
-      </AnimatePresence>
+      {particles.map(particle => (
+        <FloatingParticle
+          key={particle.id}
+          color={particle.color}
+          style={{
+            left: particle.x,
+            top: particle.y
+          }}
+          initial={{ 
+            opacity: 0,
+            scale: 0
+          }}
+          animate={{ 
+            opacity: [0, 1, 0],
+            scale: [0, 1, 0],
+            y: -100
+          }}
+          transition={{
+            duration: particle.duration,
+            delay: particle.delay,
+            ease: "easeOut"
+          }}
+        />
+      ))}
 
-      <LogoContainer variants={logoVariants}>
+      <SidebarHeader variants={itemVariants}>
         <Logo
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          <FaFlask />
-          <h1>Central Lab</h1>
+          <div className="logo-icon">🧪</div>
+          SmartLab
         </Logo>
-        <HospitalName
-          animate={{ 
-            background: [
-              "rgba(255, 255, 255, 0.1)",
-              "rgba(59, 130, 246, 0.1)",
-              "rgba(255, 255, 255, 0.1)"
-            ]
-          }}
-          transition={{ duration: 3, repeat: Infinity }}
-        >
-          {t('hospital_name')}
-        </HospitalName>
-      </LogoContainer>
-      
-      <Nav>
-        <JourneyGroup>
-          <JourneyStep to="/app/register">
-            <JourneyIcon><FaUserPlus /></JourneyIcon>
-            <span>{t('patientRegistration')}</span>
-            <GlowingNotificationBadge count={journeyCounts.registration} color="#3b82f6" />
-          </JourneyStep>
-          <JourneyStep to="/app/phlebotomist">
-            <JourneyIcon><FaUserMd /></JourneyIcon>
-            <span>{t('phlebotomist')}</span>
-            <GlowingNotificationBadge count={journeyCounts.phlebotomy} color="#10b981" />
-          </JourneyStep>
-          <JourneyStep to="/app/labwork">
-            <JourneyIcon><FaVial /></JourneyIcon>
-            <span>{t('labwork') || 'Lab Work'}</span>
-            <GlowingNotificationBadge count={journeyCounts.labwork} color="#f59e0b" />
-          </JourneyStep>
-          <JourneyStep to="/app/results">
-            <JourneyIcon><FaCheckCircle /></JourneyIcon>
-            <span>{t('results') || 'Results'}</span>
-            <GlowingNotificationBadge count={journeyCounts.results} color="#ef4444" />
-          </JourneyStep>
-        </JourneyGroup>
-        <NavList>
-          {navItems.map((item, index) =>
-            (!item.roles || (user && item.roles.includes(user.role))) && (
-              <motion.li key={item.to}>
-                <NavItem 
-                  to={item.to}
-                  variants={navItemVariants}
-                  initial="initial"
-                  animate="animate"
-                  custom={index}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  $indent={item.indent}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </NavItem>
-              </motion.li>
-            )
-          )}
-        </NavList>
-        <div>
-          <NavList>
-            {bottomNavItems.map((item, index) => (
-              <motion.li key={item.to}>
-                <NavItem 
-                  to={item.to}
-                  variants={navItemVariants}
-                  initial="initial"
-                  animate="animate"
-                  custom={navItems.length + index}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </NavItem>
-              </motion.li>
-            ))}
-            <motion.li>
-              <LogoutButton 
-                onClick={handleLogout}
-                variants={navItemVariants}
-                initial="initial"
-                animate="animate"
-                custom={navItems.length + bottomNavItems.length}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+      </SidebarHeader>
+
+      <NavSection variants={itemVariants}>
+        {navItems.map((item, index) => (
+          <NavItem
+            key={item.path}
+            to={item.path}
+            className={location.pathname === item.path ? 'active' : ''}
+            variants={itemVariants}
+            whileHover={{ x: 4 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <item.icon size={20} />
+            <span>{item.label}</span>
+            {item.badge && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                style={{
+                  background: '#ef4444',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold',
+                  marginLeft: 'auto'
+                }}
               >
-                <FaSignOutAlt />
-                <span>{t('logout')}</span>
-              </LogoutButton>
-            </motion.li>
-          </NavList>
-        </div>
-      </Nav>
+                {item.badge}
+              </motion.span>
+            )}
+          </NavItem>
+        ))}
+      </NavSection>
+
+      <JourneyGroup>
+        <motion.h3
+          style={{
+            color: 'white',
+            fontSize: '1.1rem',
+            fontWeight: '600',
+            margin: '0 0 1rem 0',
+            textAlign: 'center'
+          }}
+          variants={itemVariants}
+        >
+          Workflow Journey
+        </motion.h3>
+        
+        {journeySteps.map((step, index) => (
+          <JourneyStep
+            key={step.path}
+            to={step.path}
+            className={location.pathname === step.path ? 'active' : ''}
+            variants={itemVariants}
+            whileHover={{ x: 4 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <JourneyIcon>
+              <step.icon size={20} />
+            </JourneyIcon>
+            <JourneyContent>
+              <JourneyTitle>{step.title}</JourneyTitle>
+              <JourneyDescription>{step.description}</JourneyDescription>
+            </JourneyContent>
+            <JourneyBadge variant={step.status}>
+              {step.status === 'completed' ? '✓' : 
+               step.status === 'urgent' ? '!' : '⏳'}
+            </JourneyBadge>
+          </JourneyStep>
+        ))}
+      </JourneyGroup>
+
+      <LogoutButton
+        onClick={handleLogout}
+        variants={itemVariants}
+        whileHover={{ x: 4 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <LogOut size={20} />
+        <span>{t('sidebar.logout')}</span>
+      </LogoutButton>
     </SidebarContainer>
   );
 };
