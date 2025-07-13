@@ -8,10 +8,10 @@ const CardContainer = styled(motion.div)`
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
-  padding: ${({ padding }) => padding || '1.5rem'};
+  padding: ${({ $padding }) => $padding || '1.5rem'};
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: ${({ clickable }) => clickable ? 'pointer' : 'default'};
+  cursor: ${({ $clickable }) => $clickable ? 'pointer' : 'default'};
   
   /* Gradient background overlay */
   &::before {
@@ -21,8 +21,8 @@ const CardContainer = styled(motion.div)`
     left: 0;
     right: 0;
     bottom: 0;
-    background: ${({ variant }) => {
-      switch (variant) {
+    background: ${({ $variant }) => {
+      switch ($variant) {
         case 'primary':
           return 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(29, 78, 216, 0.05) 100%)';
         case 'success':
@@ -59,11 +59,11 @@ const CardContainer = styled(motion.div)`
 
   /* Hover effects */
   &:hover {
-    transform: ${({ clickable }) => clickable ? 'translateY(-8px) scale(1.02)' : 'none'};
-    box-shadow: ${({ variant, clickable }) => {
-      if (!clickable) return 'none';
+    transform: ${({ $clickable }) => $clickable ? 'translateY(-8px) scale(1.02)' : 'none'};
+    box-shadow: ${({ $variant, $clickable }) => {
+      if (!$clickable) return 'none';
       
-      switch (variant) {
+      switch ($variant) {
         case 'primary':
           return '0 20px 40px rgba(59, 130, 246, 0.2), 0 0 0 1px rgba(59, 130, 246, 0.1)';
         case 'success':
@@ -82,7 +82,7 @@ const CardContainer = styled(motion.div)`
 
   /* Active state */
   &:active {
-    transform: ${({ clickable }) => clickable ? 'translateY(-4px) scale(1.01)' : 'none'};
+    transform: ${({ $clickable }) => $clickable ? 'translateY(-4px) scale(1.01)' : 'none'};
   }
 
   /* Focus styles */
@@ -270,9 +270,9 @@ const GlowCard = ({
 
   return (
     <CardContainer
-      variant={variant}
-      padding={padding}
-      clickable={clickable}
+      $variant={variant}
+      $padding={padding}
+      $clickable={clickable}
       onClick={handleClick}
       className={className}
       style={style}

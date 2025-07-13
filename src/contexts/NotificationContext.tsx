@@ -41,7 +41,13 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   useEffect(() => {
     if (!user) return;
 
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+    // Only connect if VITE_SOCKET_URL is explicitly set
+    const socketUrl = import.meta.env.VITE_SOCKET_URL;
+    if (!socketUrl) {
+      console.log('Socket URL not configured, skipping real-time notifications');
+      return;
+    }
+
     const newSocket = io(socketUrl, {
       auth: {
         userId: user.uid,
@@ -50,7 +56,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 3,
+      timeout: 5000,
     });
 
     newSocket.on('connect', () => {
@@ -68,6 +75,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     newSocket.on('connect_error', (error) => {
       console.error('Socket connection error:', error);
       trackEvent('socket_connection_error', { error: error.message });
+      
+      // Don't show error to user if socket URL is not configured
+      if (!import.meta.env.VITE_SOCKET_URL) {
+        return;
+      }
+      
+      // Show a user-friendly error message
+      toast.error('Real-time notifications are currently unavailable', {
+        duration: 3000,
+        position: 'top-right',
+      });
     });
 
     // Listen for real-time updates

@@ -438,6 +438,7 @@ const Sidebar = () => {
     { path: '/app/inventory', icon: Package, label: t('sidebar.inventory'), badge: null },
     { path: '/app/workload', icon: BarChart3, label: t('sidebar.workload'), badge: null },
     { path: '/app/audit-log', icon: Activity, label: t('sidebar.auditLog'), badge: null },
+    { path: '/app/showcase', icon: Zap, label: 'Library Showcase', badge: 'NEW' },
   ];
 
   const journeySteps = [

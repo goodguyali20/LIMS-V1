@@ -14,7 +14,8 @@ import {
   Line,
   PieChart,
   Pie,
-  Cell
+  Cell,
+  Legend
 } from 'recharts';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
@@ -62,16 +63,55 @@ const StatsGrid = styled.div`
 `;
 
 const StatCard = styled(motion.create('div'))`
-  background: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 12px;
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
   padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
   transition: all 0.3s ease;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #f5576c 75%, 
+      #4facfe 100%);
+    border-radius: 20px 20px 0 0;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    box-shadow: 
+      0 30px 60px rgba(0, 0, 0, 0.15),
+      0 12px 24px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
   
   .stat-header {
@@ -79,6 +119,8 @@ const StatCard = styled(motion.create('div'))`
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+    position: relative;
+    z-index: 1;
   }
   
   .stat-title {
@@ -92,11 +134,12 @@ const StatCard = styled(motion.create('div'))`
   .stat-icon {
     width: 40px;
     height: 40px;
-    border-radius: 8px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.25rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
   
   .stat-value {
@@ -104,6 +147,8 @@ const StatCard = styled(motion.create('div'))`
     font-weight: 700;
     color: ${({ theme }) => theme.colors.text};
     margin-bottom: 0.5rem;
+    position: relative;
+    z-index: 1;
   }
   
   .stat-change {
@@ -111,6 +156,8 @@ const StatCard = styled(motion.create('div'))`
     display: flex;
     align-items: center;
     gap: 0.25rem;
+    position: relative;
+    z-index: 1;
   }
   
   .stat-change.positive {
@@ -133,18 +180,74 @@ const ChartsGrid = styled.div`
   }
 `;
 
-const ChartCard = styled.div`
-  background: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+const ChartCard = styled(motion.create('div'))`
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #f5576c 75%, 
+      #4facfe 100%);
+    border-radius: 20px 20px 0 0;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
   
   h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: 1.5rem;
+    font-weight: 700;
     color: ${({ theme }) => theme.colors.text};
-    margin-bottom: 1rem;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+    z-index: 1;
+    
+    &::before {
+      content: '';
+      width: 6px;
+      height: 24px;
+      background: linear-gradient(180deg, #667eea, #764ba2);
+      border-radius: 3px;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+  }
+  
+  .chart-container {
+    position: relative;
+    height: 320px;
+    z-index: 1;
   }
 `;
 
@@ -173,6 +276,142 @@ const SkeletonCard = styled(motion.create('div'))`
   justify-content: center;
 `;
 
+// Custom tooltip component for premium look
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)',
+        border: '1px solid rgba(255, 255, 255, 0.3)',
+        borderRadius: '16px',
+        padding: '16px',
+        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1)',
+        backdropFilter: 'blur(20px)',
+        fontSize: '13px',
+        fontWeight: '600',
+        minWidth: '200px'
+      }}>
+        <p style={{ 
+          margin: '0 0 12px 0', 
+          color: '#1f2937', 
+          fontWeight: '700',
+          fontSize: '14px',
+          borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
+          paddingBottom: '8px'
+        }}>
+          {label}
+        </p>
+        {payload.map((entry, index) => (
+          <div key={index} style={{ 
+            margin: '8px 0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                background: entry.color,
+                boxShadow: `0 2px 8px ${entry.color}40`
+              }}></div>
+              <span style={{ color: '#374151', fontWeight: '600' }}>
+                {entry.name}
+              </span>
+            </div>
+            <span style={{ 
+              color: entry.color, 
+              fontWeight: '700',
+              fontSize: '14px'
+            }}>
+              {entry.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+// Custom pie chart tooltip
+const CustomPieTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    return (
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)',
+        border: '1px solid rgba(255, 255, 255, 0.3)',
+        borderRadius: '16px',
+        padding: '16px',
+        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1)',
+        backdropFilter: 'blur(20px)',
+        fontSize: '13px',
+        fontWeight: '600',
+        minWidth: '180px'
+      }}>
+        <div style={{ 
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '8px'
+        }}>
+          <div style={{
+            width: '16px',
+            height: '16px',
+            borderRadius: '50%',
+            background: data.payload.fill,
+            boxShadow: `0 2px 8px ${data.payload.fill}40`
+          }}></div>
+          <span style={{ 
+            color: '#1f2937', 
+            fontWeight: '700',
+            fontSize: '14px'
+          }}>
+            {data.name}
+          </span>
+        </div>
+        <div style={{ 
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span style={{ color: '#6b7280', fontWeight: '600' }}>
+            Count
+          </span>
+          <span style={{ 
+            color: data.payload.fill, 
+            fontWeight: '700',
+            fontSize: '16px'
+          }}>
+            {data.value}
+          </span>
+        </div>
+        <div style={{ 
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: '4px'
+        }}>
+          <span style={{ color: '#6b7280', fontWeight: '600' }}>
+            Percentage
+          </span>
+          <span style={{ 
+            color: data.payload.fill, 
+            fontWeight: '700',
+            fontSize: '16px'
+          }}>
+            {((data.payload.percent || 0) * 100).toFixed(1)}%
+          </span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 // Mock data functions
 const generateMockData = () => {
   const today = new Date();
@@ -187,11 +426,11 @@ const generateMockData = () => {
   }).reverse();
 
   const testTypes = [
-    { name: 'Blood Tests', value: 35, color: '#3b82f6' },
-    { name: 'Urine Tests', value: 25, color: '#10b981' },
-    { name: 'Microbiology', value: 20, color: '#f59e0b' },
-    { name: 'Chemistry', value: 15, color: '#ef4444' },
-    { name: 'Other', value: 5, color: '#8b5cf6' }
+    { name: 'Blood Tests', value: 35, color: '#667eea', percent: 0.35 },
+    { name: 'Urine Tests', value: 25, color: '#764ba2', percent: 0.25 },
+    { name: 'Microbiology', value: 20, color: '#f093fb', percent: 0.20 },
+    { name: 'Chemistry', value: 15, color: '#f5576c', percent: 0.15 },
+    { name: 'Other', value: 5, color: '#4facfe', percent: 0.05 }
   ];
 
   return { last7Days, testTypes };
@@ -367,39 +606,147 @@ const ManagerDashboard = () => {
         </ChartsGrid>
       ) : (
         <ChartsGrid>
-          <ChartCard>
+          <ChartCard
+            variants={itemVariants}
+            whileHover={{ 
+              scale: 1.02,
+              boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
+            }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
             <h3>Orders & Tests Trend</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={dashboardData?.last7Days}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="orders" fill="#3b82f6" name="Orders" />
-                <Bar dataKey="tests" fill="#10b981" name="Tests" />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart 
+                  data={dashboardData?.last7Days}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                >
+                  <defs>
+                    <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#667eea" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#667eea" stopOpacity={0.1}/>
+                    </linearGradient>
+                    <linearGradient id="testsGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#764ba2" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#764ba2" stopOpacity={0.1}/>
+                    </linearGradient>
+                    <filter id="glow">
+                      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                      <feMerge> 
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke="rgba(255, 255, 255, 0.1)"
+                    vertical={false}
+                  />
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: 'rgba(255, 255, 255, 0.7)', fontWeight: '500' }}
+                  />
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: 'rgba(255, 255, 255, 0.7)', fontWeight: '500' }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    verticalAlign="top" 
+                    height={36}
+                    wrapperStyle={{
+                      paddingBottom: '20px',
+                      color: 'rgba(255, 255, 255, 0.8)',
+                      fontWeight: '600'
+                    }}
+                  />
+                  <Line 
+                    type="monotone"
+                    dataKey="orders" 
+                    stroke="#667eea"
+                    strokeWidth={3}
+                    fill="url(#ordersGradient)"
+                    dot={{ 
+                      fill: '#667eea', 
+                      strokeWidth: 2, 
+                      stroke: '#fff',
+                      r: 6,
+                      filter: 'url(#glow)'
+                    }}
+                    activeDot={{ 
+                      r: 8, 
+                      stroke: '#fff', 
+                      strokeWidth: 3,
+                      fill: '#667eea'
+                    }}
+                    name="Orders"
+                  />
+                  <Line 
+                    type="monotone"
+                    dataKey="tests" 
+                    stroke="#764ba2"
+                    strokeWidth={3}
+                    fill="url(#testsGradient)"
+                    dot={{ 
+                      fill: '#764ba2', 
+                      strokeWidth: 2, 
+                      stroke: '#fff',
+                      r: 6,
+                      filter: 'url(#glow)'
+                    }}
+                    activeDot={{ 
+                      r: 8, 
+                      stroke: '#fff', 
+                      strokeWidth: 3,
+                      fill: '#764ba2'
+                    }}
+                    name="Tests"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </ChartCard>
 
-          <ChartCard>
+          <ChartCard
+            variants={itemVariants}
+            whileHover={{ 
+              scale: 1.02,
+              boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
+            }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
             <h3>Test Types Distribution</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={dashboardData?.testTypes}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {dashboardData?.testTypes.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={dashboardData?.testTypes}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={45}
+                    outerRadius={95}
+                    paddingAngle={3}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                  >
+                    {dashboardData?.testTypes.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.color}
+                        stroke="rgba(255, 255, 255, 0.2)"
+                        strokeWidth={2}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomPieTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </ChartCard>
         </ChartsGrid>
       )}
@@ -407,21 +754,81 @@ const ManagerDashboard = () => {
       <motion.div
         variants={itemVariants}
         style={{
-          background: 'var(--surface-color)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          marginTop: '2rem'
+          background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '20px',
+          padding: '2.5rem',
+          marginTop: '2rem',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+          backdropFilter: 'blur(20px)',
+          position: 'relative',
+          overflow: 'hidden'
         }}
+        whileHover={{ 
+          scale: 1.02,
+          boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
+        }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
       >
-        <h3 style={{ marginBottom: '1rem', color: 'var(--text-color)' }}>
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '4px',
+          background: 'linear-gradient(90deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
+          borderRadius: '20px 20px 0 0'
+        }}></div>
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%)',
+          pointerEvents: 'none'
+        }}></div>
+        <h3 style={{ 
+          marginBottom: '1.5rem', 
+          color: 'var(--text-color)',
+          fontSize: '1.5rem',
+          fontWeight: '700',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          position: 'relative',
+          zIndex: 1
+        }}>
+          <span style={{
+            width: '6px',
+            height: '24px',
+            background: 'linear-gradient(180deg, #667eea, #764ba2)',
+            borderRadius: '3px',
+            boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
+          }}></span>
           Recent Activity
         </h3>
-        <div style={{ color: 'var(--text-secondary-color)' }}>
-          <p>• New order #1234 received from Dr. Smith</p>
-          <p>• Test results completed for patient #5678</p>
-          <p>• QC sample passed validation</p>
-          <p>• Inventory alert: Low stock for Test Tube A</p>
+        <div style={{ 
+          color: 'var(--text-secondary-color)',
+          position: 'relative',
+          zIndex: 1
+        }}>
+          <p style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: '#667eea', fontSize: '1.2rem' }}>•</span>
+            New order #1234 received from Dr. Smith
+          </p>
+          <p style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: '#764ba2', fontSize: '1.2rem' }}>•</span>
+            Test results completed for patient #5678
+          </p>
+          <p style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: '#f093fb', fontSize: '1.2rem' }}>•</span>
+            QC sample passed validation
+          </p>
+          <p style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: '#f5576c', fontSize: '1.2rem' }}>•</span>
+            Inventory alert: Low stock for Test Tube A
+          </p>
         </div>
       </motion.div>
     </DashboardContainer>

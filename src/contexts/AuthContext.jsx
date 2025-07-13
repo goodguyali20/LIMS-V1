@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { auth } from '../firebase/config.js';
-import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config.js';
 import { AuthContext } from './AuthContextBase.js';
@@ -82,6 +82,43 @@ export const AuthProvider = ({ children }) => {
     return () => unsubscribe();
   }, [fetchUserRole]);
 
+  const login = useCallback(async (email, password) => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const currentUser = userCredential.user;
+      
+      // Fetch user role and permissions
+      const userWithRole = await fetchUserRole(currentUser);
+      
+      // Only allow active users to login
+      if (!userWithRole.isActive) {
+        await firebaseSignOut(auth);
+        throw new Error('Account is deactivated. Please contact your administrator.');
+      }
+      
+      setUser(userWithRole);
+      return userWithRole;
+    } catch (error) {
+      console.error('Login error:', error);
+      
+      // Handle specific Firebase auth errors
+      switch (error.code) {
+        case 'auth/user-not-found':
+          throw new Error('No account found with this email address.');
+        case 'auth/wrong-password':
+          throw new Error('Incorrect password. Please try again.');
+        case 'auth/invalid-email':
+          throw new Error('Invalid email address.');
+        case 'auth/user-disabled':
+          throw new Error('This account has been disabled.');
+        case 'auth/too-many-requests':
+          throw new Error('Too many failed attempts. Please try again later.');
+        default:
+          throw new Error('Login failed. Please check your credentials and try again.');
+      }
+    }
+  }, [fetchUserRole]);
+
   const signOut = useCallback(async () => {
     try {
       await firebaseSignOut(auth);
@@ -109,10 +146,11 @@ export const AuthProvider = ({ children }) => {
   const value = useMemo(() => ({
     user,
     isLoading,
+    login,
     signOut,
     hasPermission,
     hasRole,
-  }), [user, isLoading, signOut, hasPermission, hasRole]);
+  }), [user, isLoading, login, signOut, hasPermission, hasRole]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

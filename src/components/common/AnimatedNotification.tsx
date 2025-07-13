@@ -3,7 +3,11 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaCheck, FaExclamationTriangle, FaInfoCircle, FaTimes, FaBell } from 'react-icons/fa';
 
-const NotificationContainer = styled(motion.div)`
+interface NotificationContainerProps {
+  $type: 'success' | 'error' | 'warning' | 'info';
+}
+
+const NotificationContainer = styled(motion.div)<NotificationContainerProps>`
   position: fixed;
   top: 20px;
   right: 20px;
@@ -26,8 +30,8 @@ const NotificationContainer = styled(motion.div)`
     left: 0;
     right: 0;
     bottom: 0;
-    background: ${({ type }) => {
-      switch (type) {
+    background: ${({ $type }) => {
+      switch ($type) {
         case 'success':
           return 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%)';
         case 'error':
@@ -68,15 +72,19 @@ const NotificationHeader = styled.div`
   margin-bottom: 0.5rem;
 `;
 
-const IconContainer = styled(motion.div)`
+interface IconContainerProps {
+  $type: 'success' | 'error' | 'warning' | 'info';
+}
+
+const IconContainer = styled(motion.div)<IconContainerProps>`
   display: flex;
   align-items: center;
   justify-content: center;
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: ${({ type }) => {
-    switch (type) {
+  background: ${({ $type }) => {
+    switch ($type) {
       case 'success':
         return 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
       case 'error':
@@ -147,13 +155,17 @@ const Message = styled.p`
   line-height: 1.5;
 `;
 
-const ProgressBar = styled(motion.div)`
+interface ProgressBarProps {
+  $type: 'success' | 'error' | 'warning' | 'info';
+}
+
+const ProgressBar = styled(motion.div)<ProgressBarProps>`
   position: absolute;
   bottom: 0;
   left: 0;
   height: 3px;
-  background: ${({ type }) => {
-    switch (type) {
+  background: ${({ $type }) => {
+    switch ($type) {
       case 'success':
         return 'linear-gradient(90deg, #10b981 0%, #059669 100%)';
       case 'error':
@@ -284,7 +296,7 @@ const AnimatedNotification: React.FC<AnimatedNotificationProps> = ({
       scale: 1,
       rotateY: 0,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 200,
         damping: 20,
         duration: 0.5
@@ -308,7 +320,7 @@ const AnimatedNotification: React.FC<AnimatedNotificationProps> = ({
       scale: 1, 
       rotate: 0,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 200,
         damping: 15,
         delay: 0.2
@@ -330,7 +342,7 @@ const AnimatedNotification: React.FC<AnimatedNotificationProps> = ({
 
   return (
     <NotificationContainer
-      type={type}
+      $type={type}
       variants={notificationVariants}
       initial="initial"
       animate="animate"
@@ -369,7 +381,7 @@ const AnimatedNotification: React.FC<AnimatedNotificationProps> = ({
       <NotificationHeader>
         <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
           <IconContainer
-            type={type}
+            $type={type}
             variants={iconVariants}
             initial="initial"
             animate="animate"
@@ -398,7 +410,7 @@ const AnimatedNotification: React.FC<AnimatedNotificationProps> = ({
       {/* Progress bar */}
       {autoClose && (
         <ProgressBar
-          type={type}
+          $type={type}
           style={{ width: `${progress}%` }}
           transition={{ duration: 0.1 }}
         />

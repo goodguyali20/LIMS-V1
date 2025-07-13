@@ -1,4 +1,17 @@
 {
+  "header": {
+    "searchPlaceholder": "Search orders, patients, tests...",
+    "scanBarcode": "Scan Barcode"
+  },
+  "common": {
+    "back": "Back"
+  },
+  "scanner": {
+    "title": "Barcode Scanner",
+    "description": "Scan barcodes to quickly access patient orders and test results",
+    "scannerTitle": "SmartLab Scanner",
+    "placeholder": "Enter barcode manually or scan..."
+  },
   "sidebar": {
     "dashboard": "Dashboard",
     "orders": "Orders",

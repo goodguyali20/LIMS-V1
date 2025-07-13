@@ -1,6 +1,6 @@
-# SmartLab LIMS - Laboratory Information Management System
+# SmartLab LIMS v1.1.0 - Laboratory Information Management System
 
-A modern, feature-rich Laboratory Information Management System built with React, TypeScript, and Firebase. SmartLab LIMS provides comprehensive laboratory management capabilities with real-time updates, advanced analytics, and mobile-first design.
+A modern, feature-rich Laboratory Information Management System built with React, TypeScript, and Firebase. SmartLab LIMS v1.1.0 introduces premium dashboard analytics, enhanced user experience, and sophisticated data visualization capabilities that elevate the laboratory management system to enterprise-grade standards.
 
 ## 🚀 Features
 
@@ -96,7 +96,8 @@ VITE_FIREBASE_APP_ID=your_app_id
 VITE_SENTRY_DSN=your_sentry_dsn
 
 # Socket.io Configuration (Optional)
-VITE_SOCKET_URL=http://localhost:3001
+# Only set this if you have a real-time notification server running
+# VITE_SOCKET_URL=http://localhost:3001
 ```
 
 ## 🧪 Testing

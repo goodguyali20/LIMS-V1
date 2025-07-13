@@ -6,10 +6,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Bell, Settings, Search, User, LogOut, Sun, Moon } from 'lucide-react';
+import { Bell, Settings, Search, User, LogOut, Sun, Moon, Barcode } from 'lucide-react';
 import LanguageSwitcher from '../common/LanguageSwitcher';
-import PremiumBarcodeScanner from '../common/PremiumBarcodeScanner';
-import { trackEvent } from '../../utils/errorMonitoring';
+import { logAuditEvent } from '../../utils/auditLogger';
 
 const HeaderContainer = styled.header`
   position: fixed;
@@ -42,7 +41,7 @@ const LogoSection = styled.div`
   flex-shrink: 0;
 `;
 
-const Logo = styled.div`
+const Logo = styled(motion.div)`
   font-size: 1.5rem;
   font-weight: 700;
   color: ${({ theme }) => theme.colors.text};
@@ -249,6 +248,30 @@ const WelcomeCard = styled.div`
   margin-bottom: 0.5rem;
 `;
 
+const BarcodeButton = styled(motion.button)`
+  background: ${({ theme }) => theme.colors.primary};
+  color: white;
+  border: none;
+  border-radius: ${({ theme }) => theme.shapes.squircle};
+  padding: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: ${({ theme }) => theme.shadows.main};
+  
+  &:hover {
+    background: ${({ theme }) => theme.colors.primary + 'dd'};
+    transform: translateY(-1px);
+    box-shadow: ${({ theme }) => theme.shadows.hover};
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
 const Header = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -259,9 +282,10 @@ const Header = () => {
   const [searchValue, setSearchValue] = useState('');
   const searchInputRef = useRef(null);
 
-  const handleBarcodeScan = (scannedCode) => {
-    navigate(`/app/order/${scannedCode}`);
-    trackEvent('barcode_scanned', { code: scannedCode });
+  const handleBarcodeScan = () => {
+    // Navigate to a dedicated scanner page or open modal
+    navigate('/app/scanner');
+    logAuditEvent('barcode_scanner_opened');
   };
 
   const handleSearchChange = (e) => {
@@ -271,7 +295,7 @@ const Header = () => {
   const handleSearchKeyDown = (e) => {
     if (e.key === 'Enter' && searchValue.trim()) {
       navigate(`/app/search?q=${encodeURIComponent(searchValue.trim())}`);
-      trackEvent('search_performed', { query: searchValue.trim() });
+      logAuditEvent('search_performed', { query: searchValue.trim() });
     }
   };
 
@@ -390,7 +414,18 @@ const Header = () => {
 
         <motion.div variants={itemVariants}>
           <ActionsSection>
-            <PremiumBarcodeScanner onScan={handleBarcodeScan} />
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <BarcodeButton
+                onClick={handleBarcodeScan}
+                title={t('header.scanBarcode')}
+                aria-label={t('header.scanBarcode')}
+              >
+                <Barcode size={20} />
+              </BarcodeButton>
+            </motion.div>
             
             <LanguageSwitcher />
             

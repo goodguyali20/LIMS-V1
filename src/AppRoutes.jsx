@@ -26,6 +26,10 @@ import OrderView from './pages/OrderView/OrderView.jsx';
 import ResultEntry from './pages/ResultEntry/ResultEntry.jsx';
 import Phlebotomist from './pages/Phlebotomist/Phlebotomist.jsx';
 import SearchResults from './pages/SearchResults.jsx';
+import Scanner from './pages/Scanner/Scanner.jsx';
+import LibraryShowcase from './components/LibraryShowcase.jsx';
+import MathematicalAnimations from './components/MathematicalAnimations.jsx';
+import AdvancedLibraryShowcase from './components/AdvancedLibraryShowcase.jsx';
 
 // Wrapper component that uses theme context
 const AppContent = () => {
@@ -65,7 +69,11 @@ const AppContent = () => {
           <Route path="profile" element={<Profile />} />
           <Route path="order/:orderId" element={<OrderView />} />
           <Route path="order/:orderId/enter-results" element={<ResultEntry />} />
+          <Route path="scanner" element={<Scanner />} />
           <Route path="search" element={<SearchResults />} />
+          <Route path="showcase" element={<LibraryShowcase />} />
+          <Route path="advanced-showcase" element={<AdvancedLibraryShowcase />} />
+          <Route path="math-animations" element={<MathematicalAnimations />} />
           <Route path="settings" element={<Settings />}>
             <Route index element={<Navigate to="general" replace />} />
             <Route path="general" element={<General />} />

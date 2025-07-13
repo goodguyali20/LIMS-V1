@@ -103,7 +103,12 @@ const AppContent: React.FC = () => {
                 }}
               >
                 <Suspense fallback={<LoadingFallback />}>
-                  <Routes>
+                  <Routes
+                    future={{
+                      v7_startTransition: true,
+                      v7_relativeSplatPath: true
+                    }}
+                  >
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/status/:orderId" element={<QRStatusPage />} />
                     <Route path="/test-visuals" element={<TestVisualEffects />} />

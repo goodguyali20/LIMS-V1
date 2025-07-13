@@ -8,15 +8,15 @@ const ButtonContainer = styled(motion.create('button'))`
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: ${({ size }) => {
-    switch (size) {
+  padding: ${({ $size }) => {
+    switch ($size) {
       case 'sm': return '0.5rem 1rem';
       case 'lg': return '1rem 2rem';
       default: return '0.75rem 1.5rem';
     }
   }};
-  font-size: ${({ size }) => {
-    switch (size) {
+  font-size: ${({ $size }) => {
+    switch ($size) {
       case 'sm': return '0.875rem';
       case 'lg': return '1.125rem';
       default: return '1rem';
@@ -29,8 +29,8 @@ const ButtonContainer = styled(motion.create('button'))`
   text-decoration: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
-  background: ${({ variant, theme }) => {
-    switch (variant) {
+  background: ${({ $variant, theme }) => {
+    switch ($variant) {
       case 'primary':
         return 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
       case 'success':
@@ -47,9 +47,9 @@ const ButtonContainer = styled(motion.create('button'))`
         return 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
     }
   }};
-  color: ${({ variant }) => variant === 'ghost' ? 'inherit' : 'white'};
-  box-shadow: ${({ variant, theme }) => {
-    switch (variant) {
+  color: ${({ $variant }) => $variant === 'ghost' ? 'inherit' : 'white'};
+  box-shadow: ${({ $variant, theme }) => {
+    switch ($variant) {
       case 'primary':
         return '0 4px 15px rgba(59, 130, 246, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.1)';
       case 'success':
@@ -67,8 +67,8 @@ const ButtonContainer = styled(motion.create('button'))`
     }
   }};
   backdrop-filter: blur(10px);
-  border: 1px solid ${({ variant }) => {
-    switch (variant) {
+  border: 1px solid ${({ $variant }) => {
+    switch ($variant) {
       case 'primary':
         return 'rgba(59, 130, 246, 0.2)';
       case 'success':
@@ -227,8 +227,8 @@ const GlowButton = ({
 
   return (
     <ButtonContainer
-      variant={variant}
-      size={size}
+      $variant={variant}
+      $size={size}
       $loading={loading}
       disabled={disabled}
       onClick={handleClick}

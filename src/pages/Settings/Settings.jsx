@@ -298,22 +298,28 @@ const Settings = () => {
         Settings
       </motion.h1>
       <TabsContainer>
-        <TabButton 
-          $active={activeTab === 'general'} 
-          onClick={() => setActiveTab('general')}
+        <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          General
-        </TabButton>
-        <TabButton 
-          $active={activeTab === 'catalog'} 
-          onClick={() => setActiveTab('catalog')}
+          <TabButton 
+            $active={activeTab === 'general'} 
+            onClick={() => setActiveTab('general')}
+          >
+            General
+          </TabButton>
+        </motion.div>
+        <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          Test Catalog
-        </TabButton>
+          <TabButton 
+            $active={activeTab === 'catalog'} 
+            onClick={() => setActiveTab('catalog')}
+          >
+            Test Catalog
+          </TabButton>
+        </motion.div>
         {/* <TabButton active={activeTab === 'panels'} onClick={() => setActiveTab('panels')}>Test Panels</TabButton> */}
       </TabsContainer>
 
@@ -330,15 +336,17 @@ const Settings = () => {
               <form onSubmit={handleGeneralSubmit}>
                 <SectionHeader>
                   <h2>General Settings</h2>
-                  <ActionButton 
-                    type="submit" 
-                    disabled={settingsLoading}
-                    as={motion.button}
+                  <motion.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <FaSave /> {settingsLoading ? 'Saving...' : 'Save Changes'}
-                  </ActionButton>
+                    <ActionButton 
+                      type="submit" 
+                      disabled={settingsLoading}
+                    >
+                      <FaSave /> {settingsLoading ? 'Saving...' : 'Save Changes'}
+                    </ActionButton>
+                  </motion.div>
                 </SectionHeader>
                 <Form>
                   <Input name="hospitalName" value={generalFormState.hospitalName || ''} onChange={handleGeneralInputChange} placeholder="Hospital Name" />
@@ -353,14 +361,16 @@ const Settings = () => {
             <Section as={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <SectionHeader>
                 <h2>Test Catalog</h2>
-                <ActionButton 
-                  onClick={() => handleOpenModal()}
-                  as={motion.button}
+                <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <FaPlus /> Add New Test
-                </ActionButton>
+                  <ActionButton 
+                    onClick={() => handleOpenModal()}
+                  >
+                    <FaPlus /> Add New Test
+                  </ActionButton>
+                </motion.div>
               </SectionHeader>
               <TestList>
                 {testsLoading ? (

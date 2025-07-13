@@ -46,6 +46,7 @@ const ContentArea = styled(motion.div)`
   flex: 1;
   overflow-y: auto;
   padding: 0;
+  padding-top: 80px; /* Account for fixed header height */
   position: relative;
   
   /* Custom scrollbar for content area */
@@ -67,6 +68,10 @@ const ContentArea = styled(motion.div)`
   &::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
     box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  }
+  
+  @media (max-width: 768px) {
+    padding-top: 70px; /* Account for mobile header height */
   }
 `;
 

@@ -186,14 +186,17 @@ const Profile = () => {
             <label>{t('profile_confirmNewPassword')}</label>
             <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
           </InputGroup>
-          <SubmitButton 
-            type="submit" 
-            disabled={isSubmitting}
+          <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            {isSubmitting ? t('profile_updating') : t('profile_update_button')}
-          </SubmitButton>
+            <SubmitButton 
+              type="submit" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? t('profile_updating') : t('profile_update_button')}
+            </SubmitButton>
+          </motion.div>
         </Form>
       </Card>
     </PageContainer>
