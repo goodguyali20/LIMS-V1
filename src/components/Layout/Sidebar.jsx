@@ -8,8 +8,9 @@ import { toast } from 'react-toastify';
 import {
   FaTachometerAlt, FaUserPlus, FaTasks, FaHistory,
   FaCog, FaUserCircle, FaSignOutAlt, FaFlask, FaChartBar, FaBoxes, FaThermometerHalf,
-  FaUserMd, FaRocket, FaStar
+  FaUserMd, FaRocket, FaStar, FaVial, FaCheckCircle
 } from 'react-icons/fa';
+import GlowingNotificationBadge from '../common/GlowingNotificationBadge';
 
 const SidebarContainer = styled(motion.aside)`
   width: 280px;
@@ -239,12 +240,53 @@ const LogoutButton = styled(motion.button)`
 // Floating particles component
 const FloatingParticle = styled(motion.div)`
   position: absolute;
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
   background: ${({ color }) => color};
   border-radius: 50%;
   pointer-events: none;
-  filter: blur(1px);
+  z-index: 0;
+  box-shadow: 0 0 8px ${({ color }) => color};
+`;
+
+const JourneyGroup = styled.div`
+  margin: 2rem 0 1.5rem 0;
+  padding: 1.5rem 1rem 1.5rem 1rem;
+  background: linear-gradient(120deg, #1e293b 60%, #2563eb 100%);
+  border-radius: 18px;
+  box-shadow: 0 4px 24px 0 #2563eb22;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  align-items: stretch;
+  position: relative;
+`;
+
+const JourneyStep = styled(NavItem)`
+  margin: 0;
+  padding: 1rem 1.2rem;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.08rem;
+  font-weight: 600;
+  position: relative;
+  box-shadow: 0 2px 8px 0 #2563eb11;
+  transition: background 0.2s, box-shadow 0.2s;
+  &:hover, &.active {
+    background: linear-gradient(90deg, #3b82f6 0%, #1e293b 100%);
+    color: #fff;
+    box-shadow: 0 4px 16px 0 #3b82f644;
+  }
+`;
+
+const JourneyIcon = styled.span`
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const Sidebar = () => {
@@ -302,6 +344,14 @@ const Sidebar = () => {
   const bottomNavItems = [
     { to: "/app/profile", icon: <FaUserCircle />, label: t('profile.title') },
   ];
+
+  // Simulated live counts (replace with real data later)
+  const journeyCounts = {
+    registration: 7,
+    phlebotomy: 12,
+    labwork: 5,
+    results: 3
+  };
 
   const sidebarVariants = {
     initial: { opacity: 0, x: -50 },
@@ -397,6 +447,28 @@ const Sidebar = () => {
       </LogoContainer>
       
       <Nav>
+        <JourneyGroup>
+          <JourneyStep to="/app/register">
+            <JourneyIcon><FaUserPlus /></JourneyIcon>
+            <span>{t('patientRegistration')}</span>
+            <GlowingNotificationBadge count={journeyCounts.registration} color="#3b82f6" />
+          </JourneyStep>
+          <JourneyStep to="/app/phlebotomist">
+            <JourneyIcon><FaUserMd /></JourneyIcon>
+            <span>{t('phlebotomist')}</span>
+            <GlowingNotificationBadge count={journeyCounts.phlebotomy} color="#10b981" />
+          </JourneyStep>
+          <JourneyStep to="/app/labwork">
+            <JourneyIcon><FaVial /></JourneyIcon>
+            <span>{t('labwork') || 'Lab Work'}</span>
+            <GlowingNotificationBadge count={journeyCounts.labwork} color="#f59e0b" />
+          </JourneyStep>
+          <JourneyStep to="/app/results">
+            <JourneyIcon><FaCheckCircle /></JourneyIcon>
+            <span>{t('results') || 'Results'}</span>
+            <GlowingNotificationBadge count={journeyCounts.results} color="#ef4444" />
+          </JourneyStep>
+        </JourneyGroup>
         <NavList>
           {navItems.map((item, index) =>
             (!item.roles || (user && item.roles.includes(user.role))) && (

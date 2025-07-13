@@ -11,13 +11,13 @@ const ErrorContainer = styled(motion.div)`
   min-height: 100vh;
   padding: 2rem;
   text-align: center;
-  background: ${({ theme }) => theme.colors.background};
-  color: ${({ theme }) => theme.colors.text};
+  background: ${({ theme }) => theme?.colors?.background || '#1a1a1a'};
+  color: ${({ theme }) => theme?.colors?.text || '#ffffff'};
 `;
 
 const ErrorIcon = styled.div`
   font-size: 4rem;
-  color: ${({ theme }) => theme.colors.error};
+  color: ${({ theme }) => theme?.colors?.error || '#ef4444'};
   margin-bottom: 1rem;
 `;
 
@@ -25,12 +25,12 @@ const ErrorTitle = styled.h1`
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 1rem;
-  color: ${({ theme }) => theme.colors.text};
+  color: ${({ theme }) => theme?.colors?.text || '#ffffff'};
 `;
 
 const ErrorMessage = styled.p`
   font-size: 1.1rem;
-  color: ${({ theme }) => theme.colors.textSecondary};
+  color: ${({ theme }) => theme?.colors?.textSecondary || '#a1a1aa'};
   margin-bottom: 2rem;
   max-width: 600px;
 `;
@@ -48,18 +48,20 @@ const ActionButton = styled(motion.button)`
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
+  border-radius: ${({ theme }) => theme?.shapes?.squircle || '12px'};
   background: ${({ theme, $variant }) => 
-    $variant === 'primary' ? theme.colors.primary : theme.colors.surface};
+    $variant === 'primary' 
+      ? (theme?.colors?.primary || '#2563eb') 
+      : (theme?.colors?.surface || '#2a2a2a')};
   color: ${({ theme, $variant }) => 
-    $variant === 'primary' ? 'white' : theme.colors.text};
+    $variant === 'primary' ? 'white' : (theme?.colors?.text || '#ffffff')};
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s ease;
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: ${({ theme }) => theme.shadows.hover};
+    box-shadow: ${({ theme }) => theme?.shadows?.hover || '0 4px 12px rgba(0, 0, 0, 0.15)'};
   }
 `;
 
