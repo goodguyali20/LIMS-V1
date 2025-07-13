@@ -48,17 +48,17 @@ const PageHeader = styled(motion.div)`
   align-items: center;
   margin-bottom: 1rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid ${({ theme }) => theme.colors.border};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   position: relative;
   
   &::after {
     content: '';
     position: absolute;
-    bottom: -2px;
+    bottom: -1px;
     left: 0;
     width: 100px;
     height: 2px;
-    background: linear-gradient(90deg, ${({ theme }) => theme.colors.primary}, ${({ theme }) => theme.colors.secondary});
+    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #f5576c, #4facfe);
     border-radius: 1px;
   }
   
@@ -72,7 +72,7 @@ const PageHeader = styled(motion.div)`
 const HeaderTitle = styled.h1`
   font-size: 2.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, ${({ theme }) => theme.colors.primary}, ${({ theme }) => theme.colors.secondary});
+  background: linear-gradient(135deg, #667eea, #764ba2);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -105,6 +105,46 @@ const HeaderActions = styled.div`
 const SearchAndFilterContainer = styled(GlowCard)`
   padding: 1.5rem;
   margin-bottom: 2rem;
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #f5576c 75%, 
+      #4facfe 100%);
+    border-radius: 20px 20px 0 0;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
 `;
 
 const FilterGrid = styled.div`
@@ -118,54 +158,31 @@ const FilterGrid = styled.div`
   }
 `;
 
-const SearchInput = styled.div`
-  position: relative;
-  
-  input {
-    width: 100%;
-    padding: 1rem 1rem 1rem 3rem;
-    border-radius: 12px;
-    border: 2px solid ${({ theme }) => theme.colors.border};
-    background: ${({ theme }) => theme.colors.input};
-    color: ${({ theme }) => theme.colors.text};
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    
-    &:focus {
-      outline: none;
-      border-color: ${({ theme }) => theme.colors.primary};
-      box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
-    }
-    
-    &::placeholder {
-      color: ${({ theme }) => theme.colors.textSecondary};
-    }
-  }
-  
-  svg {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: ${({ theme }) => theme.colors.textSecondary};
-    font-size: 1.2rem;
-  }
-`;
-
 const FilterSelect = styled.select`
-  padding: 1rem;
+  padding: 0.8rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  border: 2px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.input};
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
   color: ${({ theme }) => theme.colors.text};
+  font-size: 0.9rem;
   cursor: pointer;
-  font-size: 1rem;
   transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
   
   &:focus {
     outline: none;
-    border-color: ${({ theme }) => theme.colors.primary};
-    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    transform: scale(1.02);
+  }
+  
+  &:hover {
+    border-color: #667eea;
+  }
+  
+  option {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
+    color: ${({ theme }) => theme.colors.text};
   }
 `;
 
@@ -223,32 +240,54 @@ const SortButton = styled.button`
   `}
 `;
 
-const StatsContainer = styled(motion.div)`
+const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
 `;
 
-const StatCard = styled.div`
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
+const StatCard = styled(motion.div)`
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
   padding: 1.5rem;
-  box-shadow: ${({ theme }) => theme.shadows.soft};
-  border-left: 4px solid ${({ color }) => color};
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: all 0.3s ease;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
   
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: ${({ theme }) => theme.shadows.medium};
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #f5576c 75%, 
+      #4facfe 100%);
+    border-radius: 20px 20px 0 0;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
+    pointer-events: none;
   }
 `;
 
@@ -269,10 +308,12 @@ const StatContent = styled.div`
 `;
 
 const StatValue = styled.div`
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
-  color: ${({ theme }) => theme.colors.text};
+  color: #667eea;
   margin-bottom: 0.5rem;
+  position: relative;
+  z-index: 1;
 `;
 
 const StatLabel = styled.div`
@@ -281,6 +322,8 @@ const StatLabel = styled.div`
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  position: relative;
+  z-index: 1;
 `;
 
 const StatChange = styled.div`
@@ -288,6 +331,8 @@ const StatChange = styled.div`
   color: ${({ $positive, theme }) => $positive ? theme.colors.success : theme.colors.error};
   font-weight: 600;
   margin-top: 0.5rem;
+  position: relative;
+  z-index: 1;
 `;
 
 const FilterContainer = styled(motion.div)`
@@ -308,21 +353,22 @@ const FilterButton = styled(motion.button)`
   gap: 0.5rem;
   padding: 0.8rem 1.2rem;
   border: 2px solid ${({ theme, $active }) => 
-    $active ? theme.colors.primary : theme.colors.border};
+    $active ? '#667eea' : 'rgba(255, 255, 255, 0.1)'};
   border-radius: 12px;
   background: ${({ theme, $active }) => 
-    $active ? `${theme.colors.primary}20` : theme.colors.input};
+    $active ? 'rgba(102, 126, 234, 0.2)' : 'linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)'};
   color: ${({ theme, $active }) => 
-    $active ? theme.colors.primary : theme.colors.text};
+    $active ? '#667eea' : theme.colors.text};
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 600;
   transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
   
   &:hover {
-    border-color: ${({ theme }) => theme.colors.primary};
+    border-color: #667eea;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px ${({ theme }) => theme.colors.primary}30;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   }
 `;
 
@@ -350,22 +396,68 @@ const LoadingContainer = styled(motion.div)`
 const EmptyState = styled(GlowCard)`
   text-align: center;
   padding: 4rem 2rem;
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #f5576c 75%, 
+      #4facfe 100%);
+    border-radius: 20px 20px 0 0;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
   
   svg {
     font-size: 4rem;
     color: ${({ theme }) => theme.colors.textSecondary};
     margin-bottom: 1rem;
+    position: relative;
+    z-index: 1;
   }
   
   h3 {
     margin-bottom: 1rem;
     color: ${({ theme }) => theme.colors.textSecondary};
     font-size: 1.5rem;
+    position: relative;
+    z-index: 1;
   }
   
   p {
     color: ${({ theme }) => theme.colors.textSecondary};
     font-size: 1.1rem;
+    position: relative;
+    z-index: 1;
   }
 `;
 
@@ -782,7 +874,7 @@ const WorkQueue = () => {
       </PageHeader>
 
       {/* Enhanced Stats */}
-      <StatsContainer
+      <StatsGrid
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
@@ -834,7 +926,7 @@ const WorkQueue = () => {
             <StatLabel>{t('workQueue.stats.completionRate')}</StatLabel>
           </StatContent>
         </StatCard>
-      </StatsContainer>
+      </StatsGrid>
 
       <SearchAndFilterContainer>
         <FilterGrid>

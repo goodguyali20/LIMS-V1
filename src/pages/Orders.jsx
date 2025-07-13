@@ -29,17 +29,17 @@ const Header = styled(motion.div)`
   align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid ${({ theme }) => theme.colors.border};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   position: relative;
   
   &::after {
     content: '';
     position: absolute;
-    bottom: -2px;
+    bottom: -1px;
     left: 0;
     width: 100px;
     height: 2px;
-    background: linear-gradient(90deg, ${({ theme }) => theme.colors.primary}, ${({ theme }) => theme.colors.secondary});
+    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #f5576c, #4facfe);
     border-radius: 1px;
   }
 `;
@@ -47,7 +47,7 @@ const Header = styled(motion.div)`
 const PageTitle = styled.h1`
   font-size: 2.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, ${({ theme }) => theme.colors.primary}, ${({ theme }) => theme.colors.secondary});
+  background: linear-gradient(135deg, #667eea, #764ba2);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -76,17 +76,18 @@ const SearchInput = styled(motion.div)`
   input {
     width: 100%;
     padding: 1rem 1rem 1rem 3rem;
-    border-radius: ${({ theme }) => theme.shapes.squircle};
-    border: 2px solid ${({ theme }) => theme.colors.border};
-    background: ${({ theme }) => theme.colors.input};
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
     color: ${({ theme }) => theme.colors.text};
     font-size: 1rem;
     transition: all 0.3s ease;
+    backdrop-filter: blur(20px);
     
     &:focus {
       outline: none;
-      border-color: ${({ theme }) => theme.colors.primary};
-      box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
       transform: scale(1.02);
     }
     
@@ -105,29 +106,30 @@ const SearchInput = styled(motion.div)`
   }
   
   &:focus-within svg {
-    color: ${({ theme }) => theme.colors.primary};
+    color: #667eea;
   }
 `;
 
 const FilterSelect = styled(motion.select)`
   padding: 1rem 1.5rem;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  border: 2px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.input};
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
   color: ${({ theme }) => theme.colors.text};
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
   
   &:focus {
     outline: none;
-    border-color: ${({ theme }) => theme.colors.primary};
-    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
     transform: scale(1.02);
   }
   
   &:hover {
-    border-color: ${({ theme }) => theme.colors.primary};
+    border-color: #667eea;
   }
 `;
 
@@ -136,18 +138,19 @@ const SortButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   padding: 1rem 1.5rem;
-  border: 2px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  background: ${({ theme }) => theme.colors.input};
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
   color: ${({ theme }) => theme.colors.text};
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
   
   &:hover {
-    border-color: ${({ theme }) => theme.colors.primary};
+    border-color: #667eea;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px ${({ theme }) => theme.colors.primary}30;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   }
 `;
 
@@ -159,11 +162,17 @@ const OrdersGrid = styled(motion.div)`
 `;
 
 const OrderCard = styled(motion.div)`
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
   padding: 2rem;
-  box-shadow: ${({ theme }) => theme.shadows.main};
-  border: 1px solid ${({ theme }) => theme.colors.border};
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
   position: relative;
   overflow: hidden;
   
@@ -174,12 +183,33 @@ const OrderCard = styled(motion.div)`
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, ${({ theme }) => theme.colors.primary}, ${({ theme }) => theme.colors.secondary});
+    background: linear-gradient(90deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #f5576c 75%, 
+      #4facfe 100%);
+    border-radius: 20px 20px 0 0;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
+    pointer-events: none;
   }
   
   &:hover {
     transform: translateY(-4px);
-    box-shadow: ${({ theme }) => theme.shadows.hover};
+    box-shadow: 
+      0 30px 60px rgba(0, 0, 0, 0.15),
+      0 12px 24px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
 `;
 
@@ -188,11 +218,13 @@ const OrderHeader = styled.div`
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
 `;
 
 const OrderId = styled.h3`
   margin: 0;
-  color: ${({ theme }) => theme.colors.primary};
+  color: #667eea;
   font-size: 1.2rem;
   font-weight: 600;
 `;
@@ -231,10 +263,13 @@ const StatusBadge = styled(motion.span)`
       default: return theme.colors.textSecondary;
     }
   }};
+  backdrop-filter: blur(10px);
 `;
 
 const PatientInfo = styled.div`
   margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
   
   p {
     margin: 0.5rem 0;
@@ -245,6 +280,8 @@ const PatientInfo = styled.div`
 
 const TestList = styled.div`
   margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
   
   h4 {
     margin: 0 0 0.8rem 0;
@@ -270,6 +307,8 @@ const OrderActions = styled.div`
   gap: 0.8rem;
   justify-content: flex-end;
   margin-top: 1.5rem;
+  position: relative;
+  z-index: 1;
 `;
 
 const ActionButton = styled(motion.button)`
@@ -278,9 +317,9 @@ const ActionButton = styled(motion.button)`
   gap: 0.5rem;
   padding: 0.8rem 1.2rem;
   border: none;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
+  border-radius: 12px;
   background: ${({ $variant, theme }) => 
-    $variant === 'secondary' ? theme.colors.surface : `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary})`};
+    $variant === 'secondary' ? 'linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)' : `linear-gradient(135deg, #667eea, #764ba2)`};
   color: ${({ $variant, theme }) => 
     $variant === 'secondary' ? theme.colors.textSecondary : 'white'};
   cursor: pointer;
@@ -288,11 +327,12 @@ const ActionButton = styled(motion.button)`
   font-weight: 600;
   transition: all 0.3s ease;
   border: 2px solid ${({ $variant, theme }) => 
-    $variant === 'secondary' ? theme.colors.border : 'transparent'};
+    $variant === 'secondary' ? 'rgba(255, 255, 255, 0.1)' : 'transparent'};
+  backdrop-filter: blur(10px);
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px ${({ theme }) => theme.colors.primary}30;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   }
 `;
 
@@ -314,18 +354,56 @@ const StatsContainer = styled(motion.div)`
 `;
 
 const StatCard = styled(motion.div)`
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
   padding: 1.5rem;
-  box-shadow: ${({ theme }) => theme.shadows.main};
-  border: 1px solid ${({ theme }) => theme.colors.border};
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
   text-align: center;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #f5576c 75%, 
+      #4facfe 100%);
+    border-radius: 20px 20px 0 0;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
   
   h3 {
     margin: 0 0 0.5rem 0;
     font-size: 2rem;
     font-weight: 700;
-    color: ${({ theme }) => theme.colors.primary};
+    color: #667eea;
+    position: relative;
+    z-index: 1;
   }
   
   p {
@@ -334,6 +412,8 @@ const StatCard = styled(motion.div)`
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    position: relative;
+    z-index: 1;
   }
 `;
 

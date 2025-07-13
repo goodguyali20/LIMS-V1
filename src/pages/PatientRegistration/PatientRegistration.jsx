@@ -145,10 +145,47 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  box-shadow: ${({ theme }) => theme.shadows.soft};
+  padding: 2rem;
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #f5576c 75%, 
+      #4facfe 100%);
+    border-radius: 20px 20px 0 0;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
 `;
 
 const Title = styled.h1`
@@ -159,11 +196,53 @@ const Title = styled.h1`
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  position: relative;
+  z-index: 1;
 `;
 
 const FormContainer = styled(GlowCard)`
   padding: 2rem;
   margin-bottom: 2rem;
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #f5576c 75%, 
+      #4facfe 100%);
+    border-radius: 20px 20px 0 0;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
 `;
 
 const FormGrid = styled.div`
@@ -188,13 +267,17 @@ const SectionTitle = styled.h3`
   align-items: center;
   gap: 0.5rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid ${({ theme }) => theme.colors.border};
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 1;
 `;
 
 const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  position: relative;
+  z-index: 1;
 `;
 
 const Label = styled.label`
@@ -206,45 +289,57 @@ const Label = styled.label`
 const Input = styled.input`
   padding: 0.75rem 1rem;
   border: 2px solid ${({ theme, $hasError }) => 
-    $hasError ? theme.colors.error : theme.colors.border};
+    $hasError ? theme.colors.error : 'rgba(255, 255, 255, 0.1)'};
   border-radius: 12px;
-  background: ${({ theme }) => theme.colors.input};
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
   color: ${({ theme }) => theme.colors.text};
   font-size: 1rem;
   outline: none;
   transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
   
   &:focus {
     border-color: ${({ theme, $hasError }) => 
-      $hasError ? theme.colors.error : theme.colors.primary};
+      $hasError ? theme.colors.error : '#667eea'};
     box-shadow: ${({ theme, $hasError }) => 
-      $hasError ? theme.shadows.glow.error : theme.shadows.glow.primary};
+      $hasError ? theme.shadows.glow.error : '0 0 0 3px rgba(102, 126, 234, 0.2)'};
+    transform: scale(1.02);
   }
   
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
   }
+  
+  &::placeholder {
+    color: ${({ theme }) => theme.colors.textSecondary};
+  }
 `;
 
 const TextArea = styled.textarea`
   padding: 0.75rem 1rem;
   border: 2px solid ${({ theme, $hasError }) => 
-    $hasError ? theme.colors.error : theme.colors.border};
+    $hasError ? theme.colors.error : 'rgba(255, 255, 255, 0.1)'};
   border-radius: 12px;
-  background: ${({ theme }) => theme.colors.input};
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
   color: ${({ theme }) => theme.colors.text};
   font-size: 1rem;
   outline: none;
   transition: all 0.3s ease;
   resize: vertical;
   min-height: 100px;
+  backdrop-filter: blur(20px);
   
   &:focus {
     border-color: ${({ theme, $hasError }) => 
-      $hasError ? theme.colors.error : theme.colors.primary};
+      $hasError ? theme.colors.error : '#667eea'};
     box-shadow: ${({ theme, $hasError }) => 
-      $hasError ? theme.shadows.glow.error : theme.shadows.glow.primary};
+      $hasError ? theme.shadows.glow.error : '0 0 0 3px rgba(102, 126, 234, 0.2)'};
+    transform: scale(1.02);
+  }
+  
+  &::placeholder {
+    color: ${({ theme }) => theme.colors.textSecondary};
   }
 `;
 
@@ -257,46 +352,49 @@ const ErrorMessage = styled.span`
 const SelectContainer = styled.div`
   .react-select__control {
     border: 2px solid ${({ theme, $hasError }) => 
-      $hasError ? theme.colors.error : theme.colors.border};
+      $hasError ? theme.colors.error : 'rgba(255, 255, 255, 0.1)'};
     border-radius: 12px;
-    background: ${({ theme }) => theme.colors.input};
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
     min-height: 48px;
     box-shadow: none;
+    backdrop-filter: blur(20px);
     
     &:hover {
       border-color: ${({ theme, $hasError }) => 
-        $hasError ? theme.colors.error : theme.colors.primary};
+        $hasError ? theme.colors.error : '#667eea'};
     }
     
     &.react-select__control--is-focused {
       border-color: ${({ theme, $hasError }) => 
-        $hasError ? theme.colors.error : theme.colors.primary};
+        $hasError ? theme.colors.error : '#667eea'};
       box-shadow: ${({ theme, $hasError }) => 
-        $hasError ? theme.shadows.glow.error : theme.shadows.glow.primary};
+        $hasError ? theme.shadows.glow.error : '0 0 0 3px rgba(102, 126, 234, 0.2)'};
+      transform: scale(1.02);
     }
   }
   
   .react-select__menu {
-    background: ${({ theme }) => theme.colors.surface};
-    border: 1px solid ${({ theme }) => theme.colors.border};
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px;
-    box-shadow: ${({ theme }) => theme.shadows.medium};
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(20px);
   }
   
   .react-select__option {
-    background: ${({ theme }) => theme.colors.surface};
+    background: transparent;
     color: ${({ theme }) => theme.colors.text};
     
     &:hover {
-      background: ${({ theme }) => theme.colors.hover};
+      background: rgba(102, 126, 234, 0.1);
     }
     
     &.react-select__option--is-focused {
-      background: ${({ theme }) => theme.colors.primary}20;
+      background: rgba(102, 126, 234, 0.2);
     }
     
     &.react-select__option--is-selected {
-      background: ${({ theme }) => theme.colors.primary};
+      background: linear-gradient(135deg, #667eea, #764ba2);
       color: white;
     }
   }
@@ -319,7 +417,9 @@ const FormActions = styled.div`
   gap: 1rem;
   justify-content: flex-end;
   padding-top: 1rem;
-  border-top: 1px solid ${({ theme }) => theme.colors.border};
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 1;
 `;
 
 const PatientRegistration = () => {

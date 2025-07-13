@@ -14,14 +14,20 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { GlowButton } from '../common';
 
 const Card = styled(motion.div)`
-  background: ${({ theme }) => theme.colors.surface};
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
   padding: 2rem;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  box-shadow: ${({ theme }) => theme.shadows.main};
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  border: 1px solid ${({ theme }) => theme.colors.border};
   position: relative;
   overflow: hidden;
   
@@ -35,7 +41,7 @@ const Card = styled(motion.div)`
     background: ${({ theme, status, priority }) => {
       if (status === 'Rejected') return theme.colors.error;
       if (priority === 'Urgent') return theme.colors.error;
-      return theme.colors.primary;
+      return '#667eea';
     }};
   }
   
@@ -48,7 +54,7 @@ const Card = styled(motion.div)`
     height: 100px;
     background: ${({ theme, status }) => {
       if (status === 'Rejected') return `${theme.colors.error}10`;
-      return `${theme.colors.primary}10`;
+      return `rgba(102, 126, 234, 0.1)`;
     }};
     border-radius: 50%;
     transform: translate(50%, -50%);
@@ -60,7 +66,10 @@ const Card = styled(motion.div)`
   
   &:hover {
     transform: translateY(-4px);
-    box-shadow: ${({ theme }) => theme.shadows.hover};
+    box-shadow: 
+      0 30px 60px rgba(0, 0, 0, 0.15),
+      0 12px 24px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
 `;
 
@@ -69,12 +78,14 @@ const OrderInfo = styled.div`
   flex-direction: column;
   gap: 0.8rem;
   flex: 1;
+  position: relative;
+  z-index: 1;
 
   h3 {
     margin: 0;
     font-size: 1.3rem;
     font-weight: 700;
-    color: ${({ theme }) => theme.colors.primary};
+    color: #667eea;
   }
 
   p {
@@ -96,8 +107,11 @@ const RejectionInfo = styled(motion.div)`
   gap: 0.5rem;
   padding: 0.8rem;
   background: ${({ theme }) => `${theme.colors.error}10`};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
+  border-radius: 12px;
   border: 1px solid ${({ theme }) => theme.colors.error};
+  backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 1;
 `;
 
 const TestTagContainer = styled.div`
@@ -105,6 +119,8 @@ const TestTagContainer = styled.div`
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.5rem;
+  position: relative;
+  z-index: 1;
 `;
 
 const TestTag = styled(motion.span)`
@@ -128,6 +144,8 @@ const Actions = styled.div`
   flex-direction: column;
   gap: 0.8rem;
   align-items: flex-end;
+  position: relative;
+  z-index: 1;
 `;
 
 const ActionButton = styled(motion.button)`
@@ -136,7 +154,7 @@ const ActionButton = styled(motion.button)`
   gap: 0.5rem;
   padding: 0.8rem 1.5rem;
   border: none;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
+  border-radius: 12px;
   cursor: pointer;
   font-weight: 600;
   color: white;
@@ -144,6 +162,7 @@ const ActionButton = styled(motion.button)`
   transition: all 0.3s ease;
   min-width: 120px;
   justify-content: center;
+  backdrop-filter: blur(10px);
   
   &:disabled {
     opacity: 0.5;
