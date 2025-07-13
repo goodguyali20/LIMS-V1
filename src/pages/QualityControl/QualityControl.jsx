@@ -27,6 +27,12 @@ const QCContainer = styled(motion.div)`
   padding: 2rem;
   max-width: 1600px;
   margin: 0 auto;
+  min-height: 100vh;
+  background: ${({ theme }) => theme.isDarkMode 
+    ? `linear-gradient(135deg, ${theme.colors.dark.background} 0%, #1a1a2e 50%, #16213e 100%)`
+    : `linear-gradient(135deg, ${theme.colors.background} 0%, #f1f5f9 50%, #e2e8f0 100%)`
+  };
+  background-attachment: fixed;
   
   @media (max-width: 768px) {
     padding: 1rem;
@@ -38,8 +44,27 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid ${({ theme }) => theme.colors.border};
+  padding: 1.5rem;
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 16px 16px 0 0;
+  }
   
   @media (max-width: 768px) {
     flex-direction: column;

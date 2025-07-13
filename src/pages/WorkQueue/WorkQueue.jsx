@@ -158,6 +158,47 @@ const FilterGrid = styled.div`
   }
 `;
 
+const SearchInput = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  
+  svg {
+    position: absolute;
+    left: 1rem;
+    color: ${({ theme }) => theme.colors.textSecondary};
+    font-size: 1rem;
+    z-index: 2;
+  }
+  
+  input {
+    width: 100%;
+    padding: 0.8rem 1rem 0.8rem 2.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(20px);
+    
+    &::placeholder {
+      color: ${({ theme }) => theme.colors.textSecondary};
+    }
+    
+    &:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+      transform: scale(1.02);
+    }
+    
+    &:hover {
+      border-color: #667eea;
+    }
+  }
+`;
+
 const FilterSelect = styled.select`
   padding: 0.8rem 1rem;
   border: 2px solid rgba(255, 255, 255, 0.1);

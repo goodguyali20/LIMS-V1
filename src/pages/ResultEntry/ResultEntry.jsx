@@ -18,6 +18,12 @@ const ResultEntryContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   animation: fadeIn 0.3s ease-in-out;
+  min-height: 100vh;
+  background: ${({ theme }) => theme.isDarkMode 
+    ? `linear-gradient(135deg, ${theme.colors.dark.background} 0%, #1a1a2e 50%, #16213e 100%)`
+    : `linear-gradient(135deg, ${theme.colors.background} 0%, #f1f5f9 50%, #e2e8f0 100%)`
+  };
+  background-attachment: fixed;
 `;
 
 const Header = styled.div`
@@ -25,8 +31,27 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  padding: 1.5rem;
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 16px 16px 0 0;
+  }
 `;
 
 const BackButton = styled.button`
@@ -34,16 +59,19 @@ const BackButton = styled.button`
   align-items: center;
   gap: 0.5rem;
   padding: 0.7rem 1.5rem;
-  border: none;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
   color: ${({ theme }) => theme.colors.textSecondary};
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
   
   &:hover {
-    background: ${({ theme }) => theme.colors.hover};
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
   }
 `;
 
@@ -53,29 +81,48 @@ const SaveButton = styled.button`
   gap: 0.5rem;
   padding: 0.7rem 1.5rem;
   border: none;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  background: ${({ theme }) => theme.colors.primary};
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   cursor: pointer;
   font-weight: 600;
-  transition: opacity 0.2s ease;
+  transition: all 0.3s ease;
   
   &:hover {
-    opacity: 0.9;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
   }
   
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
   }
 `;
 
 const OrderInfo = styled.div`
-  background: ${({ theme }) => theme.colors.surface};
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 1.5rem;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  box-shadow: ${({ theme }) => theme.shadows.main};
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05);
   margin-bottom: 2rem;
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 16px 16px 0 0;
+  }
 `;
 
 const OrderDetails = styled.div`
@@ -106,18 +153,45 @@ const TestsContainer = styled.div`
 `;
 
 const TestCard = styled.div`
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: ${({ theme }) => theme.shadows.main};
-  border-left: 4px solid ${({ status, theme }) => {
-    switch (status) {
-      case 'completed': return theme.colors.success;
-      case 'critical': return theme.colors.error;
-      case 'pending': return theme.colors.warning;
-      default: return theme.colors.border;
-    }
-  }};
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: ${({ status, theme }) => {
+      switch (status) {
+        case 'completed': return theme.colors.success;
+        case 'critical': return theme.colors.error;
+        case 'pending': return theme.colors.warning;
+        default: return theme.colors.border;
+      }
+    }};
+    border-radius: 0 4px 4px 0;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 16px 16px 0 0;
+  }
 `;
 
 const SkeletonCard = styled(motion.div)`

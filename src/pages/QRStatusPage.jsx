@@ -23,24 +23,64 @@ import { toast } from 'react-toastify';
 
 const StatusContainer = styled(motion.div)`
   min-height: 100vh;
-  background: ${({ theme }) => theme.colors.background};
+  background: ${({ theme }) => theme.isDarkMode 
+    ? `linear-gradient(135deg, ${theme.colors.dark.background} 0%, #1a1a2e 50%, #16213e 100%)`
+    : `linear-gradient(135deg, ${theme.colors.background} 0%, #f1f5f9 50%, #e2e8f0 100%)`
+  };
   color: ${({ theme }) => theme.colors.text};
   padding: 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  background-attachment: fixed;
 `;
 
 const StatusCard = styled(motion.div)`
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
   padding: 3rem;
-  box-shadow: ${({ theme }) => theme.shadows.main};
-  border: 1px solid ${({ theme }) => theme.colors.border};
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
   max-width: 600px;
   width: 100%;
   text-align: center;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #f5576c 75%, 
+      #4facfe 100%);
+    border-radius: 20px 20px 0 0;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
 `;
 
 const StatusIcon = styled(motion.div)`
@@ -72,11 +112,28 @@ const StatusMessage = styled.p`
 `;
 
 const PatientInfo = styled.div`
-  background: ${({ theme }) => theme.colors.surfaceSecondary};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 1.5rem;
   margin-bottom: 2rem;
   text-align: left;
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 16px 16px 0 0;
+  }
 `;
 
 const InfoGrid = styled.div`
@@ -156,12 +213,12 @@ const ActionButton = styled(motion.button)`
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
+  border-radius: 12px;
   background: ${({ theme, $variant }) => {
     switch ($variant) {
-      case 'primary': return theme.colors.primary;
-      case 'secondary': return theme.colors.surfaceSecondary;
-      default: return theme.colors.surface;
+      case 'primary': return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+      case 'secondary': return 'linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)';
+      default: return 'linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)';
     }
   }};
   color: ${({ theme, $variant }) => 
@@ -169,10 +226,12 @@ const ActionButton = styled(motion.button)`
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: ${({ theme }) => theme.shadows.hover};
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
   }
 `;
 
