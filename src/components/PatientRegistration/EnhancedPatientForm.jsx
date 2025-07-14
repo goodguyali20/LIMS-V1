@@ -1,35 +1,40 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import Select from 'react-select';
-import { 
-  FaUser, FaIdCard, FaPhone, FaEnvelope, FaCalendar, FaVenusMars,
-  FaMapMarkerAlt, FaNotesMedical, FaSave, FaTimes, FaSearch,
-  FaFilter, FaSort, FaEye, FaEdit, FaTrash, FaPlus, FaCheck,
-  FaExclamationTriangle, FaInfoCircle, FaSpinner, FaRedo,
-  FaFlask, FaPrint, FaArrowRight, FaArrowLeft, FaClipboardList
-} from 'react-icons/fa';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import toast from 'react-hot-toast';
-import { formatDate, getAge } from '../../utils/dateUtils.js';
-import { 
-  generatePatientSchema, 
-  generateDefaultValues, 
-  shouldRenderField, 
-  isFieldRequired 
-} from '../../utils/patientRegistrationUtils.js';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { patientSchema } from '../../utils/validation';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useAuth } from '../../contexts/AuthContext';
-import GlowCard from '../common/GlowCard.jsx';
-import GlowButton from '../common/GlowButton.jsx';
-import TestSelectionPanel from './TestSelectionPanel.jsx';
-import PrintPreviewModal from './PrintPreviewModal.jsx';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '../../firebase/config';
+import { FaUser, FaPhone, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaIdCard, FaFlask, FaPrint, FaEye, FaEdit, FaNotesMedical, FaArrowRight, FaSave, FaArrowLeft, FaClipboardList, FaSpinner, FaBarcode } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import Select from 'react-select';
+import GlowCard from '../common/GlowCard';
+import GlowButton from '../common/GlowButton';
+import TestSelectionPanel from './TestSelectionPanel';
+import PrintPreviewModal from './PrintPreviewModal';
+import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
+import i18n from 'i18next';
+import useBarcodeScanner from '../../hooks/useBarcodeScanner';
+import { useRef } from 'react';
+
+// Utility functions for field rendering
+const shouldRenderField = (fields, section, fieldName) => {
+  if (section) {
+    return fields[section]?.[fieldName]?.enabled !== false;
+  }
+  return fields[fieldName]?.enabled !== false;
+};
+
+const isFieldRequired = (fields, section, fieldName) => {
+  if (section) {
+    return fields[section]?.[fieldName]?.required === true;
+  }
+  return fields[fieldName]?.required === true;
+};
 
 const FormContainer = styled(GlowCard)`
   padding: 2rem;
@@ -337,8 +342,7 @@ const SummaryValue = styled.span`
   font-weight: 600;
 `;
 
-const EnhancedPatientForm = ({ onPatientRegistered }) => {
-  const { t } = useTranslation();
+const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
   const { settings } = useSettings();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -346,17 +350,13 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
   const [selectedTests, setSelectedTests] = useState([]);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Generate dynamic schema and default values
-  const patientSchema = useMemo(() => 
-    generatePatientSchema(settings.patientRegistrationFields), 
-    [settings.patientRegistrationFields]
-  );
-  
-  const defaultValues = useMemo(() => 
-    generateDefaultValues(settings.patientRegistrationFields), 
-    [settings.patientRegistrationFields]
-  );
+  const { t } = useTranslation();
+  console.log('i18n.languages:', i18n.languages);
+  console.log('i18n.language:', i18n.language);
+  console.log('resources:', i18n.options.resources);
+  console.log('en resources:', i18n.options.resources.en);
+  console.log('t(patientRegistration.title):', t('patientRegistration.title'));
+  console.log('en.patientRegistration:', i18n.options.resources.en.translation.patientRegistration);
 
   // React Hook Form setup
   const {
@@ -365,11 +365,11 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
     formState: { errors, isValid },
     reset,
     watch,
-    getValues
+    getValues,
+    setValue
   } = useForm({
-    resolver: zodResolver(patientSchema),
+    resolver: yupResolver(patientSchema),
     mode: 'onChange',
-    defaultValues
   });
 
   // Gender options
@@ -406,6 +406,24 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
     { value: 'WA', label: 'Washington' }, { value: 'WV', label: 'West Virginia' },
     { value: 'WI', label: 'Wisconsin' }, { value: 'WY', label: 'Wyoming' }
   ];
+
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState('');
+  const { scan, isScanning, lastScanned } = useBarcodeScanner({
+    enabled: scanning,
+    onScan: (data) => {
+      setValue('patientId', data);
+      setScanning(false);
+      setScanError('');
+    },
+    onError: (err) => {
+      setScanError(err.message);
+      setScanning(false);
+    },
+    debounceMs: 200,
+    minLength: 4,
+    maxLength: 32,
+  });
 
   // Mutation for adding new patient
   const addPatientMutation = useMutation({
@@ -481,6 +499,32 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
     }
   };
 
+  const [duplicateWarning, setDuplicateWarning] = useState('');
+  const watchedFirstName = watch('firstName');
+  const watchedLastName = watch('lastName');
+  const watchedPhone = watch('phoneNumber');
+  const watchedEmail = watch('email');
+
+  useEffect(() => {
+    if (!watchedFirstName && !watchedLastName && !watchedPhone && !watchedEmail) {
+      setDuplicateWarning('');
+      return;
+    }
+    const match = patients.find(
+      p =>
+        (watchedFirstName && watchedLastName &&
+          p.firstName?.toLowerCase() === watchedFirstName.toLowerCase() &&
+          p.lastName?.toLowerCase() === watchedLastName.toLowerCase()) ||
+        (watchedPhone && p.phoneNumber === watchedPhone) ||
+        (watchedEmail && p.email?.toLowerCase() === watchedEmail.toLowerCase())
+    );
+    if (match) {
+      setDuplicateWarning('A patient with similar details already exists. Please review before submitting.');
+    } else {
+      setDuplicateWarning('');
+    }
+  }, [watchedFirstName, watchedLastName, watchedPhone, watchedEmail, patients]);
+
   const renderField = (fieldName, fieldConfig, section = null) => {
     if (!shouldRenderField(settings.patientRegistrationFields, section, fieldName)) {
       return null;
@@ -491,6 +535,47 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
     const errorPath = section ? errors[section]?.[fieldName] : errors[fieldName];
     const fieldLabel = fieldConfig.label || fieldName;
 
+    // Add barcode scan button for patientId field
+    if (fieldName === 'patientId') {
+      return (
+        <InputGroup key={fieldPath}>
+          <Label htmlFor={fieldName}>
+            {fieldLabel} {isRequired && '*'}
+          </Label>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <Controller
+              name={fieldPath}
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  id={fieldName}
+                  type="text"
+                  placeholder={`Scan or enter ${fieldLabel.toLowerCase()}`}
+                  $hasError={!!errorPath}
+                  autoComplete="off"
+                />
+              )}
+            />
+            <GlowButton
+              type="button"
+              onClick={() => setScanning((s) => !s)}
+              style={{ minWidth: 40, padding: '0.5rem' }}
+              title={scanning ? 'Stop scanning' : 'Scan barcode/QR'}
+            >
+              {scanning ? <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> : <FaBarcode />}
+            </GlowButton>
+          </div>
+          {scanError && <ErrorMessage>{scanError}</ErrorMessage>}
+          {errorPath && <ErrorMessage>{errorPath.message}</ErrorMessage>}
+        </InputGroup>
+      );
+    }
+
+    // Show duplicate warning below firstName, lastName, phoneNumber, or email fields
+    const showDup =
+      duplicateWarning &&
+      (['firstName', 'lastName', 'phoneNumber', 'email'].includes(fieldName));
     return (
       <InputGroup key={fieldPath}>
         <Label htmlFor={fieldName}>
@@ -515,6 +600,7 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
         {errorPath && (
           <ErrorMessage>{errorPath.message}</ErrorMessage>
         )}
+        {showDup && <ErrorMessage>{duplicateWarning}</ErrorMessage>}
       </InputGroup>
     );
   };
@@ -604,9 +690,10 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
           >
             <FormSection>
               <SectionTitle>
-                <FaUser /> Personal Information
+                <FaUser /> {t('patientRegistration.personalInfo')}
               </SectionTitle>
               <FormGrid>
+                {renderField('patientId', { enabled: true, required: false, label: t('patientRegistration.patientId') })}
                 {renderField('firstName', settings.patientRegistrationFields.firstName)}
                 {renderField('lastName', settings.patientRegistrationFields.lastName)}
                 {renderField('age', { ...(settings.patientRegistrationFields.age || { enabled: true, required: true }), label: 'Age' })}
@@ -619,7 +706,7 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
             {shouldRenderField(settings.patientRegistrationFields, 'address') && (
               <FormSection>
                 <SectionTitle>
-                  <FaMapMarkerAlt /> Address Information
+                  <FaMapMarkerAlt /> {t('patientRegistration.addressInfo')}
                 </SectionTitle>
                 <FormGrid>
                   {renderField('street', settings.patientRegistrationFields.address.street, 'address')}
@@ -634,7 +721,7 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
             {shouldRenderField(settings.patientRegistrationFields, 'emergencyContact') && (
               <FormSection>
                 <SectionTitle>
-                  <FaPhone /> Emergency Contact
+                  <FaPhone /> {t('patientRegistration.emergencyContact')}
                 </SectionTitle>
                 <FormGrid>
                   {renderField('name', settings.patientRegistrationFields.emergencyContact.name, 'emergencyContact')}
@@ -647,7 +734,7 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
             {shouldRenderField(settings.patientRegistrationFields, 'medicalHistory') && (
               <FormSection>
                 <SectionTitle>
-                  <FaNotesMedical /> Medical History
+                  <FaNotesMedical /> {t('patientRegistration.medicalHistory')}
                 </SectionTitle>
                 <FormGrid>
                   {renderTextAreaField('allergies', settings.patientRegistrationFields.medicalHistory.allergies, 'medicalHistory')}
@@ -661,7 +748,7 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
             {shouldRenderField(settings.patientRegistrationFields, 'insurance') && (
               <FormSection>
                 <SectionTitle>
-                  <FaIdCard /> Insurance Information
+                  <FaIdCard /> {t('patientRegistration.insuranceInfo')}
                 </SectionTitle>
                 <FormGrid>
                   {renderField('provider', settings.patientRegistrationFields.insurance.provider, 'insurance')}
@@ -699,34 +786,34 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
           >
             <SummarySection>
               <SummaryTitle>
-                <FaClipboardList /> Registration Summary
+                <FaClipboardList /> {t('patientRegistration.registrationSummary')}
               </SummaryTitle>
               <SummaryGrid>
                 <SummaryItem>
-                  <SummaryLabel>Patient Name</SummaryLabel>
+                  <SummaryLabel>{t('patientRegistration.patientName')}</SummaryLabel>
                   <SummaryValue>
                     {getValues('firstName')} {getValues('lastName')}
                   </SummaryValue>
                 </SummaryItem>
                 <SummaryItem>
-                  <SummaryLabel>Phone Number</SummaryLabel>
+                  <SummaryLabel>{t('patientRegistration.phoneNumber')}</SummaryLabel>
                   <SummaryValue>{getValues('phoneNumber')}</SummaryValue>
                 </SummaryItem>
                 <SummaryItem>
-                  <SummaryLabel>Email</SummaryLabel>
+                  <SummaryLabel>{t('patientRegistration.email')}</SummaryLabel>
                   <SummaryValue>{getValues('email')}</SummaryValue>
                 </SummaryItem>
                 <SummaryItem>
-                  <SummaryLabel>Age</SummaryLabel>
-<SummaryValue>{getValues('age')} years</SummaryValue>
+                  <SummaryLabel>{t('patientRegistration.age')}</SummaryLabel>
+<SummaryValue>{getValues('age')} {t('patientRegistration.years')}</SummaryValue>
                 </SummaryItem>
                 <SummaryItem>
-                  <SummaryLabel>Gender</SummaryLabel>
+                  <SummaryLabel>{t('patientRegistration.gender')}</SummaryLabel>
                   <SummaryValue>{getValues('gender')}</SummaryValue>
                 </SummaryItem>
                 <SummaryItem>
-                  <SummaryLabel>Selected Tests</SummaryLabel>
-                  <SummaryValue>{selectedTests.length} tests</SummaryValue>
+                  <SummaryLabel>{t('patientRegistration.selectedTests')}</SummaryLabel>
+                  <SummaryValue>{selectedTests.length} {t('patientRegistration.tests')}</SummaryValue>
                 </SummaryItem>
               </SummaryGrid>
             </SummarySection>
@@ -741,6 +828,9 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
   return (
     <>
       <FormContainer>
+        <h2 style={{ marginBottom: '1.5rem', color: '#667eea', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <FaUser /> {t('patientRegistration.title')}
+        </h2>
         <StepIndicator>
           {steps.map((step, index) => (
             <StepItem key={step.id}>
@@ -776,7 +866,7 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
                   onClick={handlePrevStep}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                 >
-                  <FaArrowLeft /> Previous
+                  <FaArrowLeft /> {t('common.previous')}
                 </GlowButton>
               )}
               
@@ -787,7 +877,7 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
                   disabled={currentStep === 1 && !isValid}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                 >
-                  Next <FaArrowRight />
+                  {t('common.next')} <FaArrowRight />
                 </GlowButton>
               )}
             </NavigationButtons>
@@ -800,7 +890,7 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
                   disabled={selectedTests.length === 0}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                 >
-                  <FaPrint /> Preview Print
+                  <FaPrint /> {t('patientRegistration.previewPrint')}
                 </GlowButton>
               )}
               
@@ -814,7 +904,7 @@ const EnhancedPatientForm = ({ onPatientRegistered }) => {
                 ) : (
                   <FaSave />
                 )}
-                {isSubmitting ? 'Saving...' : 'Register Patient'}
+                {isSubmitting ? t('patientRegistration.saving') : t('patientRegistration.register')}
               </GlowButton>
             </div>
           </FormActions>

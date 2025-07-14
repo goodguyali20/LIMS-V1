@@ -286,7 +286,7 @@ const PatientRegistration = () => {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <EnhancedPatientForm onPatientRegistered={handlePatientRegistered} />
+            <EnhancedPatientForm onPatientRegistered={handlePatientRegistered} patients={patients} />
           </motion.div>
         )}
 

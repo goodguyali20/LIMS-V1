@@ -16,7 +16,7 @@ export class PerformanceOptimizer {
   }
 
   // Measure function execution time
-  static measure<T extends any[], R>(
+  static measure<T extends unknown[], R>(
     fn: (...args: T) => R,
     operationName: string
   ): (...args: T) => R {
@@ -36,7 +36,7 @@ export class PerformanceOptimizer {
   }
 
   // Measure async function execution time
-  static async measureAsync<T extends any[], R>(
+  static async measureAsync<T extends unknown[], R>(
     fn: (...args: T) => Promise<R>,
     operationName: string
   ): Promise<(...args: T) => Promise<R>> {
@@ -69,10 +69,10 @@ export class PerformanceOptimizer {
 
     // Log slow operations (throttled to avoid console spam)
     if (duration > 100) {
-      const now = Date.now();
-      if (now - this.lastWarningTime > this.warningThrottleMs) {
+      const currentTime = Date.now();
+      if (currentTime - this.lastWarningTime > this.warningThrottleMs) {
         console.warn(`Slow operation detected: ${name} took ${duration.toFixed(2)}ms`);
-        this.lastWarningTime = now;
+        this.lastWarningTime = currentTime;
       }
     }
   }
@@ -141,12 +141,12 @@ export class PerformanceOptimizer {
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
         if (entry.duration > 300) { // Further increased threshold to reduce noise
-          const now = Date.now();
+          const currentTime = Date.now();
           
           // Throttle warnings to avoid console spam
-          if (now - this.lastWarningTime > this.warningThrottleMs) {
+          if (currentTime - this.lastWarningTime > this.warningThrottleMs) {
             console.warn(`Long task detected: ${entry.duration.toFixed(2)}ms`, entry);
-            this.lastWarningTime = now;
+            this.lastWarningTime = currentTime;
           }
           
           // Record metrics for analysis
@@ -248,13 +248,34 @@ export class PerformanceOptimizer {
   }
 
   // Monitor first input delay
-  startFirstInputMonitoring(): void {
+  startFirstInputDelayMonitoring(): void {
     if (!('PerformanceObserver' in window)) return;
 
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        if ((entry as any).processingStart - (entry as any).startTime > 100) {
-          console.warn(`Slow first input: ${((entry as any).processingStart - (entry as any).startTime).toFixed(2)}ms`, entry);
+        const firstInput = entry as any;
+        if (firstInput.processingStart && firstInput.startTime) {
+          const delay = firstInput.processingStart - firstInput.startTime;
+          
+          if (delay > 100) {
+            console.warn(`First input delay: ${delay.toFixed(2)}ms`, {
+              name: firstInput.name,
+              startTime: firstInput.startTime,
+              processingStart: firstInput.processingStart,
+              processingEnd: firstInput.processingEnd,
+              duration: firstInput.duration
+            });
+            
+            this.recordMetric('first_input_delay', delay);
+            
+            if (delay > 300) {
+              console.warn('⚠️ High first input delay detected. Consider:');
+              console.warn('  - Reducing JavaScript bundle size');
+              console.warn('  - Implementing code splitting');
+              console.warn('  - Optimizing critical rendering path');
+              console.warn('  - Using preload for critical resources');
+            }
+          }
         }
       }
     });
@@ -263,7 +284,38 @@ export class PerformanceOptimizer {
     this.observers.set('first-input', observer);
   }
 
-  // Cleanup observers
+  // Monitor memory usage
+  startMemoryMonitoring(): void {
+    if (!('memory' in performance)) return;
+
+    const checkMemory = () => {
+      const memory = (performance as any).memory;
+      const usedMB = memory.usedJSHeapSize / 1024 / 1024;
+      const totalMB = memory.totalJSHeapSize / 1024 / 1024;
+      const limitMB = memory.jsHeapSizeLimit / 1024 / 1024;
+      
+      this.recordMetric('memory_used_mb', usedMB);
+      this.recordMetric('memory_total_mb', totalMB);
+      
+      const usagePercentage = (usedMB / limitMB) * 100;
+      
+      if (usagePercentage > 80) {
+        console.warn(`⚠️ High memory usage: ${usagePercentage.toFixed(1)}% (${usedMB.toFixed(1)}MB / ${limitMB.toFixed(1)}MB)`);
+        console.warn('  - Check for memory leaks');
+        console.warn('  - Implement proper cleanup in useEffect hooks');
+        console.warn('  - Consider using React.memo for expensive components');
+        console.warn('  - Review large data structures');
+      }
+    };
+
+    // Check memory every 30 seconds
+    const memoryInterval = setInterval(checkMemory, 30000);
+    
+    // Store interval for cleanup
+    this.observers.set('memory_interval', { disconnect: () => clearInterval(memoryInterval) } as any);
+  }
+
+  // Cleanup all observers
   cleanup(): void {
     for (const observer of this.observers.values()) {
       observer.disconnect();
@@ -273,37 +325,35 @@ export class PerformanceOptimizer {
 
   // Clear old metrics to prevent memory bloat
   clearOldMetrics(): void {
-    const now = Date.now();
+    const cutoffTime = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
+    
     for (const [name, values] of this.metrics.entries()) {
-      // Keep only metrics from the last 5 minutes
-      if (values.length > 0) {
-        const recentValues = values.slice(-20); // Keep last 20 measurements
-        this.metrics.set(name, recentValues);
+      // Keep only recent metrics
+      if (values.length > 100) {
+        this.metrics.set(name, values.slice(-50));
       }
     }
   }
 
   // Start periodic cleanup
   startPeriodicCleanup(): void {
-    setInterval(() => {
-      this.clearOldMetrics();
-    }, 5 * 60 * 1000); // Clean up every 5 minutes
+    setInterval(() => this.clearOldMetrics(), 60 * 60 * 1000); // Every hour
   }
 
-  // Debounce function for performance
-  static debounce<T extends (...args: any[]) => any>(
+  // Debounce function calls
+  static debounce<T extends (...args: unknown[]) => unknown>(
     func: T,
     wait: number
   ): (...args: Parameters<T>) => void {
-    let timeout: NodeJS.Timeout;
+    let timeout: NodeJS.Timeout | null = null;
     return (...args: Parameters<T>) => {
-      clearTimeout(timeout);
+      if (timeout) clearTimeout(timeout);
       timeout = setTimeout(() => func(...args), wait);
     };
   }
 
-  // Throttle function for performance
-  static throttle<T extends (...args: any[]) => any>(
+  // Throttle function calls
+  static throttle<T extends (...args: unknown[]) => unknown>(
     func: T,
     limit: number
   ): (...args: Parameters<T>) => void {
@@ -318,50 +368,58 @@ export class PerformanceOptimizer {
   }
 }
 
-// React performance hooks
+// React hook for performance monitoring
 export const usePerformanceMonitor = (componentName: string) => {
-  const startTime = performance.now();
-
   useEffect(() => {
-    const endTime = performance.now();
-    PerformanceOptimizer.getInstance().recordMetric(`${componentName}_render`, endTime - startTime);
-  });
-
-  useEffect(() => {
+    const startTime = performance.now();
+    
     return () => {
-      PerformanceOptimizer.getInstance().recordMetric(`${componentName}_unmount`, 0);
+      const endTime = performance.now();
+      const duration = endTime - startTime;
+      
+      if (duration > 100) {
+        console.warn(`Slow component unmount: ${componentName} took ${duration.toFixed(2)}ms`);
+      }
+      
+      PerformanceOptimizer.getInstance().recordMetric(`${componentName}_unmount`, duration);
     };
-  }, []);
+  }, [componentName]);
 };
 
-// Memoization helper with performance tracking
+// Enhanced useMemo with performance tracking
 export const useMemoWithPerformance = <T>(
   factory: () => T,
   deps: React.DependencyList,
   operationName: string
 ): T => {
-  return useMemo(() => {
+  const result = useMemo(() => {
     const start = performance.now();
-    const result = factory();
+    const value = factory();
     const end = performance.now();
+    
     PerformanceOptimizer.getInstance().recordMetric(`${operationName}_memo`, end - start);
-    return result;
+    return value;
   }, deps);
+  
+  return result;
 };
 
-// Callback helper with performance tracking
-export const useCallbackWithPerformance = <T extends (...args: any[]) => any>(
+// Enhanced useCallback with performance tracking
+export const useCallbackWithPerformance = <T extends (...args: unknown[]) => unknown>(
   callback: T,
   deps: React.DependencyList,
   operationName: string
 ): T => {
-  return useCallback((...args: Parameters<T>) => {
+  const memoizedCallback = useCallback((...args: Parameters<T>) => {
     const start = performance.now();
     const result = callback(...args);
     const end = performance.now();
+    
     PerformanceOptimizer.getInstance().recordMetric(`${operationName}_callback`, end - start);
     return result;
   }, deps) as T;
+  
+  return memoizedCallback;
 };
 
 // Initialize performance monitoring
@@ -371,144 +429,108 @@ export const initializePerformanceMonitoring = () => {
   // Start monitoring
   optimizer.startLongTaskMonitoring();
   optimizer.startLayoutShiftMonitoring();
-  optimizer.startFirstInputMonitoring();
+  optimizer.startFirstInputDelayMonitoring();
+  optimizer.startMemoryMonitoring();
   optimizer.startPeriodicCleanup();
-
-  // Monitor React rendering performance
-  if (process.env.NODE_ENV === 'development') {
-    const originalConsoleLog = console.log;
-    console.log = (...args) => {
-      if (args[0]?.includes?.('render') || args[0]?.includes?.('re-render')) {
-        optimizer.recordMetric('react_render_warning', 0);
-      }
-      originalConsoleLog.apply(console, args);
-    };
-  }
-
-  // Performance optimizations
-  if (typeof window !== 'undefined') {
-    // Adaptive frame rate based on device performance
-    const originalRequestAnimationFrame = window.requestAnimationFrame;
-    let lastFrameTime = 0;
-    const isLowEndDevice = navigator.hardwareConcurrency <= 4 || (navigator.deviceMemory || 8) <= 4;
-    const targetFrameRate = isLowEndDevice ? 30 : 60; // Reduce frame rate on low-end devices
-    const frameInterval = 1000 / targetFrameRate;
-
-    window.requestAnimationFrame = (callback) => {
-      const currentTime = performance.now();
-      if (currentTime - lastFrameTime >= frameInterval) {
-        lastFrameTime = currentTime;
-        return originalRequestAnimationFrame(callback);
-      } else {
-        return originalRequestAnimationFrame(() => {
-          setTimeout(callback, frameInterval - (currentTime - lastFrameTime));
-        });
-      }
-    };
-
-    // Optimize scroll events
-    let scrollTimeout: NodeJS.Timeout;
-    const originalAddEventListener = window.addEventListener;
-    window.addEventListener = function(type, listener, options) {
-      if (type === 'scroll') {
-        const throttledListener = (...args: any[]) => {
-          if (scrollTimeout) return;
-          scrollTimeout = setTimeout(() => {
-            listener.apply(this, args);
-            scrollTimeout = null;
-          }, isLowEndDevice ? 32 : 16); // Adaptive throttling
-        };
-        return originalAddEventListener.call(this, type, throttledListener, options);
-      }
-      return originalAddEventListener.call(this, type, listener, options);
-    };
-
-    // Optimize resize events
-    let resizeTimeout: NodeJS.Timeout;
-    window.addEventListener = function(type, listener, options) {
-      if (type === 'resize') {
-        const debouncedListener = (...args: any[]) => {
-          clearTimeout(resizeTimeout);
-          resizeTimeout = setTimeout(() => {
-            listener.apply(this, args);
-          }, 100); // Debounce resize events
-        };
-        return originalAddEventListener.call(this, type, debouncedListener, options);
-      }
-      return originalAddEventListener.call(this, type, listener, options);
-    };
-
-    // Optimize DOM queries
-    const originalQuerySelector = document.querySelector;
-    const originalQuerySelectorAll = document.querySelectorAll;
-    
-    // Cache DOM queries for better performance
-    const domCache = new Map();
-    
-    document.querySelector = function(selector) {
-      if (domCache.has(selector)) {
-        return domCache.get(selector);
-      }
-      const result = originalQuerySelector.call(this, selector);
-      if (result) {
-        domCache.set(selector, result);
-      }
-      return result;
-    };
-    
-    document.querySelectorAll = function(selector) {
-      if (domCache.has(selector)) {
-        return domCache.get(selector);
-      }
-      const result = originalQuerySelectorAll.call(this, selector);
-      if (result.length > 0) {
-        domCache.set(selector, result);
-      }
-      return result;
-    };
-  }
-
-  // Cleanup on page unload
-  window.addEventListener('beforeunload', () => {
-    optimizer.cleanup();
-  });
-
-  return optimizer;
-};
-
-// Export singleton instance
-export const performanceOptimizer = PerformanceOptimizer.getInstance();
-
-// Performance optimization utilities
-export const performanceUtils = {
-  // Break up long tasks using requestIdleCallback
-  async breakUpTask<T>(
-    task: () => T,
-    chunkSize: number = 1000,
-    delay: number = 1
-  ): Promise<T> {
-    return new Promise((resolve) => {
-      const startTime = performance.now();
-      
-      const processChunk = () => {
-        const currentTime = performance.now();
+  
+  // Monitor scroll performance
+  let scrollTimeout: NodeJS.Timeout | null = null;
+  const originalAddEventListener = window.addEventListener;
+  
+  window.addEventListener = function(type: string, listener: EventListener, options?: AddEventListenerOptions) {
+    if (type === 'scroll') {
+      const throttledListener = (...args: unknown[]) => {
+        if (scrollTimeout) return;
         
-        // If we've been running too long, yield to the browser
-        if (currentTime - startTime > 16) { // 16ms = 60fps
-          requestIdleCallback(() => processChunk());
-          return;
-        }
-        
-        // Process the task
-        const result = task();
-        resolve(result);
+        scrollTimeout = setTimeout(() => {
+          listener.apply(this, args);
+          scrollTimeout = null;
+        }, 16); // ~60fps
       };
       
-      requestIdleCallback(processChunk);
-    });
-  },
+      return originalAddEventListener.call(this, type, throttledListener as EventListener, options);
+    }
+    
+    return originalAddEventListener.call(this, type, listener, options);
+  };
+  
+  // Monitor resize performance
+  let resizeTimeout: NodeJS.Timeout | null = null;
+  
+  window.addEventListener = function(type: string, listener: EventListener, options?: AddEventListenerOptions) {
+    if (type === 'resize') {
+      const debouncedListener = (...args: unknown[]) => {
+        if (resizeTimeout) clearTimeout(resizeTimeout);
+        
+        resizeTimeout = setTimeout(() => {
+          listener.apply(this, args);
+        }, 250);
+      };
+      
+      return originalAddEventListener.call(this, type, debouncedListener as EventListener, options);
+    }
+    
+    return originalAddEventListener.call(this, type, listener, options);
+  };
+  
+  // Monitor DOM query performance
+  const originalQuerySelector = document.querySelector;
+  const originalQuerySelectorAll = document.querySelectorAll;
+  
+  document.querySelector = function(selector: string) {
+    const start = performance.now();
+    const result = originalQuerySelector.call(this, selector);
+    const end = performance.now();
+    
+    if (end - start > 10) {
+      console.warn(`Slow querySelector: ${selector} took ${(end - start).toFixed(2)}ms`);
+    }
+    
+    return result;
+  };
+  
+  document.querySelectorAll = function(selector: string) {
+    const start = performance.now();
+    const result = originalQuerySelectorAll.call(this, selector);
+    const end = performance.now();
+    
+    if (end - start > 10) {
+      console.warn(`Slow querySelectorAll: ${selector} took ${(end - start).toFixed(2)}ms`);
+    }
+    
+    return result;
+  };
+  
+  console.log('🚀 Performance monitoring initialized');
+};
 
-  // Break up large arrays into chunks for processing
+// Utility for breaking up large tasks
+export class TaskScheduler {
+  async breakUpTask<T>(
+    task: () => T,
+    _chunkSize: number = 1000,
+    _delay: number = 1
+  ): Promise<T> {
+    return new Promise((resolve) => {
+      const execute = () => {
+        try {
+          const result = task();
+          resolve(result);
+        } catch (error) {
+          console.error('Task execution failed:', error);
+          resolve(null as T);
+        }
+      };
+      
+      // Use requestIdleCallback if available, otherwise setTimeout
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(execute);
+      } else {
+        setTimeout(execute, 0);
+      }
+    });
+  }
+
   async processArrayInChunks<T, R>(
     array: T[],
     processor: (item: T, index: number) => R,
@@ -523,18 +545,18 @@ export const performanceUtils = {
       const chunkResults = chunk.map((item, index) => 
         processor(item, i + index)
       );
+      
       results.push(...chunkResults);
       
-      // Yield to browser if chunk is large
-      if (chunk.length > 50) {
-        await new Promise(resolve => requestIdleCallback(resolve));
+      // Yield control if not the last chunk
+      if (i + chunkSize < array.length) {
+        await new Promise(resolve => setTimeout(resolve, 0));
       }
     }
     
     return results;
-  },
+  }
 
-  // Optimize heavy computations
   optimizeComputation<T>(
     computation: () => T,
     options: {
@@ -543,77 +565,69 @@ export const performanceUtils = {
       priority?: 'high' | 'normal' | 'low';
     } = {}
   ): Promise<T> {
-    const { maxDuration = 16, priority = 'normal' } = options;
-    
     return new Promise((resolve) => {
-      const startTime = performance.now();
-      
       const execute = () => {
-        const currentTime = performance.now();
+        const start = performance.now();
+        const result = computation();
+        const duration = performance.now() - start;
         
-        if (currentTime - startTime > maxDuration) {
-          // Yield to browser
-          const callback = priority === 'high' ? 
-            requestAnimationFrame : 
-            requestIdleCallback;
-          callback(execute);
-          return;
+        if (duration > (options.maxDuration || 16)) {
+          console.warn(`Computation took ${duration.toFixed(2)}ms, consider optimization`);
         }
         
-        const result = computation();
         resolve(result);
       };
       
-      execute();
+      if (options.priority === 'low' && 'requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(execute);
+      } else {
+        setTimeout(execute, 0);
+      }
     });
-  },
+  }
 
-  // Optimize list rendering with virtualization hints
   optimizeListRendering<T>(
     items: T[],
     renderItem: (item: T, index: number) => React.ReactNode,
-    options: {
+    _options: {
       itemHeight?: number;
       containerHeight?: number;
       overscan?: number;
     } = {}
   ) {
-    const { itemHeight = 50, containerHeight = 400, overscan = 5 } = options;
-    
-    // If list is small, render normally
-    if (items.length < 100) {
-      return items.map(renderItem);
-    }
-    
-    // For large lists, suggest virtualization
-    console.warn('⚠️ Large list detected. Consider using react-window or react-virtualized for better performance.');
-    
-    return items.map(renderItem);
-  },
+    // This would implement virtualization
+    // For now, return the items as-is
+    return items.map((item, index) => renderItem(item, index));
+  }
 
-  // Optimize animations
-  optimizeAnimation(animation: any) {
-    return {
-      ...animation,
-      // Use transform instead of changing layout properties
-      transform: animation.transform || 'translateZ(0)', // Force hardware acceleration
-      willChange: 'transform', // Hint to browser about animation
-    };
-  },
+  optimizeAnimation(_animation: unknown) {
+    // Animation optimization logic would go here
+    console.log('Animation optimization not implemented');
+  }
 
-  // Debounce expensive operations
-  debounceExpensive<T extends (...args: any[]) => any>(
+  debounceExpensive<T extends (...args: unknown[]) => unknown>(
     func: T,
     wait: number = 100
   ): (...args: Parameters<T>) => void {
     return PerformanceOptimizer.debounce(func, wait);
-  },
+  }
 
-  // Throttle frequent operations
-  throttleFrequent<T extends (...args: any[]) => any>(
+  throttleFrequent<T extends (...args: unknown[]) => unknown>(
     func: T,
     limit: number = 16
   ): (...args: Parameters<T>) => void {
     return PerformanceOptimizer.throttle(func, limit);
   }
+}
+
+// Export utilities
+export const performanceUtils = {
+  PerformanceOptimizer: PerformanceOptimizer.getInstance(),
+  TaskScheduler: new TaskScheduler(),
+  usePerformanceMonitor,
+  useMemoWithPerformance,
+  useCallbackWithPerformance,
+  initializePerformanceMonitoring,
 }; 
+
+export const performanceOptimizer = PerformanceOptimizer.getInstance(); 

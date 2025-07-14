@@ -57,10 +57,28 @@
   },
   "patientRegistration": {
     "title": "Patient Registration",
+    "personalInfo": "Personal Information",
+    "addressInfo": "Address Information",
+    "emergencyContact": "Emergency Contact",
+    "medicalHistory": "Medical History",
+    "insuranceInfo": "Insurance Information",
+    "registrationSummary": "Registration Summary",
+    "patientName": "Patient Name",
+    "phoneNumber": "Phone Number",
+    "email": "Email",
+    "age": "Age",
+    "years": "years",
+    "gender": "Gender",
+    "selectedTests": "Selected Tests",
+    "tests": "tests",
     "reset": "Reset Form",
     "cancel": "Cancel",
     "save": "Save",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "previous": "Previous",
+    "next": "Next",
+    "previewPrint": "Preview Print",
+    "register": "Register Patient"
   },
   "patientHistory": "Patient History",
   "phlebotomist": "Phlebotomist",
@@ -432,7 +450,6 @@
   "labEmailLabel": "Lab Email",
   "reportHeaderLabel": "Report Header",
   "reportFooterLabel": "Report Footer",
-  "patientRegistration": "Patient Registration",
   "patientInformation": "Patient Information",
   "fullNameLabel": "Full Name",
   "ageLabel": "Age",
@@ -743,5 +760,12 @@
     "backupExport": "Backup & Export",
     "backupExportDescription": "Data export, backup settings, and system maintenance",
     "exportAllData": "Export All Data"
-  }
+  },
+  "patientId": "Patient ID",
+  "scanBarcode": "Scan barcode/QR",
+  "stopScanning": "Stop scanning",
+  "scanning": "Scanning...",
+  "scanError": "Scan error",
+  "photo": "Photo",
+  "uploadPhoto": "Upload Photo"
 }

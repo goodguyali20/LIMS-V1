@@ -1,17 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
-import { 
-  FaSearch, FaFilter, FaTimes, FaCheck, FaPlus,
-  FaFlask, FaDollarSign, FaClock, FaInfoCircle, FaEye,
-  FaStar, FaLayerGroup, FaSortAmountDown,
-  FaSortAmountUp, FaBookmark,
-  FaTh, FaList
-} from 'react-icons/fa';
 import { useTestCatalog } from '../../contexts/TestContext';
-import GlowButton from '../common/GlowButton.jsx';
-import GlowCard from '../common/GlowCard.jsx';
+import { useSettings } from '../../contexts/SettingsContext';
+import { FaSearch, FaFilter, FaTimes, FaCheck, FaPlus, FaMinus, FaFlask, FaThermometerHalf, FaVial, FaMicroscope, FaDollarSign, FaClock, FaInfoCircle, FaEye, FaStar, FaBookmark, FaSortAmountUp, FaSortAmountDown } from 'react-icons/fa';
+import GlowCard from '../common/GlowCard';
+import GlowButton from '../common/GlowButton';
 
 const PanelContainer = styled(GlowCard)`
   padding: 1.5rem;
@@ -90,8 +84,8 @@ const FilterGroup = styled.div`
 
 const FilterLabel = styled.label`
   font-size: 0.9rem;
-  font-weight: 500;
-  color: ${({ theme }) => theme.colors.text};
+  font-weight: 600;
+  color: inherit;
 `;
 
 const FilterInput = styled.input`
@@ -99,7 +93,7 @@ const FilterInput = styled.input`
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.1);
-  color: ${({ theme }) => theme.colors.text};
+  color: ${({ theme }) => theme?.colors?.text || '#333333'};
   font-size: 0.9rem;
   outline: none;
   transition: all 0.2s ease;
@@ -107,28 +101,6 @@ const FilterInput = styled.input`
   &:focus {
     border-color: #667eea;
     box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-  }
-`;
-
-const FilterSelect = styled.select`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 0.9rem;
-  outline: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  &:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-  }
-  
-  option {
-    background: ${({ theme }) => theme.colors.surface};
-    color: ${({ theme }) => theme.colors.text};
   }
 `;
 
@@ -143,7 +115,7 @@ const SearchInput = styled.input`
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
   border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  color: ${({ theme }) => theme.colors.text};
+  color: ${({ theme }) => theme?.colors?.text || '#333333'};
   font-size: 1rem;
   outline: none;
   transition: all 0.3s ease;
@@ -157,7 +129,7 @@ const SearchInput = styled.input`
   }
   
   &::placeholder {
-    color: ${({ theme }) => theme.colors.textSecondary};
+    color: ${({ theme }) => theme?.colors?.textSecondary || 'rgba(255, 255, 255, 0.6)'};
   }
 `;
 
@@ -166,7 +138,7 @@ const SearchIcon = styled(FaSearch)`
   left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  color: ${({ theme }) => theme.colors.textSecondary};
+  color: ${({ theme }) => theme?.colors?.textSecondary || 'rgba(255, 255, 255, 0.6)'};
   width: 1rem;
   height: 1rem;
 `;
@@ -448,17 +420,22 @@ const RemoveButton = styled.button`
 `;
 
 const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) => {
-  const { t } = useTranslation();
   const { labTests, departmentColors } = useTestCatalog();
+  const { settings } = useSettings();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
-  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [viewMode, setViewMode] = useState('grid');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [priceRange, setPriceRange] = useState([0, 1000]);
   const [favorites, setFavorites] = useState([]);
-  const [recentTests, setRecentTests] = useState([]);
+
+  // Get unique departments
+  const departments = useMemo(() => {
+    const deptSet = new Set(labTests.map(test => test.department));
+    return Array.from(deptSet).sort();
+  }, [labTests]);
 
   // Predefined test panels
   const testPanels = useMemo(() => [
@@ -492,38 +469,39 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
     }
   ], []);
 
-  // Filter tests based on search and filters
+  // Filter and sort tests
   const filteredTests = useMemo(() => {
     let filtered = labTests.filter(test => {
       const matchesSearch = test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            test.department.toLowerCase().includes(searchTerm.toLowerCase());
+        
       const matchesDepartment = selectedDepartment === 'all' || test.department === selectedDepartment;
-      const matchesPrice = (!priceRange.min || test.price >= parseFloat(priceRange.min)) &&
-                          (!priceRange.max || test.price <= parseFloat(priceRange.max));
+        
+      const matchesPrice = test.price >= priceRange[0] && test.price <= priceRange[1];
+        
       return matchesSearch && matchesDepartment && matchesPrice;
     });
 
     // Sort tests
     filtered.sort((a, b) => {
       let aValue, bValue;
+        
       switch (sortBy) {
-        case 'name':
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-          break;
         case 'price':
-          aValue = a.price || 0;
-          bValue = b.price || 0;
+          aValue = a.price;
+          bValue = b.price;
           break;
         case 'department':
-          aValue = a.department.toLowerCase();
-          bValue = b.department.toLowerCase();
+          aValue = a.department;
+          bValue = b.department;
           break;
+        case 'name':
         default:
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
+          aValue = a.name;
+          bValue = b.name;
+          break;
       }
-
+        
       if (sortOrder === 'asc') {
         return aValue > bValue ? 1 : -1;
       } else {
@@ -532,7 +510,7 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
     });
 
     return filtered;
-  }, [labTests, searchTerm, selectedDepartment, priceRange, sortBy, sortOrder]);
+  }, [labTests, searchTerm, selectedDepartment, sortBy, sortOrder, priceRange]);
 
   // Group tests by department
   const groupedTests = useMemo(() => {
@@ -560,10 +538,10 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
     } else {
       onTestSelection(testName);
       // Add to recent tests
-      setRecentTests(prev => {
-        const newRecent = [testName, ...prev.filter(t => t !== testName)].slice(0, 10);
-        return newRecent;
-      });
+      // setRecentTests(prev => { // This line was removed from the new_code, so it's removed here.
+      //   const newRecent = [testName, ...prev.filter(t => t !== testName)].slice(0, 10);
+      //   return newRecent;
+      // });
     }
   };
 
@@ -585,15 +563,10 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
     });
   };
 
-  const departments = useMemo(() => {
-    const depts = [...new Set(labTests.map(test => test.department))];
-    return depts.sort();
-  }, [labTests]);
-
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedDepartment('all');
-    setPriceRange({ min: '', max: '' });
+    setPriceRange([0, 1000]);
     setSortBy('name');
     setSortOrder('asc');
   };
@@ -620,10 +593,10 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
             </ViewButton>
           </ViewToggle>
           <GlowButton
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            onClick={() => setShowFavorites(!showFavorites)}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
-            <FaFilter /> {showAdvancedFilters ? 'Hide' : 'Show'} Filters
+            <FaFilter /> {showFavorites ? 'Hide' : 'Show'} Filters
           </GlowButton>
         </HeaderActions>
       </PanelHeader>
@@ -672,34 +645,34 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
       </QuickActions>
 
       <AnimatePresence>
-        {showAdvancedFilters && (
+        {showFavorites && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
           >
             <AdvancedFilters>
-              <FilterGrid>
-                <FilterGroup>
-                  <FilterLabel>Department</FilterLabel>
-                  <FilterSelect
-                    value={selectedDepartment}
-                    onChange={(e) => setSelectedDepartment(e.target.value)}
-                  >
-                    <option value="all">All Departments</option>
-                    {departments.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </FilterSelect>
-                </FilterGroup>
-                
-                <FilterGroup>
-                  <FilterLabel>Min Price</FilterLabel>
+                              <FilterGrid>
+                  <FilterGroup>
+                    <FilterLabel>Department</FilterLabel>
+                    <FilterSelect
+                      value={selectedDepartment}
+                      onChange={(e) => setSelectedDepartment(e.target.value)}
+                    >
+                      <option value="all">All Departments</option>
+                      {departments.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </FilterSelect>
+                  </FilterGroup>
+                  
+                  <FilterGroup>
+                    <FilterLabel>Min Price</FilterLabel>
                   <FilterInput
                     type="number"
                     placeholder="Min price"
-                    value={priceRange.min}
-                    onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value }))}
+                    value={priceRange[0]}
+                    onChange={(e) => setPriceRange(prev => [parseFloat(e.target.value) || 0, prev[1]])}
                   />
                 </FilterGroup>
                 
@@ -708,8 +681,8 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
                   <FilterInput
                     type="number"
                     placeholder="Max price"
-                    value={priceRange.max}
-                    onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value }))}
+                    value={priceRange[1]}
+                    onChange={(e) => setPriceRange(prev => [prev[0], parseFloat(e.target.value) || 1000])}
                   />
                 </FilterGroup>
                 
@@ -784,7 +757,7 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
             <FaFlask /> Individual Tests ({filteredTests.length})
           </h4>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.9rem', color: theme.colors.textSecondary }}>
+            <span style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)' }}>
               {sortBy} ({sortOrder === 'asc' ? 'A-Z' : 'Z-A'})
             </span>
             <ActionButton onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>
