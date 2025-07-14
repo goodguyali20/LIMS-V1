@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
@@ -8,7 +8,7 @@ import {
   FaMapMarkerAlt, FaNotesMedical, FaSave, FaTimes, FaSearch,
   FaFilter, FaSort, FaEye, FaEdit, FaTrash, FaPlus, FaCheck,
   FaExclamationTriangle, FaInfoCircle, FaSpinner, FaRedo,
-  FaFlask, FaPrint, FaUsers, FaClipboardList
+  FaFlask, FaPrint, FaUsers, FaClipboardList, FaUserPlus, FaSmileBeam
 } from 'react-icons/fa';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
@@ -178,12 +178,65 @@ const Input = styled.input`
   }
 `;
 
+const GlassContainer = styled(motion.div)`
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 3rem 1rem 2rem 1rem;
+  background: ${({ theme }) =>
+    theme.isDarkMode
+      ? `linear-gradient(135deg, ${theme.colors.dark.background} 0%, #1a1a2e 50%, #16213e 100%)`
+      : `linear-gradient(120deg, ${theme.colors.background} 0%, #e0e7ff 100%)`};
+`;
+
+const AnimatedHeader = styled(motion.header)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2.5rem;
+`;
+
+const PageTitle = styled(motion.h1)`
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: ${({ theme }) => theme.isDarkMode ? theme.colors.dark.text : '#667eea'};
+  letter-spacing: -1px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+`;
+
+const Subtitle = styled(motion.p)`
+  font-size: 1.25rem;
+  color: ${({ theme }) => theme.isDarkMode ? theme.colors.dark.textSecondary : '#6b7280'};
+  margin-bottom: 0.5rem;
+  text-align: center;
+`;
+
+const JoyfulBar = styled(motion.div)`
+  width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: ${({ theme }) =>
+    theme.isDarkMode
+      ? 'linear-gradient(90deg, #4f8cff, #a084e8, #10b981, #f5576c)'
+      : 'linear-gradient(90deg, #667eea, #f093fb, #10b981, #f5576c)'};
+  margin-bottom: 1.5rem;
+`;
+
+const fadeIn = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.7 } },
+};
+
 const PatientRegistration = () => {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const { settings } = useSettings();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('register');
   const [searchTerm, setSearchTerm] = useState('');
 
   // React Query for fetching patients
@@ -197,7 +250,7 @@ const PatientRegistration = () => {
         const data = { id: doc.id, ...doc.data() };
         patientsData.push({
           ...data,
-          age: data.age || getAge(data.dateOfBirth), // Support both age and dateOfBirth for backward compatibility
+          age: data.age || getAge(data.dateOfBirth),
           fullName: `${data.firstName} ${data.lastName}`,
           formattedDate: formatDate(data.dateOfBirth),
           createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
@@ -209,194 +262,38 @@ const PatientRegistration = () => {
     retry: 2,
   });
 
-  // Filter patients based on search term
-  const filteredPatients = useMemo(() => {
-    if (!searchTerm) return patients;
-    
-    return patients.filter(patient => 
-      patient.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.phoneNumber?.includes(searchTerm) ||
-      patient.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [patients, searchTerm]);
-
-  const handlePatientRegistered = (patientId) => {
-    // Refresh the patient list
-    queryClient.invalidateQueries(['patients']);
-    // Switch to the patients list tab
-    setActiveTab('patients');
-  };
-
-  const tabs = [
-    { 
-      id: 'register', 
-      label: 'Register Patient', 
-      icon: <FaUser />,
-      badge: null
-    },
-    { 
-      id: 'patients', 
-      label: 'Patient List', 
-      icon: <FaUsers />,
-      badge: patients.length
-    }
-  ];
-
+  // Remove tab logic and always show registration form
   return (
-    <PageContainer
+    <GlassContainer
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.7 }}
     >
-      <Header>
-        <Title>
-          <FaUser /> {t('patientRegistration.title')}
-        </Title>
-        <HeaderActions>
-          <GlowButton
-            onClick={() => queryClient.invalidateQueries(['patients'])}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            <FaRedo /> Refresh
-          </GlowButton>
-        </HeaderActions>
-      </Header>
-
-      <TabContainer>
-        {tabs.map((tab) => (
-          <Tab
-            key={tab.id}
-            $isActive={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.icon} {tab.label}
-            {tab.badge && (
-              <TabBadge>{tab.badge}</TabBadge>
-            )}
-          </Tab>
-        ))}
-      </TabContainer>
-
-      <AnimatePresence mode="wait">
-        {activeTab === 'register' && (
-          <motion.div
-            key="register"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <EnhancedPatientForm onPatientRegistered={handlePatientRegistered} patients={patients} />
-          </motion.div>
-        )}
-
-        {activeTab === 'patients' && (
-          <motion.div
-            key="patients"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <GlowCard>
-              <div style={{ padding: '1.5rem' }}>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  marginBottom: '1.5rem'
-                }}>
-                  <h3 style={{ margin: 0, color: theme.colors.text, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FaClipboardList /> Registered Patients
-                  </h3>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <Input
-                      type="text"
-                      placeholder="Search patients..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      style={{ margin: 0, minWidth: '250px' }}
-                    />
-                    <GlowButton
-                      onClick={() => setSearchTerm('')}
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                    >
-                      <FaTimes /> Clear
-                    </GlowButton>
-                  </div>
-                </div>
-
-                {isLoading ? (
-                  <div style={{ textAlign: 'center', padding: '2rem' }}>
-                    <FaSpinner size={48} style={{ animation: 'spin 1s linear infinite' }} />
-                    <p>Loading patients...</p>
-                  </div>
-                ) : filteredPatients.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '2rem', color: theme.colors.textSecondary }}>
-                    <FaUser size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                    <p>No patients found</p>
-                    {searchTerm && (
-                      <p>Try adjusting your search terms</p>
-                    )}
-                  </div>
-                ) : (
-                  <div style={{ display: 'grid', gap: '1rem' }}>
-                    {filteredPatients.map((patient) => (
-                      <motion.div
-                        key={patient.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                        style={{
-                          padding: '1rem',
-                          border: `1px solid ${theme.colors.border}`,
-                          borderRadius: '12px',
-                          background: theme.colors.surface,
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          transition: 'all 0.3s ease'
-                        }}
-                        whileHover={{
-                          transform: 'translateY(-2px)',
-                          boxShadow: '0 8px 25px rgba(0, 0, 0, 0.1)'
-                        }}
-                      >
-                        <div>
-                          <h4 style={{ margin: '0 0 0.5rem 0', color: theme.colors.text }}>
-                            {patient.fullName}
-                          </h4>
-                          <p style={{ margin: '0', color: theme.colors.textSecondary, fontSize: '0.9rem' }}>
-                            Age: {patient.age} • Phone: {patient.phoneNumber} • Registered: {patient.formattedDate}
-                          </p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <GlowButton
-                            size="small"
-                            onClick={() => {/* Handle view details */}}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                          >
-                            <FaEye /> View
-                          </GlowButton>
-                          <GlowButton
-                            size="small"
-                            $variant="primary"
-                            onClick={() => {/* Handle edit */}}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                          >
-                            <FaEdit /> Edit
-                          </GlowButton>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </GlowCard>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </PageContainer>
+      <AnimatedHeader>
+        <PageTitle
+          variants={fadeIn}
+          initial="hidden"
+          animate="visible"
+        >
+          <FaUserPlus /> {t('patientRegistration.title') || 'Register a New Patient'}
+        </PageTitle>
+        <Subtitle
+          variants={fadeIn}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.2 }}
+        >
+          {t('patientRegistration.subtitle') || 'A seamless, joyful experience for every patient.'}
+        </Subtitle>
+        <JoyfulBar
+          variants={fadeIn}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.4 }}
+        />
+      </AnimatedHeader>
+      <EnhancedPatientForm patients={patients} />
+    </GlassContainer>
   );
 };
 

@@ -3,7 +3,8 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTestCatalog } from '../../contexts/TestContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { FaSearch, FaFilter, FaTimes, FaCheck, FaPlus, FaMinus, FaFlask, FaThermometerHalf, FaVial, FaMicroscope, FaDollarSign, FaClock, FaInfoCircle, FaEye, FaStar, FaBookmark, FaSortAmountUp, FaSortAmountDown } from 'react-icons/fa';
+import { useTheme } from '../../contexts/ThemeContext';
+import { FaSearch, FaFilter, FaTimes, FaCheck, FaPlus, FaMinus, FaFlask, FaThermometerHalf, FaVial, FaMicroscope, FaDollarSign, FaClock, FaInfoCircle, FaEye, FaStar, FaBookmark, FaSortAmountUp, FaSortAmountDown, FaTh, FaList, FaLayerGroup } from 'react-icons/fa';
 import GlowCard from '../common/GlowCard';
 import GlowButton from '../common/GlowButton';
 
@@ -430,6 +431,10 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
   const [showFavorites, setShowFavorites] = useState(false);
   const [priceRange, setPriceRange] = useState([0, 1000]);
   const [favorites, setFavorites] = useState([]);
+  const { theme } = useTheme();
+
+  // Add fallback for departmentColors
+  const safeDepartmentColors = typeof departmentColors !== 'undefined' ? departmentColors : { General: '#667eea' };
 
   // Get unique departments
   const departments = useMemo(() => {
@@ -776,8 +781,8 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
                   style={{
                     margin: '1rem 0 0.75rem 0',
                     paddingBottom: '0.5rem',
-                    borderBottom: `2px solid ${departmentColors[deptName] || '#667eea'}`,
-                    color: departmentColors[deptName] || '#667eea',
+                    borderBottom: `2px solid ${safeDepartmentColors[deptName] || '#667eea'}`,
+                    color: safeDepartmentColors[deptName] || '#667eea',
                     fontSize: '1rem',
                     fontWeight: '600'
                   }}
@@ -809,7 +814,7 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
                       </TestHeader>
                       
                       <TestDepartment>
-                        <DepartmentBadge color={departmentColors[test.department]}>
+                        <DepartmentBadge color={safeDepartmentColors[test.department]}>
                           {test.department}
                         </DepartmentBadge>
                         <span>•</span>
@@ -868,8 +873,8 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
                   style={{
                     margin: '1rem 0 0.75rem 0',
                     paddingBottom: '0.5rem',
-                    borderBottom: `2px solid ${departmentColors[deptName] || '#667eea'}`,
-                    color: departmentColors[deptName] || '#667eea',
+                    borderBottom: `2px solid ${safeDepartmentColors[deptName] || '#667eea'}`,
+                    color: safeDepartmentColors[deptName] || '#667eea',
                     fontSize: '1rem',
                     fontWeight: '600'
                   }}
@@ -963,7 +968,7 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
               return (
                 <SelectedTestItem key={testName}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <DepartmentBadge color={departmentColors[test?.department]}>
+                    <DepartmentBadge color={safeDepartmentColors[test?.department]}>
                       {test?.department}
                     </DepartmentBadge>
                     <span>{testName}</span>

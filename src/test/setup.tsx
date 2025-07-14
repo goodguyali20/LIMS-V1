@@ -1,11 +1,39 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import React from 'react';
 
 // Mock react-i18next
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string) => {
+      const map: Record<string, string> = {
+        'patientRegistration.title': 'Patient Registration',
+        'patientRegistration.personalInfo': 'Personal Information',
+        'patientRegistration.addressInfo': 'Address Information',
+        'patientRegistration.emergencyContact': 'Emergency Contact',
+        'patientRegistration.medicalHistory': 'Medical History',
+        'patientRegistration.insuranceInfo': 'Insurance Information',
+        'patientRegistration.registrationSummary': 'Registration Summary',
+        'patientRegistration.testSelection': 'Test Selection',
+        'patientRegistration.register': 'Register Patient',
+        'patientRegistration.email': 'Email',
+        'patientRegistration.firstName': 'First Name',
+        'patientRegistration.lastName': 'Last Name',
+        'patientRegistration.age': 'Age',
+        'patientRegistration.gender': 'Gender',
+        'patientRegistration.phoneNumber': 'Phone Number',
+        'patientRegistration.patientId': 'Patient ID',
+        'patientRegistration.previewPrint': 'Preview Print',
+        'patientRegistration.saving': 'Saving...',
+        'patientRegistration.saving': 'Saving...',
+        'patientRegistration.saving': 'Saving...',
+        'patientRegistration.saving': 'Saving...',
+        'patientRegistration.saving': 'Saving...',
+        // Add more as needed for all fields/buttons/sections
+      };
+      return map[key] || key;
+    },
     i18n: {
       changeLanguage: vi.fn(),
       language: 'en',
@@ -36,11 +64,35 @@ vi.mock('react-router-dom', () => ({
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: any) => {
-      return ({ children, ...props }: any) => {
-        return <div {...props}>{children}</div>;
-      };
-    },
+    div: (props: any) => <div {...props} />,
+    button: (props: any) => <button {...props} />,
+    span: (props: any) => <span {...props} />,
+    h1: (props: any) => <h1 {...props} />,
+    h2: (props: any) => <h2 {...props} />,
+    h3: (props: any) => <h3 {...props} />,
+    h4: (props: any) => <h4 {...props} />,
+    h5: (props: any) => <h5 {...props} />,
+    h6: (props: any) => <h6 {...props} />,
+    p: (props: any) => <p {...props} />,
+    form: (props: any) => <form {...props} />,
+    input: (props: any) => <input {...props} />,
+    textarea: (props: any) => <textarea {...props} />,
+    table: (props: any) => <table {...props} />,
+    tr: (props: any) => <tr {...props} />,
+    td: (props: any) => <td {...props} />,
+    th: (props: any) => <th {...props} />,
+    thead: (props: any) => <thead {...props} />,
+    tbody: (props: any) => <tbody {...props} />,
+    ul: (props: any) => <ul {...props} />,
+    li: (props: any) => <li {...props} />,
+    section: (props: any) => <section {...props} />,
+    header: (props: any) => <header {...props} />,
+    footer: (props: any) => <footer {...props} />,
+    nav: (props: any) => <nav {...props} />,
+    aside: (props: any) => <aside {...props} />,
+    main: (props: any) => <main {...props} />,
+    label: (props: any) => <label {...props} />,
+    // Add more as needed
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
   useMotionValue: (initial: any) => ({
@@ -55,14 +107,25 @@ vi.mock('framer-motion', () => ({
 // Mock styled-components
 vi.mock('styled-components', () => {
   const styled = (ComponentOrTag: any) => (styles: any) => {
-    const StyledComponent = ComponentOrTag
-      ? (props: any) => <ComponentOrTag {...props} />
-      : (props: any) => <ComponentOrTag {...props} />;
-    return ({ children, ...props }: any) => (
-      <StyledComponent {...props}>{children}</StyledComponent>
-    );
+    return (props: any) => {
+      const { children, ...rest } = props;
+      if (typeof ComponentOrTag === 'function') {
+        // If it's a function component (e.g., motion.div), call as a component
+        return React.createElement(ComponentOrTag, rest, children);
+      }
+      // Otherwise, treat as a string tag
+      return React.createElement(ComponentOrTag, rest, children);
+    };
   };
-
+  // Patch for styled.div, styled.button, etc.
+  const tags = [
+    'div', 'button', 'input', 'textarea', 'span', 'form', 'label', 'section', 'header', 'main', 'aside', 'footer', 'nav', 'ul', 'li', 'a',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'table', 'thead', 'tbody', 'tr', 'td', 'th'
+  ];
+  tags.forEach(tag => {
+    styled[tag] = styled(tag);
+  });
   return {
     default: styled,
     ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -130,33 +193,83 @@ vi.mock('../contexts/OrderContext', () => ({
 
 vi.mock('../contexts/TestContext', () => ({
   TestProvider: ({ children }: { children: React.ReactNode }) => children,
-  useTestCatalog: () => ({
-    tests: [],
-    loading: false,
-    addTest: vi.fn(),
-    updateTest: vi.fn(),
-    deleteTest: vi.fn(),
-  }),
+  useTestCatalog: () => {
+    const tests = [
+      { id: 't1', name: 'CBC', code: 'CBC', price: 100, department: 'General' },
+      { id: 't2', name: 'Blood Sugar', code: 'BS', price: 50, department: 'General' },
+      { id: 't3', name: 'Lipid Profile', code: 'LP', price: 200, department: 'General' },
+    ];
+    return {
+      tests,
+      labTests: tests, // alias for PrintPreviewModal compatibility
+    };
+  },
 }));
 
 vi.mock('../contexts/SettingsContext', () => ({
   SettingsProvider: ({ children }: { children: React.ReactNode }) => children,
   useSettings: () => ({
-    settings: {},
+    settings: {
+      patientRegistrationFields: {
+        firstName: { enabled: true, required: true, label: 'First Name' },
+        lastName: { enabled: true, required: true, label: 'Last Name' },
+        age: { enabled: true, required: true, label: 'Age' },
+        gender: { enabled: true, required: true, label: 'Gender' },
+        phoneNumber: { enabled: true, required: false, label: 'Phone Number' },
+        email: { enabled: true, required: false, label: 'Email' },
+        patientId: { enabled: true, required: false, label: 'Patient ID' },
+        address: {
+          street: { enabled: true, required: false, label: 'Street' },
+          city: { enabled: true, required: false, label: 'City' },
+          state: { enabled: true, required: false, label: 'State' },
+          zipCode: { enabled: true, required: false, label: 'Zip Code' },
+          country: { enabled: true, required: false, label: 'Country' },
+        },
+        emergencyContact: {
+          name: { enabled: true, required: false, label: 'Contact Name' },
+          relationship: { enabled: true, required: false, label: 'Relationship' },
+          phoneNumber: { enabled: true, required: false, label: 'Contact Phone' },
+        },
+        medicalHistory: {
+          allergies: { enabled: true, required: false, label: 'Allergies' },
+          medications: { enabled: true, required: false, label: 'Medications' },
+          conditions: { enabled: true, required: false, label: 'Conditions' },
+          notes: { enabled: true, required: false, label: 'Notes' },
+        },
+        insurance: {
+          provider: { enabled: true, required: false, label: 'Provider' },
+          policyNumber: { enabled: true, required: false, label: 'Policy Number' },
+          groupNumber: { enabled: true, required: false, label: 'Group Number' },
+        },
+      },
+    },
     loading: false,
     saveSettings: vi.fn(),
   }),
 }));
 
 // Mock localStorage
-const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-  length: 0,
-  key: vi.fn(),
-};
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem(key: string) {
+      return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null;
+    },
+    setItem(key: string, value: string) {
+      store[key] = value;
+    },
+    removeItem(key: string) {
+      delete store[key];
+    },
+    clear() {
+      store = {};
+    },
+  };
+})();
+Object.defineProperty(global, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});
 
 // Mock sessionStorage
 const sessionStorageMock = {
@@ -196,6 +309,12 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
   unobserve: vi.fn(),
   disconnect: vi.fn(),
 }));
+
+// Mock departmentColors for TestSelectionPanel
+Object.defineProperty(global, 'departmentColors', {
+  value: { General: '#667eea' },
+  writable: true,
+});
 
 // Setup global mocks
 global.localStorage = localStorageMock;

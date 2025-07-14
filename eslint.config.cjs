@@ -99,4 +99,16 @@ module.exports = [
       },
     },
   },
+  {
+    files: ['src/locales/**/*.json'],
+    plugins: {
+      'i18n-json': require('eslint-plugin-i18n-json'),
+    },
+    rules: {
+      'i18n-json/valid-message-syntax': 'error',
+      'i18n-json/identical-keys': 'warn',
+      'i18n-json/valid-json': 'error',
+      'i18n-json/sorted-keys': 'off',
+    },
+  },
 ];

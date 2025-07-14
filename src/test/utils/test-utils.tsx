@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, RenderOptions, screen } from '@testing-library/react';
 import { vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock context providers
 const ThemeProvider = ({ children }: { children: React.ReactNode }) => children;
@@ -11,18 +12,21 @@ const SettingsProvider = ({ children }: { children: React.ReactNode }) => childr
 
 // Mock providers wrapper
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
+  const queryClient = new QueryClient();
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <OrderProvider>
-          <TestProvider>
-            <SettingsProvider>
-              {children}
-            </SettingsProvider>
-          </TestProvider>
-        </OrderProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <OrderProvider>
+            <TestProvider>
+              <SettingsProvider>
+                {children}
+              </SettingsProvider>
+            </TestProvider>
+          </OrderProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 };
 
