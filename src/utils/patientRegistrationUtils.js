@@ -38,30 +38,23 @@ export const generatePatientSchema = (fieldConfig) => {
           .or(z.literal(''));
   }
 
-  if (fieldConfig.dateOfBirth?.enabled) {
-    schemaFields.dateOfBirth = fieldConfig.dateOfBirth.required
-      ? z.string()
-          .min(1, 'Date of birth is required')
-          .refine((date) => {
-            const age = getAge(date);
-            return age >= 0 && age <= 120;
-          }, 'Invalid date of birth')
-      : z.string()
-          .min(1, 'Date of birth is required')
-          .refine((date) => {
-            const age = getAge(date);
-            return age >= 0 && age <= 120;
-          }, 'Invalid date of birth')
-          .optional()
-          .or(z.literal(''));
+  if (fieldConfig.age?.enabled) {
+    schemaFields.age = fieldConfig.age.required
+      ? z.number()
+          .min(0, 'Age must be 0 or greater')
+          .max(120, 'Age must be 120 or less')
+      : z.number()
+          .min(0, 'Age must be 0 or greater')
+          .max(120, 'Age must be 120 or less')
+          .optional();
   }
 
   if (fieldConfig.gender?.enabled) {
     schemaFields.gender = fieldConfig.gender.required
-      ? z.enum(['male', 'female', 'other'], {
+      ? z.enum(['male', 'female'], {
           required_error: 'Gender is required'
         })
-      : z.enum(['male', 'female', 'other']).optional().or(z.literal(''));
+      : z.enum(['male', 'female']).optional().or(z.literal(''));
   }
 
   if (fieldConfig.phoneNumber?.enabled) {
@@ -281,7 +274,7 @@ export const generateDefaultValues = (fieldConfig) => {
   // Personal Information
   if (fieldConfig.firstName?.enabled) defaultValues.firstName = '';
   if (fieldConfig.lastName?.enabled) defaultValues.lastName = '';
-  if (fieldConfig.dateOfBirth?.enabled) defaultValues.dateOfBirth = '';
+  if (fieldConfig.age?.enabled) defaultValues.age = null;
   if (fieldConfig.gender?.enabled) defaultValues.gender = '';
   if (fieldConfig.phoneNumber?.enabled) defaultValues.phoneNumber = '';
   if (fieldConfig.email?.enabled) defaultValues.email = '';
@@ -337,28 +330,19 @@ export const generateDefaultValues = (fieldConfig) => {
  * @returns {boolean} - Whether the field should be rendered
  */
 export const shouldRenderField = (fieldConfig, section = null, field = null) => {
-  console.log('shouldRenderField called with:', { fieldConfig, section, field });
-  
   if (section && field) {
-    const result = fieldConfig[section]?.[field]?.enabled === true;
-    console.log(`Field ${section}.${field} enabled:`, result);
-    return result;
+    return fieldConfig[section]?.[field]?.enabled === true;
   } else if (section) {
     // Check if any field in the section is enabled
     const sectionConfig = fieldConfig[section];
     if (!sectionConfig) {
-      console.log(`Section ${section} not found in config`);
       return false;
     }
     
-    const result = Object.values(sectionConfig).some(fieldConfig => fieldConfig?.enabled === true);
-    console.log(`Section ${section} has enabled fields:`, result);
-    return result;
+    return Object.values(sectionConfig).some(fieldConfig => fieldConfig?.enabled === true);
   }
   
-  const result = fieldConfig[field]?.enabled === true;
-  console.log(`Field ${field} enabled:`, result);
-  return result;
+  return fieldConfig[field]?.enabled === true;
 };
 
 /**

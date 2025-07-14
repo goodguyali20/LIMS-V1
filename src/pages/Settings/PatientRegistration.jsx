@@ -610,7 +610,7 @@ const PatientRegistrationSettings = () => {
     const result = {};
     
     // Personal fields (direct properties)
-    const personalFields = ['firstName', 'lastName', 'dateOfBirth', 'gender', 'phoneNumber', 'email'];
+    const personalFields = ['firstName', 'lastName', 'age', 'gender', 'phoneNumber', 'email'];
     result.personal = personalFields
       .filter(key => localSettings[key])
       .map(key => ({
@@ -912,7 +912,7 @@ const PatientRegistrationSettings = () => {
       
       if (section === 'personal') {
         // Toggle all personal fields
-        const personalFields = ['firstName', 'lastName', 'dateOfBirth', 'gender', 'phoneNumber', 'email'];
+        const personalFields = ['firstName', 'lastName', 'age', 'gender', 'phoneNumber', 'email'];
         const allEnabled = personalFields.every(key => newSettings[key]?.enabled);
         
         personalFields.forEach(key => {
@@ -994,7 +994,7 @@ const PatientRegistrationSettings = () => {
                   const newSettings = { ...prev };
                   
                   // Disable all personal fields
-                  const personalFields = ['firstName', 'lastName', 'dateOfBirth', 'gender', 'phoneNumber', 'email'];
+                  const personalFields = ['firstName', 'lastName', 'age', 'gender', 'phoneNumber', 'email'];
                   personalFields.forEach(key => {
                     if (newSettings[key]) {
                       newSettings[key] = { ...newSettings[key], enabled: false };
@@ -1027,7 +1027,7 @@ const PatientRegistrationSettings = () => {
                   const newSettings = { ...prev };
                   
                   // Enable all personal fields
-                  const personalFields = ['firstName', 'lastName', 'dateOfBirth', 'gender', 'phoneNumber', 'email'];
+                  const personalFields = ['firstName', 'lastName', 'age', 'gender', 'phoneNumber', 'email'];
                   personalFields.forEach(key => {
                     if (newSettings[key]) {
                       newSettings[key] = { ...newSettings[key], enabled: true };

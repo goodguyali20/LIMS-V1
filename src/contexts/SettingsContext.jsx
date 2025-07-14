@@ -42,7 +42,7 @@ export const SettingsProvider = ({ children }) => {
       // Personal Information
       firstName: { required: true, enabled: true, label: 'First Name' },
       lastName: { required: true, enabled: true, label: 'Last Name' },
-      dateOfBirth: { required: true, enabled: true, label: 'Date of Birth' },
+      age: { required: true, enabled: true, label: 'Age' },
       gender: { required: true, enabled: true, label: 'Gender' },
       phoneNumber: { required: true, enabled: true, label: 'Phone Number' },
       email: { required: false, enabled: true, label: 'Email' },
@@ -91,6 +91,18 @@ export const SettingsProvider = ({ children }) => {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const fetchedSettings = docSnap.data();
+          // Migration: Convert dateOfBirth to age if needed
+          if (fetchedSettings.patientRegistrationFields?.dateOfBirth && !fetchedSettings.patientRegistrationFields?.age) {
+            fetchedSettings.patientRegistrationFields.age = fetchedSettings.patientRegistrationFields.dateOfBirth;
+            delete fetchedSettings.patientRegistrationFields.dateOfBirth;
+            // Update the database with migrated settings
+            await setDoc(docRef, fetchedSettings);
+            console.log('Migrated dateOfBirth to age field');
+          }
+          // Force label for age field
+          if (fetchedSettings.patientRegistrationFields?.age) {
+            fetchedSettings.patientRegistrationFields.age.label = 'Age';
+          }
           // Merge with default settings to ensure all fields exist
           setSettings(prev => ({ ...prev, ...fetchedSettings }));
         } else {
