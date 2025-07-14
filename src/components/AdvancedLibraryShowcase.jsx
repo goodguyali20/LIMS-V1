@@ -215,21 +215,18 @@ const AdvancedLibraryShowcase = () => {
         
         <div style={{ marginBottom: '1rem' }}>
           <Button 
-            active={activeTab === 'd3'} 
             onClick={() => setActiveTab('d3')}
             style={{ background: activeTab === 'd3' ? '#3b82f6' : '#f1f5f9', color: activeTab === 'd3' ? 'white' : '#374151' }}
           >
             D3.js
           </Button>
           <Button 
-            active={activeTab === 'charts'} 
             onClick={() => setActiveTab('charts')}
             style={{ background: activeTab === 'charts' ? '#3b82f6' : '#f1f5f9', color: activeTab === 'charts' ? 'white' : '#374151' }}
           >
             Interactive Charts
           </Button>
           <Button 
-            active={activeTab === 'ml'} 
             onClick={() => setActiveTab('ml')}
             style={{ background: activeTab === 'ml' ? '#3b82f6' : '#f1f5f9', color: activeTab === 'ml' ? 'white' : '#374151' }}
           >

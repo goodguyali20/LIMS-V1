@@ -17,8 +17,108 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_APP_ID: string;
   readonly VITE_SENTRY_DSN: string;
   readonly VITE_APP_ENV: string;
+  readonly VITE_SOCKET_URL: string;
+  readonly PROD: boolean;
+  readonly DEV: boolean;
+  readonly MODE: string;
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
+}
+
+// Global window extensions
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
+// React component types for JSX files
+declare module "*.jsx" {
+  import React from 'react';
+  const Component: React.ComponentType<unknown>;
+  export default Component;
+}
+
+// Styled-components theme types
+declare module 'styled-components' {
+  export interface DefaultTheme {
+    colors: {
+      primary: string;
+      secondary: string;
+      background: string;
+      surface: string;
+      text: string;
+      textSecondary: string;
+      border: string;
+      error: string;
+      warning: string;
+      success: string;
+      info: string;
+      dark: {
+        background: string;
+        surface: string;
+        text: string;
+        textSecondary: string;
+      };
+    };
+    isDarkMode: boolean;
+    spacing: {
+      xs: string;
+      sm: string;
+      md: string;
+      lg: string;
+      xl: string;
+    };
+    borderRadius: {
+      sm: string;
+      md: string;
+      lg: string;
+      xl: string;
+    };
+    shadows: {
+      sm: string;
+      md: string;
+      lg: string;
+      xl: string;
+    };
+  }
+}
+
+// Test utilities types
+declare global {
+  namespace jest {
+    interface Matchers<R> {
+      toBeInTheDocument(): R;
+      toHaveTextContent(text: string): R;
+      toHaveClass(className: string): R;
+      toBeDisabled(): R;
+      toBeEnabled(): R;
+    }
+  }
+}
+
+// Vitest types
+declare module 'vitest' {
+  export const vi: unknown;
+  export const describe: unknown;
+  export const it: unknown;
+  export const expect: unknown;
+  export const beforeEach: unknown;
+  export const afterEach: unknown;
+}
+
+// Service Worker types
+declare var clients: Clients;
+declare var self: ServiceWorkerGlobalScope;
+
+interface Clients {
+  openWindow(url: string): Promise<WindowClient | null>;
+}
+
+interface ServiceWorkerGlobalScope {
+  clients: Clients;
+  skipWaiting(): Promise<void>;
+  clientsClaim(): Promise<void>;
 } 

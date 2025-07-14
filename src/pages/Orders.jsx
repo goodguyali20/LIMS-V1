@@ -5,13 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { toast } from 'react-toastify';
-import { FaSearch, FaFilter, FaPrint, FaEye, FaSpinner, FaPlus, FaSort } from 'react-icons/fa';
+import { FaSearch, FaFilter, FaPrint, FaEye, FaSpinner, FaPlus, FaSort, FaUser, FaIdCard, FaCalendar } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
 import GlowCard from '../components/common/GlowCard';
 import GlowButton from '../components/common/GlowButton';
 import EmptyState from '../components/common/EmptyState';
 import SuccessState from '../components/common/SuccessState';
 import { advancedVariants, pageTransitions } from '../styles/animations';
+import { FixedSizeList as List } from 'react-window';
 
 const OrdersContainer = styled(motion.div)`
   padding: 2rem;
@@ -676,76 +677,68 @@ const Orders = () => {
             />
           </motion.div>
         ) : (
-          <OrdersGrid
-            key="orders"
-            variants={advancedVariants.container}
-            initial="hidden"
-            animate="visible"
-            transition={{ delayChildren: 0.1 }}
-          >
-            {filteredOrders.map((order) => (
-              <OrderCard
-                key={order.id}
-                variants={advancedVariants.item}
-                whileHover={{ 
-                  y: -8,
-                  transition: { type: "spring", stiffness: 300 }
-                }}
-                whileTap={{ scale: 0.98 }}
-                layout
-              >
-                <OrderHeader>
-                  <OrderId>Order #{order.id.slice(-8)}</OrderId>
-                  <StatusBadge 
-                    status={order.status}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    {order.status || 'Pending'}
-                  </StatusBadge>
-                </OrderHeader>
-                
-                <PatientInfo>
-                  <p><strong>Patient:</strong> {order.patientName}</p>
-                  <p><strong>ID:</strong> {order.patientId}</p>
-                  <p><strong>Date:</strong> {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A'}</p>
-                </PatientInfo>
-                
-                {order.tests && order.tests.length > 0 && (
-                  <TestList>
-                    <h4>Tests ({order.tests.length})</h4>
-                    <ul>
-                      {order.tests.slice(0, 3).map((test, index) => (
-                        <li key={index}>{test.name}</li>
-                      ))}
-                      {order.tests.length > 3 && (
-                        <li>+{order.tests.length - 3} more</li>
-                      )}
-                    </ul>
-                  </TestList>
-                )}
-                
-                <OrderActions>
-                  <ActionButton
-                    $variant="secondary"
-                    onClick={() => handleViewOrder(order.id)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <FaEye /> View
-                  </ActionButton>
-                  <ActionButton
-                    onClick={() => handlePrintOrder(order.id)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <FaPrint /> Print
-                  </ActionButton>
-                </OrderActions>
-              </OrderCard>
-            ))}
-          </OrdersGrid>
+          <div style={{ width: '100%', height: Math.min(filteredOrders.length * 200, 800), maxWidth: '100%' }}>
+            <List
+              height={Math.min(filteredOrders.length * 200, 800)}
+              itemCount={filteredOrders.length}
+              itemSize={220} // Adjust based on card height
+              width={'100%'}
+              style={{ overflowX: 'hidden' }}
+            >
+              {({ index, style }) => {
+                const order = filteredOrders[index];
+                return (
+                  <div style={style} key={order.id}>
+                    <OrderCard
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      status={order.status}
+                    >
+                      <PatientInfo>
+                        <h3>{order.patientName}</h3>
+                        <p><FaUser /> Patient ID: {order.patientId}</p>
+                        <p><FaIdCard /> Order ID: {order.id}</p>
+                        <p><FaCalendar /> Date: {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A'}</p>
+                      </PatientInfo>
+
+                      <TestList>
+                        <h4>Tests:</h4>
+                        <ul>
+                          {order.tests?.map((test, idx) => (
+                            <li key={idx}>{test}</li>
+                          ))}
+                        </ul>
+                      </TestList>
+
+                      <StatusBadge status={order.status}>
+                        {order.status}
+                      </StatusBadge>
+
+                      <OrderActions>
+                        <ActionButton
+                          onClick={() => handleViewOrder(order.id)}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <FaEye /> View
+                        </ActionButton>
+                        <ActionButton
+                          onClick={() => handlePrintOrder(order.id)}
+                          $variant="secondary"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <FaPrint /> Print
+                        </ActionButton>
+                      </OrderActions>
+                    </OrderCard>
+                  </div>
+                );
+              }}
+            </List>
+          </div>
         )}
       </AnimatePresence>
     </OrdersContainer>

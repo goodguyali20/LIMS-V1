@@ -11,6 +11,73 @@ export const SettingsProvider = ({ children }) => {
     hospitalName: 'مستشفى العزيزية العام',
     hospitalAddress: 'Kut, Wasit Governorate, Iraq',
     hospitalPhone: 'N/A',
+    hospitalEmail: '',
+    hospitalWebsite: '',
+    labDirector: '',
+    labPhone: '',
+    labEmail: '',
+    reportHeader: '',
+    reportFooter: '',
+    // System settings
+    darkMode: false,
+    notifications: true,
+    multiLanguage: true,
+    soundEffects: false,
+    // Security settings
+    twoFactorAuth: false,
+    sessionTimeout: true,
+    auditLogging: true,
+    // Backup settings
+    autoBackup: true,
+    backupFrequency: 'daily',
+    // Print settings
+    defaultPrinter: '',
+    printQuality: 'high',
+    // Advanced settings
+    apiEnabled: false,
+    debugMode: false,
+    performanceMode: false,
+    // Patient Registration Field Configuration
+    patientRegistrationFields: {
+      // Personal Information
+      firstName: { required: true, enabled: true, label: 'First Name' },
+      lastName: { required: true, enabled: true, label: 'Last Name' },
+      dateOfBirth: { required: true, enabled: true, label: 'Date of Birth' },
+      gender: { required: true, enabled: true, label: 'Gender' },
+      phoneNumber: { required: true, enabled: true, label: 'Phone Number' },
+      email: { required: false, enabled: true, label: 'Email' },
+      
+      // Address Information
+      address: {
+        street: { required: true, enabled: true, label: 'Street Address' },
+        city: { required: true, enabled: true, label: 'City' },
+        state: { required: true, enabled: true, label: 'State' },
+        zipCode: { required: true, enabled: true, label: 'ZIP Code' },
+        country: { required: false, enabled: true, label: 'Country' }
+      },
+      
+      // Emergency Contact
+      emergencyContact: {
+        name: { required: true, enabled: true, label: 'Emergency Contact Name' },
+        relationship: { required: true, enabled: true, label: 'Relationship' },
+        phoneNumber: { required: true, enabled: true, label: 'Emergency Contact Phone' }
+      },
+      
+      // Medical History
+      medicalHistory: {
+        allergies: { required: false, enabled: true, label: 'Allergies' },
+        medications: { required: false, enabled: true, label: 'Current Medications' },
+        conditions: { required: false, enabled: true, label: 'Medical Conditions' },
+        notes: { required: false, enabled: true, label: 'Additional Notes' }
+      },
+      
+      // Insurance Information
+      insurance: {
+        provider: { required: false, enabled: true, label: 'Insurance Provider' },
+        policyNumber: { required: false, enabled: true, label: 'Policy Number' },
+        groupNumber: { required: false, enabled: true, label: 'Group Number' }
+      }
+    }
   });
   const [loading, setLoading] = useState(true);
 
@@ -23,7 +90,9 @@ export const SettingsProvider = ({ children }) => {
       try {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setSettings(docSnap.data());
+          const fetchedSettings = docSnap.data();
+          // Merge with default settings to ensure all fields exist
+          setSettings(prev => ({ ...prev, ...fetchedSettings }));
         } else {
           // Create default settings if they don't exist
           await setDoc(docRef, settings);
@@ -38,21 +107,27 @@ export const SettingsProvider = ({ children }) => {
     fetchSettings();
   }, []);
 
-  const saveSettings = useCallback(async (newSettings) => {
+  const updateSettings = useCallback(async (newSettings) => {
     try {
       const docRef = doc(db, 'settings', 'general');
-      await setDoc(docRef, newSettings);
-      setSettings(newSettings);
+      const updatedSettings = { ...settings, ...newSettings };
+      await setDoc(docRef, updatedSettings);
+      setSettings(updatedSettings);
       return true;
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error('Error updating settings:', error);
       return false;
     }
-  }, []);
+  }, [settings]);
+
+  const saveSettings = useCallback(async (newSettings) => {
+    return updateSettings(newSettings);
+  }, [updateSettings]);
 
   const value = {
     settings,
     loading,
+    updateSettings,
     saveSettings,
   };
 

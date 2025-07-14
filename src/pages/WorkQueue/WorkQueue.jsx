@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, limit, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, limit } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -23,6 +23,8 @@ import RequisitionForm from '../../components/Print/RequisitionForm';
 import MasterSlip from '../../components/Print/MasterSlip';
 import DepartmentSlip from '../../components/Print/DepartmentSlip';
 import TubeIdSlip from '../../components/Print/TubeIdSlip';
+import { usePerformanceMonitor, useMemoWithPerformance, useCallbackWithPerformance } from '../../utils/performanceOptimizer';
+import { FixedSizeList as List } from 'react-window';
 
 const PageContainer = styled(motion.div)`
   display: flex;
@@ -388,7 +390,8 @@ const FilterContainer = styled(motion.div)`
   }
 `;
 
-const FilterButton = styled(motion.button)`
+// Memoized filter button component
+const FilterButton = memo(styled(motion.button)`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -411,9 +414,12 @@ const FilterButton = styled(motion.button)`
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   }
-`;
+`);
 
-const OrdersGrid = styled(motion.div)`
+FilterButton.displayName = 'FilterButton';
+
+// Memoized orders grid component
+const OrdersGrid = memo(styled(motion.div)`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
   gap: 1.5rem;
@@ -422,9 +428,12 @@ const OrdersGrid = styled(motion.div)`
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-`;
+`);
 
-const LoadingContainer = styled(motion.div)`
+OrdersGrid.displayName = 'OrdersGrid';
+
+// Memoized loading container component
+const LoadingContainer = memo(styled(motion.div)`
   display: flex;
   justify-content: center;
   align-items: center;
@@ -432,9 +441,12 @@ const LoadingContainer = styled(motion.div)`
   color: ${({ theme }) => theme.colors.textSecondary};
   flex-direction: column;
   gap: 1rem;
-`;
+`);
 
-const EmptyState = styled(GlowCard)`
+LoadingContainer.displayName = 'LoadingContainer';
+
+// Memoized empty state component
+const EmptyState = memo(styled(GlowCard)`
   text-align: center;
   padding: 4rem 2rem;
   background: linear-gradient(145deg, 
@@ -482,633 +494,384 @@ const EmptyState = styled(GlowCard)`
     font-size: 4rem;
     color: ${({ theme }) => theme.colors.textSecondary};
     margin-bottom: 1rem;
-    position: relative;
-    z-index: 1;
   }
   
   h3 {
-    margin-bottom: 1rem;
-    color: ${({ theme }) => theme.colors.textSecondary};
     font-size: 1.5rem;
-    position: relative;
-    z-index: 1;
+    margin-bottom: 0.5rem;
+    color: ${({ theme }) => theme.colors.text};
   }
   
   p {
     color: ${({ theme }) => theme.colors.textSecondary};
-    font-size: 1.1rem;
-    position: relative;
-    z-index: 1;
+    margin-bottom: 1.5rem;
   }
-`;
+`);
 
-const WorkQueue = () => {
+EmptyState.displayName = 'EmptyState';
+
+// Memoized order card wrapper
+const MemoizedOrderCard = memo(({ order, onStatusChange, onViewDetails, onPrint, onDownload }) => (
+  <OrderCard
+    key={order.id}
+    order={order}
+    onStatusChange={onStatusChange}
+    onViewDetails={onViewDetails}
+    onPrint={onPrint}
+    onDownload={onDownload}
+  />
+));
+
+MemoizedOrderCard.displayName = 'MemoizedOrderCard';
+
+const WorkQueue = memo(() => {
+  usePerformanceMonitor('WorkQueue');
+  
   const { t } = useTranslation();
   const { theme } = useTheme();
   const queryClient = useQueryClient();
-  const [filteredOrders, setFilteredOrders] = useState([]);
+  
+  // State management with performance optimization
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('priority');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [printCenterOpen, setPrintCenterOpen] = useState(false);
-  const [selectedDocIndex, setSelectedDocIndex] = useState(0);
-  const [printSettings, setPrintSettings] = useState({ paperSize: 'A4', orientation: 'portrait', colorMode: 'color' });
-  const [printLoading, setPrintLoading] = useState(false);
-  const [printFeedback, setPrintFeedback] = useState(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [printType, setPrintType] = useState('report');
 
-  // React Query for fetching orders
-  const { data: orders = [], isLoading, error } = useQuery({
-    queryKey: ['workQueue', 'orders'],
-    queryFn: async () => {
-      const q = query(
-        collection(db, "testOrders"), 
-        where("status", "in", ["Pending Sample", "Sample Collected", "In Progress", "Rejected"]),
-        orderBy("createdAt", "desc"),
-        limit(50)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const ordersData = [];
-      querySnapshot.forEach((doc) => {
-        const data = { id: doc.id, ...doc.data() };
-        ordersData.push({
-          ...data,
-          priority: data.priority || 'normal',
-          estimatedTime: data.estimatedTime || 30,
-          assignedTo: data.assignedTo || null,
-          notes: data.notes || '',
-          qualityChecks: data.qualityChecks || [],
-          isUrgent: data.priority === 'urgent',
-          isCritical: data.priority === 'critical',
-          hasNotes: Boolean(data.notes),
-          testCount: Array.isArray(data.tests) ? data.tests.length : 0
-        });
-      });
-      return ordersData;
-    },
-    staleTime: 30000, // 30 seconds
-    refetchInterval: autoRefresh ? 60000 : false, // 1 minute if auto-refresh is on
-    retry: 2,
-  });
-
-  // Real-time updates with React Query
-  useEffect(() => {
-    if (!orders.length) return;
-
-    const q = query(
-      collection(db, "testOrders"), 
-      where("status", "in", ["Pending Sample", "Sample Collected", "In Progress", "Rejected"]),
-      orderBy("createdAt", "desc"),
-      limit(50)
+  // Memoized query for orders
+  const ordersQuery = useMemoWithPerformance(() => {
+    const baseQuery = query(
+      collection(db, 'testOrders'),
+      orderBy('createdAt', 'desc'),
+      limit(100) // Limit to prevent performance issues
     );
+    
+    if (statusFilter !== 'all') {
+      return query(baseQuery, where('status', '==', statusFilter));
+    }
+    
+    return baseQuery;
+  }, [statusFilter], 'orders_query');
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const ordersData = [];
-      querySnapshot.forEach((doc) => {
-        const data = { id: doc.id, ...doc.data() };
-        ordersData.push({
-          ...data,
-          priority: data.priority || 'normal',
-          estimatedTime: data.estimatedTime || 30,
-          assignedTo: data.assignedTo || null,
-          notes: data.notes || '',
-          qualityChecks: data.qualityChecks || [],
-          isUrgent: data.priority === 'urgent',
-          isCritical: data.priority === 'critical',
-          hasNotes: Boolean(data.notes),
-          testCount: Array.isArray(data.tests) ? data.tests.length : 0
-        });
-      });
+  // Optimized data fetching
+  useEffect(() => {
+    const unsubscribe = onSnapshot(ordersQuery, (querySnapshot) => {
+      const ordersData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
       
-      // Update React Query cache with real-time data
-      queryClient.setQueryData(['workQueue', 'orders'], ordersData);
+      setOrders(ordersData);
+      setLoading(false);
     }, (error) => {
       console.error('Error fetching orders:', error);
-      toast.error('Failed to load work queue');
+      toast.error('Failed to load orders');
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [orders.length, queryClient]);
+  }, [ordersQuery]);
 
-  // Mutation for updating order status
-  const updateOrderMutation = useMutation({
-    mutationFn: async ({ orderId, updates }) => {
-      await updateDoc(doc(db, "testOrders", orderId), {
-        ...updates,
-        updatedAt: new Date()
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['workQueue', 'orders']);
-      toast.success('Order updated successfully');
-    },
-    onError: (error) => {
-      console.error('Error updating order:', error);
-      toast.error('Failed to update order');
-    },
-  });
-
-  useEffect(() => {
-    let filtered = orders;
+  // Memoized filtered and sorted orders
+  const processedOrders = useMemoWithPerformance(() => {
+    let result = [...orders];
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(order => 
-        order.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.patientId?.toLowerCase().includes(searchTerm.toLowerCase())
+      const searchLower = searchTerm.toLowerCase();
+      result = result.filter(order =>
+        order.patientName?.toLowerCase().includes(searchLower) ||
+        order.patientId?.toLowerCase().includes(searchLower) ||
+        order.orderId?.toLowerCase().includes(searchLower)
       );
-    }
-
-    // Apply status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(order => order.status === statusFilter);
     }
 
     // Apply priority filter
     if (priorityFilter !== 'all') {
-      filtered = filtered.filter(order => order.priority === priorityFilter);
+      result = result.filter(order => order.priority === priorityFilter);
+    }
+
+    // Apply department filter
+    if (departmentFilter !== 'all') {
+      result = result.filter(order => order.department === departmentFilter);
     }
 
     // Apply sorting
-    filtered.sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sortBy) {
-        case 'patientName':
-          aValue = a.patientName || '';
-          bValue = b.patientName || '';
-          break;
-        case 'priority': {
-          const priorityOrder = { urgent: 4, high: 3, normal: 2, low: 1 };
-          aValue = priorityOrder[a.priority] || 0;
-          bValue = priorityOrder[b.priority] || 0;
-          break;
-        }
-        case 'createdAt':
-        default:
-          aValue = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
-          bValue = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
-          break;
+    result.sort((a, b) => {
+      let aValue = a[sortBy];
+      let bValue = b[sortBy];
+
+      if (sortBy === 'createdAt') {
+        aValue = aValue?.toDate ? aValue.toDate() : new Date(aValue);
+        bValue = bValue?.toDate ? bValue.toDate() : new Date(bValue);
       }
-      
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
     });
 
-    setFilteredOrders(filtered);
-  }, [orders, searchTerm, statusFilter, priorityFilter, sortBy, sortOrder]);
+    return result;
+  }, [orders, searchTerm, priorityFilter, departmentFilter, sortBy, sortOrder], 'orders_processing');
 
-  const getStats = () => {
-    const stats = {
-      pending: 0,
-      collected: 0,
-      inProgress: 0,
-      rejected: 0,
-      urgent: 0,
-      completionRate: 0
-    };
-
-    orders.forEach(order => {
-      switch (order.status) {
-        case 'Pending Sample':
-          stats.pending++;
-          if (order.priority === 'urgent') stats.urgent++;
-          break;
-        case 'Sample Collected':
-          stats.collected++;
-          break;
-        case 'In Progress':
-          stats.inProgress++;
-          break;
-        case 'Rejected':
-          stats.rejected++;
-          break;
-      }
-    });
-
+  // Memoized stats calculation
+  const stats = useMemoWithPerformance(() => {
     const total = orders.length;
+    const pending = orders.filter(o => o.status === 'Pending').length;
+    const inProgress = orders.filter(o => o.status === 'In Progress').length;
     const completed = orders.filter(o => o.status === 'Completed').length;
-    stats.completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const urgent = orders.filter(o => o.priority === 'urgent').length;
 
-    return stats;
-  };
+    return { total, pending, inProgress, completed, urgent };
+  }, [orders], 'stats_calculation');
 
-  const stats = getStats();
+  // Optimized event handlers
+  const handleSearchChange = useCallbackWithPerformance((e) => {
+    setSearchTerm(e.target.value);
+  }, [], 'search_change');
 
-  // Group tests by department for the selected order
-  const testsByDept = useMemo(() => {
-    if (!orders.length) return {};
-    const selectedOrder = orders[selectedDocIndex] || orders[0];
-    if (!selectedOrder || !selectedOrder.tests) return {};
-    
-    return selectedOrder.tests.reduce((acc, testName) => {
-      // For now, we'll use a simple grouping since we don't have test catalog in WorkQueue
-      const dept = 'General'; // Default department
-      if (!acc[dept]) acc[dept] = [];
-      acc[dept].push(testName);
-      return acc;
-    }, {});
-  }, [orders, selectedDocIndex]);
+  const handleStatusFilterChange = useCallbackWithPerformance((status) => {
+    setStatusFilter(status);
+  }, [], 'status_filter_change');
 
-  const statusFilters = [
-    { key: 'all', label: t('workQueue.filters.allStatus'), icon: <FaList /> },
-    { key: 'Pending Sample', label: t('workQueue.filters.pendingSample'), icon: <FaClock /> },
-    { key: 'Sample Collected', label: t('workQueue.filters.sampleCollected'), icon: <FaCheckCircle /> },
-    { key: 'In Progress', label: t('workQueue.filters.inProgress'), icon: <FaSpinner /> },
-    { key: 'Rejected', label: t('workQueue.filters.rejected'), icon: <FaExclamationTriangle /> },
-  ];
+  const handlePriorityFilterChange = useCallbackWithPerformance((priority) => {
+    setPriorityFilter(priority);
+  }, [], 'priority_filter_change');
 
-  const clearFilters = () => {
+  const handleDepartmentFilterChange = useCallbackWithPerformance((department) => {
+    setDepartmentFilter(department);
+  }, [], 'department_filter_change');
+
+  const handleSort = useCallbackWithPerformance((field) => {
+    setSortBy(prev => {
+      if (prev === field) {
+        setSortOrder(prevOrder => prevOrder === 'asc' ? 'desc' : 'asc');
+      } else {
+        setSortOrder('desc');
+      }
+      return field;
+    });
+  }, [], 'sort_change');
+
+  const clearFilters = useCallbackWithPerformance(() => {
     setSearchTerm('');
     setStatusFilter('all');
     setPriorityFilter('all');
-  };
+    setDepartmentFilter('all');
+    setSortBy('createdAt');
+    setSortOrder('desc');
+  }, [], 'clear_filters');
 
-  const handleSort = (field) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortOrder('desc');
+  const handleStatusChange = useCallbackWithPerformance(async (orderId, newStatus) => {
+    try {
+      await updateDoc(doc(db, 'testOrders', orderId), {
+        status: newStatus,
+        updatedAt: new Date()
+      });
+      toast.success('Order status updated successfully');
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast.error('Failed to update order status');
     }
-  };
+  }, [], 'status_change');
 
-  const getSortIcon = (field) => {
+  const handleViewDetails = useCallbackWithPerformance((order) => {
+    setSelectedOrder(order);
+    // Navigate to order details
+  }, [], 'view_details');
+
+  const handlePrint = useCallbackWithPerformance((order, type = 'report') => {
+    setSelectedOrder(order);
+    setPrintType(type);
+    setShowPrintModal(true);
+  }, [], 'print_order');
+
+  const handleDownloadPDF = useCallbackWithPerformance(async (order) => {
+    try {
+      // PDF download logic
+      toast.success('PDF download started');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast.error('Failed to download PDF');
+    }
+  }, [], 'download_pdf');
+
+  // Memoized sort icon component
+  const getSortIcon = useCallbackWithPerformance((field) => {
     if (sortBy !== field) return <FaSort />;
     return sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />;
-  };
+  }, [sortBy, sortOrder], 'sort_icon');
 
-  // Prepare print documents (A4, slips, requisition, etc.)
-  const printDocuments = useMemo(() => {
-    if (!orders.length) return [];
-    const selectedOrder = orders[selectedDocIndex] || orders[0];
-    if (!selectedOrder) return [];
-    
-    return [
-      {
-        id: 'a4',
-        title: 'A4 Report',
-        icon: <FaPrint />,
-        preview: <PrintableReport order={selectedOrder} settings={printSettings} />,
-        type: 'a4',
-      },
-      {
-        id: 'requisition',
-        title: 'Requisition Form',
-        icon: <FaTicketAlt />,
-        preview: <RequisitionForm order={selectedOrder} settings={printSettings} />,
-        type: 'requisition',
-      },
-      {
-        id: 'master-slip',
-        title: 'Master Slip',
-        icon: <FaIdCard />,
-        preview: <MasterSlip order={selectedOrder} />,
-        type: 'master-slip',
-      },
-      ...Object.entries(testsByDept).map(([dept, tests], idx) => ({
-        id: `dept-slip-${dept}`,
-        title: `Department Slip: ${dept}`,
-        icon: <FaFlask />,
-        preview: <DepartmentSlip order={selectedOrder} department={dept} tests={tests} />,
-        type: 'department-slip',
-      })),
-      ...Array(3).fill(0).map((_, i) => ({
-        id: `tube-slip-${i}`,
-        title: `Tube ID Slip ${i+1}`,
-        icon: <FaBarcode />,
-        preview: <TubeIdSlip order={selectedOrder} />,
-        type: 'tube-slip',
-      })),
-    ];
-  }, [orders, selectedDocIndex, printSettings, testsByDept]);
+  // Memoized filter options
+  const filterOptions = useMemo(() => ({
+    status: [
+      { value: 'all', label: t('workQueue.allStatuses') },
+      { value: 'Pending', label: t('workQueue.pending') },
+      { value: 'In Progress', label: t('workQueue.inProgress') },
+      { value: 'Completed', label: t('workQueue.completed') },
+      { value: 'Cancelled', label: t('workQueue.cancelled') }
+    ],
+    priority: [
+      { value: 'all', label: t('workQueue.allPriorities') },
+      { value: 'normal', label: t('workQueue.normal') },
+      { value: 'urgent', label: t('workQueue.urgent') },
+      { value: 'critical', label: t('workQueue.critical') }
+    ],
+    department: [
+      { value: 'all', label: t('workQueue.allDepartments') },
+      { value: 'Hematology', label: t('workQueue.hematology') },
+      { value: 'Biochemistry', label: t('workQueue.biochemistry') },
+      { value: 'Microbiology', label: t('workQueue.microbiology') },
+      { value: 'Immunology', label: t('workQueue.immunology') }
+    ]
+  }), [t]);
 
-  // Print handler
-  const handlePrint = async () => {
-    setPrintLoading(true);
-    setPrintFeedback(null);
-    try {
-      // Use window.print() for now, or implement per-document printing
-      window.print();
-      setPrintFeedback({ type: 'success', message: 'Sent to printer!' });
-    } catch (e) {
-      setPrintFeedback({ type: 'error', message: 'Print failed.' });
-    } finally {
-      setPrintLoading(false);
-    }
-  };
-
-  // PDF handler (placeholder, implement with jsPDF or similar)
-  const handleDownloadPDF = async () => {
-    setPrintLoading(true);
-    setPrintFeedback(null);
-    try {
-      // TODO: Implement PDF download logic
-      setPrintFeedback({ type: 'success', message: 'PDF downloaded!' });
-    } catch (e) {
-      setPrintFeedback({ type: 'error', message: 'PDF download failed.' });
-    } finally {
-      setPrintLoading(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <PageContainer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <LoadingContainer
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          >
-            <FaSpinner size={48} />
-          </motion.div>
-          <p>Loading work queue...</p>
-        </LoadingContainer>
-      </PageContainer>
-    );
-  }
-
-  if (error) {
+  if (loading) {
     return (
       <PageContainer>
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <FaExclamationTriangle size={48} style={{ color: theme.colors.error, marginBottom: '1rem' }} />
-          <h3>Error loading work queue</h3>
-          <p>{error.message}</p>
-          <GlowButton onClick={() => window.location.reload()}>
-            <FaRedo /> Retry
-          </GlowButton>
-        </div>
+        <LoadingContainer>
+          <FaSpinner size={40} />
+          <p>{t('workQueue.loading')}</p>
+        </LoadingContainer>
       </PageContainer>
     );
   }
 
   return (
     <PageContainer
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <PageHeader
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
+      <PageHeader>
         <div>
           <HeaderTitle>
-            <FaVial /> {t('workQueue.title')}
+            <FaClipboardList />
+            {t('workQueue.title')}
           </HeaderTitle>
           <HeaderSubtitle>
-            {t('workQueue.subtitle')}
+            {t('workQueue.subtitle', { count: stats.total })}
           </HeaderSubtitle>
         </div>
         <HeaderActions>
-          <GlowButton
-            onClick={() => setPrintCenterOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <FaPrint /> {t('workQueue.print')}
+          <GlowButton onClick={() => setShowPrintModal(true)}>
+            <FaPrint />
+            {t('workQueue.printAll')}
           </GlowButton>
-          <GlowButton
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              background: autoRefresh ? theme.colors.success : theme.colors.surface,
-              color: autoRefresh ? 'white' : theme.colors.textSecondary
-            }}
-          >
-            {autoRefresh ? <FaPlay /> : <FaPause />}
-            {autoRefresh ? t('workQueue.autoRefresh') : t('workQueue.manual')}
-          </GlowButton>
-          <GlowButton
-            onClick={() => queryClient.invalidateQueries(['workQueue', 'orders'])}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <FaRedo /> {t('workQueue.refresh')}
+                          <GlowButton $variant="secondary" onClick={clearFilters}>
+            <FaRedo />
+            {t('workQueue.clearFilters')}
           </GlowButton>
         </HeaderActions>
       </PageHeader>
 
-      {/* Enhanced Stats */}
-      <StatsGrid
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-      >
-        <StatCard color="#3B82F6">
-          <StatIcon><FaClock /></StatIcon>
-          <StatContent>
-            <StatValue>{stats.pending}</StatValue>
-            <StatLabel>{t('workQueue.stats.pending')}</StatLabel>
-          </StatContent>
-        </StatCard>
-
-        <StatCard color="#10B981">
-          <StatIcon><FaCheckCircle /></StatIcon>
-          <StatContent>
-            <StatValue>{stats.collected}</StatValue>
-            <StatLabel>{t('workQueue.stats.collected')}</StatLabel>
-          </StatContent>
-        </StatCard>
-
-        <StatCard color="#F59E0B">
-          <StatIcon><FaSpinner /></StatIcon>
-          <StatContent>
-            <StatValue>{stats.inProgress}</StatValue>
-            <StatLabel>{t('workQueue.stats.inProgress')}</StatLabel>
-          </StatContent>
-        </StatCard>
-
-        <StatCard color="#EF4444">
-          <StatIcon><FaExclamationTriangle /></StatIcon>
-          <StatContent>
-            <StatValue>{stats.rejected}</StatValue>
-            <StatLabel>{t('workQueue.stats.rejected')}</StatLabel>
-          </StatContent>
-        </StatCard>
-
-        <StatCard color="#8B5CF6">
-          <StatIcon><FaBell /></StatIcon>
-          <StatContent>
-            <StatValue>{stats.urgent}</StatValue>
-            <StatLabel>{t('workQueue.stats.urgent')}</StatLabel>
-          </StatContent>
-        </StatCard>
-
-        <StatCard color="#06B6D4">
-          <StatIcon><FaChartLine /></StatIcon>
-          <StatContent>
-            <StatValue>{stats.completionRate}%</StatValue>
-            <StatLabel>{t('workQueue.stats.completionRate')}</StatLabel>
-          </StatContent>
-        </StatCard>
-      </StatsGrid>
-
       <SearchAndFilterContainer>
+        <SearchInput>
+          <FaSearch />
+          <input
+            type="text"
+            placeholder={t('workQueue.searchPlaceholder')}
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+        </SearchInput>
+
         <FilterGrid>
-          <SearchInput>
-            <FaSearch />
-            <input
-              type="text"
-              placeholder={t('workQueue.search.placeholder')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </SearchInput>
+          {filterOptions.status.map(option => (
+            <FilterButton
+              key={option.value}
+              $active={statusFilter === option.value}
+              onClick={() => handleStatusFilterChange(option.value)}
+            >
+              <FaFilter />
+              {option.label}
+            </FilterButton>
+          ))}
+        </FilterGrid>
 
-          <FilterSelect
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">{t('workQueue.filters.allStatus')}</option>
-            <option value="Pending Sample">{t('workQueue.filters.pendingSample')}</option>
-            <option value="Sample Collected">{t('workQueue.filters.sampleCollected')}</option>
-            <option value="In Progress">{t('workQueue.filters.inProgress')}</option>
-            <option value="Rejected">{t('workQueue.filters.rejected')}</option>
-          </FilterSelect>
+        <FilterGrid>
+          {filterOptions.priority.map(option => (
+            <FilterButton
+              key={option.value}
+              $active={priorityFilter === option.value}
+              onClick={() => handlePriorityFilterChange(option.value)}
+            >
+              <FaExclamationTriangle />
+              {option.label}
+            </FilterButton>
+          ))}
+        </FilterGrid>
 
-          <FilterSelect
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-          >
-            <option value="all">{t('workQueue.filters.allPriorities')}</option>
-            <option value="urgent">{t('workQueue.filters.urgent')}</option>
-            <option value="high">{t('workQueue.filters.high')}</option>
-            <option value="normal">{t('workQueue.filters.normal')}</option>
-            <option value="low">{t('workQueue.filters.low')}</option>
-          </FilterSelect>
-
-          <GlowButton
-            onClick={clearFilters}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <FaTimes /> {t('workQueue.clearFilters')}
-          </GlowButton>
+        <FilterGrid>
+          {filterOptions.department.map(option => (
+            <FilterButton
+              key={option.value}
+              $active={departmentFilter === option.value}
+              onClick={() => handleDepartmentFilterChange(option.value)}
+            >
+              <FaFlask />
+              {option.label}
+            </FilterButton>
+          ))}
         </FilterGrid>
       </SearchAndFilterContainer>
 
-      <GlowCard style={{ minHeight: 400 }}>
-        <div style={{ padding: '1.5rem' }}>
-          <h3 style={{ marginBottom: '1rem', color: theme.colors.text }}>
-            {t('workQueue.title')}
-          </h3>
-          {filteredOrders.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: theme.colors.textSecondary }}>
-              <FaVial size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-              <p>{t('workQueue.noOrders')}</p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              {filteredOrders.map((order) => (
-                <div
-                  key={order.id}
-                  style={{
-                    padding: '1rem',
-                    border: `1px solid ${theme.colors.border}`,
-                    borderRadius: '12px',
-                    background: theme.colors.surface,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  <div>
-                    <h4 style={{ margin: '0 0 0.5rem 0', color: theme.colors.text }}>
-                      {order.patientName}
-                    </h4>
-                    <p style={{ margin: '0', color: theme.colors.textSecondary, fontSize: '0.9rem' }}>
-                      Order ID: {order.orderId} • Status: {order.status} • Priority: {order.priority}
-                    </p>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <GlowButton
-                      size="small"
-                      onClick={() => {/* Handle view details */}}
-                    >
-                      <FaEye /> {t('workQueue.view')}
-                    </GlowButton>
-                    <GlowButton
-                      size="small"
-                      variant="primary"
-                      onClick={() => {/* Handle print */}}
-                    >
-                      <FaPrint /> {t('workQueue.print')}
-                    </GlowButton>
-                  </div>
+      {processedOrders.length === 0 ? (
+        <EmptyState>
+          <FaList />
+          <h3>{t('workQueue.noOrders')}</h3>
+          <p>{t('workQueue.noOrdersDescription')}</p>
+        </EmptyState>
+      ) : (
+        <div style={{ width: '100%', height: Math.min(processedOrders.length * 180, 800), maxWidth: '100%' }}>
+          <List
+            height={Math.min(processedOrders.length * 180, 800)}
+            itemCount={processedOrders.length}
+            itemSize={190} // Adjust based on card height
+            width={'100%'}
+            style={{ overflowX: 'hidden' }}
+          >
+            {({ index, style }) => {
+              const order = processedOrders[index];
+              return (
+                <div style={style} key={order.id}>
+                  <MemoizedOrderCard
+                    order={order}
+                    onStatusChange={handleStatusChange}
+                    onViewDetails={handleViewDetails}
+                    onPrint={handlePrint}
+                    onDownload={handleDownloadPDF}
+                  />
                 </div>
-              ))}
-            </div>
-          )}
+              );
+            }}
+          </List>
         </div>
-      </GlowCard>
-      {/*
-      <OrdersGrid
-        key="orders"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <AnimatePresence>
-          {filteredOrders.map((order, index) => (
-            <motion.div
-              key={order.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ delay: index * 0.1 }}
-              layout
-            >
-              <OrderCard order={order} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </OrdersGrid>
-      */}
-      <PrintCenter
-        open={printCenterOpen}
-        onClose={() => setPrintCenterOpen(false)}
-        documents={printDocuments}
-        onPrint={handlePrint}
-        onDownloadPDF={handleDownloadPDF}
-        loading={printLoading}
-        feedback={printFeedback}
-        selectedDocIndex={selectedDocIndex}
-        onSelectDoc={setSelectedDocIndex}
-        printSettings={printSettings}
-        onChangeSettings={setPrintSettings}
-      />
+      )}
+
+      {showPrintModal && selectedOrder && (
+        <PrintCenter
+          isOpen={showPrintModal}
+          onClose={() => setShowPrintModal(false)}
+          title={t('workQueue.printOrder')}
+        >
+          {printType === 'report' && <PrintableReport order={selectedOrder} />}
+          {printType === 'requisition' && <RequisitionForm order={selectedOrder} />}
+          {printType === 'masterSlip' && <MasterSlip order={selectedOrder} />}
+          {printType === 'departmentSlip' && <DepartmentSlip order={selectedOrder} />}
+          {printType === 'tubeIdSlip' && <TubeIdSlip order={selectedOrder} />}
+        </PrintCenter>
+      )}
     </PageContainer>
   );
-};
+});
+
+WorkQueue.displayName = 'WorkQueue';
 
 export default WorkQueue;

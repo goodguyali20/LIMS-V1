@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import styled, { DefaultTheme } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaCheck, FaExclamationTriangle, FaInfoCircle, FaTimes, FaBell } from 'react-icons/fa';
 
@@ -7,7 +7,7 @@ interface NotificationContainerProps {
   $type: 'success' | 'error' | 'warning' | 'info';
 }
 
-const NotificationContainer = styled(motion.div)<NotificationContainerProps>`
+const StyledNotificationContainer = styled(motion.div)<NotificationContainerProps>`
   position: fixed;
   top: 20px;
   right: 20px;
@@ -30,7 +30,7 @@ const NotificationContainer = styled(motion.div)<NotificationContainerProps>`
     left: 0;
     right: 0;
     bottom: 0;
-    background: ${({ $type }) => {
+    background: ${({ $type }: { $type: 'success' | 'error' | 'warning' | 'info' }) => {
       switch ($type) {
         case 'success':
           return 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%)';
@@ -83,7 +83,7 @@ const IconContainer = styled(motion.div)<IconContainerProps>`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: ${({ $type }) => {
+  background: ${({ $type }: { $type: 'success' | 'error' | 'warning' | 'info' }) => {
     switch ($type) {
       case 'success':
         return 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
@@ -123,7 +123,7 @@ const Title = styled.h4`
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: ${({ theme }) => theme.colors.text};
+  color: ${({ theme }: { theme: DefaultTheme }) => theme.colors.text};
   flex: 1;
   margin-left: 0.75rem;
 `;
@@ -131,7 +131,7 @@ const Title = styled.h4`
 const CloseButton = styled(motion.button)`
   background: none;
   border: none;
-  color: ${({ theme }) => theme.colors.textSecondary};
+  color: ${({ theme }: { theme: DefaultTheme }) => theme.colors.textSecondary};
   font-size: 1rem;
   cursor: pointer;
   padding: 0.25rem;
@@ -143,7 +143,7 @@ const CloseButton = styled(motion.button)`
   
   &:hover {
     background: rgba(255, 255, 255, 0.1);
-    color: ${({ theme }) => theme.colors.text};
+    color: ${({ theme }: { theme: DefaultTheme }) => theme.colors.text};
     transform: scale(1.1);
   }
 `;
@@ -151,7 +151,7 @@ const CloseButton = styled(motion.button)`
 const Message = styled.p`
   margin: 0;
   font-size: 0.875rem;
-  color: ${({ theme }) => theme.colors.textSecondary};
+  color: ${({ theme }: { theme: DefaultTheme }) => theme.colors.textSecondary};
   line-height: 1.5;
 `;
 
@@ -164,7 +164,7 @@ const ProgressBar = styled(motion.div)<ProgressBarProps>`
   bottom: 0;
   left: 0;
   height: 3px;
-  background: ${({ $type }) => {
+  background: ${({ $type }: { $type: 'success' | 'error' | 'warning' | 'info' }) => {
     switch ($type) {
       case 'success':
         return 'linear-gradient(90deg, #10b981 0%, #059669 100%)';
@@ -181,11 +181,11 @@ const ProgressBar = styled(motion.div)<ProgressBarProps>`
   border-radius: 0 0 16px 16px;
 `;
 
-const Particle = styled(motion.div)`
+const Particle = styled(motion.div)<{ color: string }>`
   position: absolute;
   width: 4px;
   height: 4px;
-  background: ${({ color }) => color};
+  background: ${({ color }: { color: string }) => color};
   border-radius: 50%;
   pointer-events: none;
   filter: blur(1px);
@@ -341,7 +341,7 @@ const AnimatedNotification: React.FC<AnimatedNotificationProps> = ({
   };
 
   return (
-    <NotificationContainer
+    <StyledNotificationContainer
       $type={type}
       variants={notificationVariants}
       initial="initial"
@@ -415,7 +415,7 @@ const AnimatedNotification: React.FC<AnimatedNotificationProps> = ({
           transition={{ duration: 0.1 }}
         />
       )}
-    </NotificationContainer>
+    </StyledNotificationContainer>
   );
 };
 

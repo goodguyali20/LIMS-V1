@@ -278,29 +278,29 @@ const QRStatusPage = () => {
       case 'Completed':
         return {
           icon: <CheckCircle />,
-          title: 'Test Results Ready',
-          message: 'Your test results are ready and have been reviewed by our laboratory team.',
+          title: t('qrStatus.testResultsReady'),
+          message: t('qrStatus.testResultsReadyMessage'),
           color: 'success'
         };
       case 'In Progress':
         return {
           icon: <Clock />,
-          title: 'Tests in Progress',
-          message: 'Your samples are being processed in our laboratory. Results will be available soon.',
+          title: t('qrStatus.testsInProgress'),
+          message: t('qrStatus.testsInProgressMessage'),
           color: 'warning'
         };
       case 'Pending Sample':
         return {
           icon: <Clock />,
-          title: 'Sample Collection Pending',
-          message: 'Your sample collection is scheduled. Please visit our collection center.',
+          title: t('qrStatus.sampleCollectionPending'),
+          message: t('qrStatus.sampleCollectionPendingMessage'),
           color: 'info'
         };
       default:
         return {
           icon: <AlertTriangle />,
-          title: 'Status Unknown',
-          message: 'We are unable to determine the current status of your order.',
+          title: t('qrStatus.statusUnknown'),
+          message: t('qrStatus.statusUnknownMessage'),
           color: 'error'
         };
     }
@@ -326,8 +326,8 @@ const QRStatusPage = () => {
           >
             <Clock size={48} />
           </motion.div>
-          <StatusTitle>Loading...</StatusTitle>
-          <StatusMessage>Please wait while we fetch your order details.</StatusMessage>
+          <StatusTitle>{t('qrStatus.loading')}</StatusTitle>
+          <StatusMessage>{t('qrStatus.loadingMessage')}</StatusMessage>
         </StatusCard>
       </StatusContainer>
     );
@@ -340,9 +340,9 @@ const QRStatusPage = () => {
           <StatusIcon status="error">
             <AlertTriangle />
           </StatusIcon>
-          <StatusTitle>Order Not Found</StatusTitle>
+          <StatusTitle>{t('qrStatus.orderNotFound')}</StatusTitle>
           <StatusMessage>
-            {error || 'The requested order could not be found. Please check the QR code or contact our support team.'}
+            {error || t('qrStatus.orderNotFoundMessage')}
           </StatusMessage>
           <ActionButtons>
             <ActionButton
@@ -351,7 +351,7 @@ const QRStatusPage = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              Go Home
+              {t('qrStatus.goHome')}
             </ActionButton>
           </ActionButtons>
         </StatusCard>
@@ -381,7 +381,7 @@ const QRStatusPage = () => {
 
         <PatientInfo>
           <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>
-            Patient Information
+            {t('qrStatus.patientInformation')}
           </h3>
           <InfoGrid>
             <InfoItem>
@@ -406,7 +406,7 @@ const QRStatusPage = () => {
         {order.tests && order.tests.length > 0 && (
           <TestList>
             <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>
-              Requested Tests
+              {t('qrStatus.requestedTests')}
             </h3>
             {order.tests.map((test, index) => (
               <TestItem key={index}>
@@ -415,7 +415,7 @@ const QRStatusPage = () => {
                   <span>{test}</span>
                 </div>
                 <TestStatus status={order.status === 'Completed' ? 'completed' : 'pending'}>
-                  {order.status === 'Completed' ? 'Completed' : 'Pending'}
+                  {order.status === 'Completed' ? t('qrStatus.completed') : t('qrStatus.pending')}
                 </TestStatus>
               </TestItem>
             ))}
@@ -432,7 +432,7 @@ const QRStatusPage = () => {
                 whileTap={{ scale: 0.95 }}
               >
                 <Download />
-                Download Report
+                {t('qrStatus.downloadReport')}
               </ActionButton>
               <ActionButton
                 onClick={handleShareResults}
@@ -441,7 +441,7 @@ const QRStatusPage = () => {
                 whileTap={{ scale: 0.95 }}
               >
                 <Share2 />
-                Share Results
+                {t('qrStatus.shareResults')}
               </ActionButton>
             </>
           )}
@@ -452,7 +452,7 @@ const QRStatusPage = () => {
             whileTap={{ scale: 0.95 }}
           >
             <FileText />
-            Contact Support
+            {t('qrStatus.contactSupport')}
           </ActionButton>
         </ActionButtons>
       </StatusCard>

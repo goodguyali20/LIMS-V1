@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+// import { motion, AnimatePresence } from 'framer-motion'; // Unused import
 import { 
   Package, 
   Search, 
@@ -34,7 +34,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const LotManager = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Unused variable, comment out or remove
   const [lots, setLots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -188,19 +188,6 @@ const LotManager = () => {
       message: t('lotManager.lotDeletedSuccessfully'),
       icon: CheckCircle
     });
-  };
-
-  const handleStatusChange = (lotId, newStatus) => {
-    setLots(prev => prev.map(lot => {
-      if (lot.id === lotId) {
-        return {
-          ...lot,
-          status: newStatus,
-          lastInspection: new Date().toISOString().split('T')[0]
-        };
-      }
-      return lot;
-    }));
   };
 
   const filteredLots = lots.filter(lot => {
@@ -506,7 +493,7 @@ const LotManager = () => {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
           <AnimatePresence>
-            {filteredLots.map((lot, index) => {
+            {filteredLots.map((lot) => {
               const daysUntilExpiry = getDaysUntilExpiry(lot.expiryDate);
               const isExpiringSoon = daysUntilExpiry !== null && daysUntilExpiry <= 30;
               
@@ -620,7 +607,7 @@ const LotManager = () => {
 
                     <div className="flex gap-2">
                       <GlowButton
-                        variant="outline"
+                        $variant="outline"
                         size="sm"
                         onClick={() => {
                           setEditingLot(lot);
@@ -631,7 +618,7 @@ const LotManager = () => {
                         <Edit className="w-4 h-4" />
                       </GlowButton>
                       <GlowButton
-                        variant="outline"
+                        $variant="outline"
                         size="sm"
                         onClick={() => handleDelete(lot.id)}
                         className="text-red-500 hover:text-red-600"
@@ -843,7 +830,7 @@ const LotForm = ({ lot, onSubmit, onCancel }) => {
         <GlowButton type="submit" className="flex-1">
           {lot ? t('lotManager.updateLot') : t('lotManager.addLot')}
         </GlowButton>
-        <GlowButton type="button" variant="outline" onClick={onCancel}>
+        <GlowButton type="button" $variant="outline" onClick={onCancel}>
           {t('common.cancel')}
         </GlowButton>
       </div>

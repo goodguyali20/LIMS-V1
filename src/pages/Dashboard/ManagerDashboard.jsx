@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -17,13 +17,239 @@ import {
   Cell,
   Legend
 } from 'recharts';
-import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import GlowButton from '../../components/common/GlowButton';
 import EmptyState from '../../components/common/EmptyState';
 import { trackEvent } from '../../utils/errorMonitoring';
+import { usePerformanceMonitor } from '../../utils/performanceOptimizer';
+
+// Lazy load heavy components
+const AdvancedAnalytics = lazy(() => import('../../components/Analytics/AdvancedAnalytics'));
+
+// Memoized chart components for better performance
+const MemoizedLineChart = React.memo(({ data }) => (
+  <ResponsiveContainer width="100%" height="100%">
+    <LineChart 
+      data={data}
+      margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+    >
+      <defs>
+        <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#667eea" stopOpacity={0.8}/>
+          <stop offset="95%" stopColor="#667eea" stopOpacity={0.1}/>
+        </linearGradient>
+        <linearGradient id="testsGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#764ba2" stopOpacity={0.8}/>
+          <stop offset="95%" stopColor="#764ba2" stopOpacity={0.1}/>
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge> 
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <CartesianGrid 
+        strokeDasharray="3 3" 
+        stroke="rgba(255, 255, 255, 0.1)"
+        vertical={false}
+      />
+      <XAxis 
+        dataKey="date" 
+        axisLine={false}
+        tickLine={false}
+        tick={{ fontSize: 12, fill: 'rgba(255, 255, 255, 0.7)', fontWeight: '500' }}
+      />
+      <YAxis 
+        axisLine={false}
+        tickLine={false}
+        tick={{ fontSize: 12, fill: 'rgba(255, 255, 255, 0.7)', fontWeight: '500' }}
+      />
+      <Tooltip content={<CustomTooltip />} />
+      <Legend 
+        verticalAlign="top" 
+        height={36}
+        wrapperStyle={{
+          paddingBottom: '20px',
+          color: 'rgba(255, 255, 255, 0.8)',
+          fontWeight: '600'
+        }}
+      />
+      <Line 
+        type="monotone"
+        dataKey="orders" 
+        stroke="#667eea"
+        strokeWidth={3}
+        fill="url(#ordersGradient)"
+        dot={{ 
+          fill: '#667eea', 
+          strokeWidth: 2, 
+          stroke: '#fff',
+          r: 6,
+          filter: 'url(#glow)'
+        }}
+        activeDot={{ 
+          r: 8, 
+          stroke: '#fff', 
+          strokeWidth: 3,
+          fill: '#667eea'
+        }}
+        name="Orders"
+      />
+      <Line 
+        type="monotone"
+        dataKey="tests" 
+        stroke="#764ba2"
+        strokeWidth={3}
+        fill="url(#testsGradient)"
+        dot={{ 
+          fill: '#764ba2', 
+          strokeWidth: 2, 
+          stroke: '#fff',
+          r: 6,
+          filter: 'url(#glow)'
+        }}
+        activeDot={{ 
+          r: 8, 
+          stroke: '#fff', 
+          strokeWidth: 3,
+          fill: '#764ba2'
+        }}
+        name="Tests"
+      />
+    </LineChart>
+  </ResponsiveContainer>
+));
+
+const MemoizedPieChart = React.memo(({ data }) => (
+  <ResponsiveContainer width="100%" height="100%">
+    <PieChart>
+      <Pie
+        data={data}
+        cx="50%"
+        cy="50%"
+        innerRadius={45}
+        outerRadius={95}
+        paddingAngle={3}
+        dataKey="value"
+        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+        labelLine={false}
+      >
+        {data?.map((entry, index) => (
+          <Cell 
+            key={`cell-${index}`} 
+            fill={entry.color}
+            stroke="rgba(255, 255, 255, 0.2)"
+            strokeWidth={2}
+          />
+        ))}
+      </Pie>
+      <Tooltip content={<CustomPieTooltip />} />
+    </PieChart>
+  </ResponsiveContainer>
+));
+
+// Memoized activity feed component
+const MemoizedActivityFeed = React.memo(() => (
+  <RecentActivityCard
+    whileHover={{ 
+      scale: 1.02,
+      boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
+    }}
+    transition={{ duration: 0.3, ease: "easeOut" }}
+  >
+    <ActivityHeader>
+      <ActivityTitle>
+        <ActivityIcon>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </ActivityIcon>
+        Recent Activity
+      </ActivityTitle>
+      <ActivityBadge>Live</ActivityBadge>
+    </ActivityHeader>
+    
+    <ActivityList>
+      <ActivityItem>
+        <ActivityDot color="#667eea" />
+        <ActivityContent>
+          <ActivityText>New order <strong>#1234</strong> received from <strong>Dr. Smith</strong></ActivityText>
+          <ActivityTime>2 minutes ago</ActivityTime>
+        </ActivityContent>
+        <ActivityIconSmall>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </ActivityIconSmall>
+      </ActivityItem>
+      
+      <ActivityItem>
+        <ActivityDot color="#764ba2" />
+        <ActivityContent>
+          <ActivityText>Test results completed for <strong>patient #5678</strong></ActivityText>
+          <ActivityTime>5 minutes ago</ActivityTime>
+        </ActivityContent>
+        <ActivityIconSmall>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </ActivityIconSmall>
+      </ActivityItem>
+      
+      <ActivityItem>
+        <ActivityDot color="#f093fb" />
+        <ActivityContent>
+          <ActivityText><strong>QC sample</strong> passed validation</ActivityText>
+          <ActivityTime>8 minutes ago</ActivityTime>
+        </ActivityContent>
+        <ActivityIconSmall>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </ActivityIconSmall>
+      </ActivityItem>
+      
+      <ActivityItem>
+        <ActivityDot color="#f5576c" />
+        <ActivityContent>
+          <ActivityText><strong>Inventory alert:</strong> Low stock for Test Tube A</ActivityText>
+          <ActivityTime>12 minutes ago</ActivityTime>
+        </ActivityContent>
+        <ActivityIconSmall>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.64 21H20.36A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 9V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 17H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </ActivityIconSmall>
+      </ActivityItem>
+      
+      <ActivityItem>
+        <ActivityDot color="#4facfe" />
+        <ActivityContent>
+          <ActivityText>New <strong>patient registration</strong> completed</ActivityText>
+          <ActivityTime>15 minutes ago</ActivityTime>
+        </ActivityContent>
+        <ActivityIconSmall>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </ActivityIconSmall>
+      </ActivityItem>
+    </ActivityList>
+  </RecentActivityCard>
+));
 
 const DashboardContainer = styled(motion.create('div'))`
   padding: 2rem;
@@ -73,10 +299,10 @@ const StatCard = styled(motion.create('div'))`
     0 20px 40px rgba(0, 0, 0, 0.1),
     0 8px 16px rgba(0, 0, 0, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(10px); /* Reduced from 20px */
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease; /* Reduced from 0.3s */
   
   &::before {
     content: '';
@@ -101,16 +327,15 @@ const StatCard = styled(motion.create('div'))`
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.05) 0%, transparent 50%); /* Simplified gradient */
     pointer-events: none;
   }
   
   &:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px); /* Reduced from -2px */
     box-shadow: 
-      0 30px 60px rgba(0, 0, 0, 0.15),
-      0 12px 24px rgba(0, 0, 0, 0.1),
+      0 20px 40px rgba(0, 0, 0, 0.12),
+      0 8px 16px rgba(0, 0, 0, 0.08),
       inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
   
@@ -191,7 +416,7 @@ const ChartCard = styled(motion.create('div'))`
     0 20px 40px rgba(0, 0, 0, 0.1),
     0 8px 16px rgba(0, 0, 0, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(10px); /* Reduced from 20px */
   position: relative;
   overflow: hidden;
   
@@ -617,10 +842,14 @@ const generateMockData = () => {
 };
 
 const ManagerDashboard = () => {
+  // Performance monitoring
+  usePerformanceMonitor('ManagerDashboard');
+  
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { unreadCount } = useNotifications();
+  // const { unreadCount } = useNotifications(); // Unused variable, comment out or remove
   const [timeRange, setTimeRange] = useState('7d');
+  const hasTrackedView = useRef(false);
 
   // Mock data query
   const { data: dashboardData, isLoading, error } = useQuery({
@@ -636,16 +865,10 @@ const ManagerDashboard = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  useEffect(() => {
-    trackEvent('dashboard_viewed', { 
-      userId: user?.uid,
-      timeRange 
-    });
-  }, [user, timeRange]);
-
-  const stats = [
+  // Memoize expensive computations
+  const stats = useMemo(() => [
     {
-      title: 'Total Orders',
+      title: t('dashboard.totalOrders'),
       value: '1,247',
       change: '+12%',
       changeType: 'positive',
@@ -653,7 +876,7 @@ const ManagerDashboard = () => {
       color: '#3b82f6'
     },
     {
-      title: 'Tests Completed',
+      title: t('dashboard.testsCompleted'),
       value: '3,891',
       change: '+8%',
       changeType: 'positive',
@@ -661,7 +884,7 @@ const ManagerDashboard = () => {
       color: '#10b981'
     },
     {
-      title: 'Revenue',
+      title: t('dashboard.revenue'),
       value: '$45,230',
       change: '+15%',
       changeType: 'positive',
@@ -669,48 +892,64 @@ const ManagerDashboard = () => {
       color: '#f59e0b'
     },
     {
-      title: 'Pending Results',
+      title: t('dashboard.pendingResults'),
       value: '89',
       change: '-5%',
       changeType: 'negative',
       icon: '⏳',
       color: '#ef4444'
     }
-  ];
+  ], [t]);
 
-  const containerVariants = {
+  // Memoize animation variants
+  const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        duration: 0.5,
-        staggerChildren: 0.1
+        duration: 0.3, // Reduced from 0.5
+        staggerChildren: 0.05 // Reduced from 0.1
       }
     }
-  };
+  }), []);
 
-  const itemVariants = {
+  const itemVariants = useMemo(() => ({
     hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.5,
+        duration: 0.3, // Reduced from 0.5
         ease: "easeOut"
       }
     }
-  };
+  }), []);
+
+  // Memoize event tracking callback
+  const handleTimeRangeChange = useCallback((e) => {
+    setTimeRange(e.target.value);
+  }, []);
+
+  useEffect(() => {
+    if (!hasTrackedView.current) {
+      trackEvent('dashboard_viewed', { 
+        userId: user?.uid,
+        timeRange 
+      });
+      hasTrackedView.current = true;
+    }
+  }, [user, timeRange]);
 
   if (error) {
     return (
       <DashboardContainer>
         <EmptyState
           icon="⚠️"
-          title="Error Loading Dashboard"
-          description="There was an error loading the dashboard data. Please try again."
+          title={t('dashboard.errorLoading')}
+          description={t('dashboard.errorDescription')}
           action={
             <GlowButton onClick={() => window.location.reload()}>
-              Retry
+              {t('dashboard.retry')}
             </GlowButton>
           }
         />
@@ -729,7 +968,7 @@ const ManagerDashboard = () => {
         <div className="header-actions">
           <select 
             value={timeRange} 
-            onChange={(e) => setTimeRange(e.target.value)}
+            onChange={handleTimeRangeChange}
             style={{
               padding: '0.5rem',
               border: '1px solid var(--border-color)',
@@ -738,18 +977,18 @@ const ManagerDashboard = () => {
               color: 'var(--text-color)'
             }}
           >
-            <option value="7d">Last 7 Days</option>
-            <option value="30d">Last 30 Days</option>
-            <option value="90d">Last 90 Days</option>
+            <option value="7d">{t('dashboard.last7Days')}</option>
+            <option value="30d">{t('dashboard.last30Days')}</option>
+            <option value="90d">{t('dashboard.last90Days')}</option>
           </select>
-          <GlowButton variant="primary">
-            Export Report
+          <GlowButton $variant="primary">
+            {t('dashboard.exportReport')}
           </GlowButton>
         </div>
       </DashboardHeader>
 
       <StatsGrid>
-        {stats.map((stat, index) => (
+        {stats.map((stat) => (
           <StatCard
             key={stat.title}
             variants={itemVariants}
@@ -792,102 +1031,11 @@ const ManagerDashboard = () => {
               scale: 1.02,
               boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
             }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
           >
-            <h3>Orders & Tests Trend</h3>
+            <h3>{t('dashboard.ordersTestsTrend')}</h3>
             <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart 
-                  data={dashboardData?.last7Days}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-                >
-                  <defs>
-                    <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#667eea" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#667eea" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="testsGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#764ba2" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#764ba2" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <filter id="glow">
-                      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                      <feMerge> 
-                        <feMergeNode in="coloredBlur"/>
-                        <feMergeNode in="SourceGraphic"/>
-                      </feMerge>
-                    </filter>
-                  </defs>
-                  <CartesianGrid 
-                    strokeDasharray="3 3" 
-                    stroke="rgba(255, 255, 255, 0.1)"
-                    vertical={false}
-                  />
-                  <XAxis 
-                    dataKey="date" 
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: 'rgba(255, 255, 255, 0.7)', fontWeight: '500' }}
-                  />
-                  <YAxis 
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: 'rgba(255, 255, 255, 0.7)', fontWeight: '500' }}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend 
-                    verticalAlign="top" 
-                    height={36}
-                    wrapperStyle={{
-                      paddingBottom: '20px',
-                      color: 'rgba(255, 255, 255, 0.8)',
-                      fontWeight: '600'
-                    }}
-                  />
-                  <Line 
-                    type="monotone"
-                    dataKey="orders" 
-                    stroke="#667eea"
-                    strokeWidth={3}
-                    fill="url(#ordersGradient)"
-                    dot={{ 
-                      fill: '#667eea', 
-                      strokeWidth: 2, 
-                      stroke: '#fff',
-                      r: 6,
-                      filter: 'url(#glow)'
-                    }}
-                    activeDot={{ 
-                      r: 8, 
-                      stroke: '#fff', 
-                      strokeWidth: 3,
-                      fill: '#667eea'
-                    }}
-                    name="Orders"
-                  />
-                  <Line 
-                    type="monotone"
-                    dataKey="tests" 
-                    stroke="#764ba2"
-                    strokeWidth={3}
-                    fill="url(#testsGradient)"
-                    dot={{ 
-                      fill: '#764ba2', 
-                      strokeWidth: 2, 
-                      stroke: '#fff',
-                      r: 6,
-                      filter: 'url(#glow)'
-                    }}
-                    activeDot={{ 
-                      r: 8, 
-                      stroke: '#fff', 
-                      strokeWidth: 3,
-                      fill: '#764ba2'
-                    }}
-                    name="Tests"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <MemoizedLineChart data={dashboardData?.last7Days} />
             </div>
           </ChartCard>
 
@@ -897,137 +1045,22 @@ const ManagerDashboard = () => {
               scale: 1.02,
               boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
             }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
           >
-            <h3>Test Types Distribution</h3>
+            <h3>{t('dashboard.testTypesDistribution')}</h3>
             <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={dashboardData?.testTypes}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={45}
-                    outerRadius={95}
-                    paddingAngle={3}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    labelLine={false}
-                  >
-                    {dashboardData?.testTypes.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.color}
-                        stroke="rgba(255, 255, 255, 0.2)"
-                        strokeWidth={2}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomPieTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
+              <MemoizedPieChart data={dashboardData?.testTypes} />
             </div>
           </ChartCard>
         </ChartsGrid>
       )}
 
-      <RecentActivityCard
-        variants={itemVariants}
-        whileHover={{ 
-          scale: 1.02,
-          boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
-        }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-      >
-        <ActivityHeader>
-          <ActivityTitle>
-            <ActivityIcon>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </ActivityIcon>
-            Recent Activity
-          </ActivityTitle>
-          <ActivityBadge>Live</ActivityBadge>
-        </ActivityHeader>
-        
-        <ActivityList>
-          <ActivityItem>
-            <ActivityDot color="#667eea" />
-            <ActivityContent>
-              <ActivityText>New order <strong>#1234</strong> received from <strong>Dr. Smith</strong></ActivityText>
-              <ActivityTime>2 minutes ago</ActivityTime>
-            </ActivityContent>
-            <ActivityIconSmall>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
-              </svg>
-            </ActivityIconSmall>
-          </ActivityItem>
-          
-          <ActivityItem>
-            <ActivityDot color="#764ba2" />
-            <ActivityContent>
-              <ActivityText>Test results completed for <strong>patient #5678</strong></ActivityText>
-              <ActivityTime>5 minutes ago</ActivityTime>
-            </ActivityContent>
-            <ActivityIconSmall>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
-              </svg>
-            </ActivityIconSmall>
-          </ActivityItem>
-          
-          <ActivityItem>
-            <ActivityDot color="#f093fb" />
-            <ActivityContent>
-              <ActivityText><strong>QC sample</strong> passed validation</ActivityText>
-              <ActivityTime>8 minutes ago</ActivityTime>
-            </ActivityContent>
-            <ActivityIconSmall>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
-              </svg>
-            </ActivityIconSmall>
-          </ActivityItem>
-          
-          <ActivityItem>
-            <ActivityDot color="#f5576c" />
-            <ActivityContent>
-              <ActivityText><strong>Inventory alert:</strong> Low stock for Test Tube A</ActivityText>
-              <ActivityTime>12 minutes ago</ActivityTime>
-            </ActivityContent>
-            <ActivityIconSmall>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.64 21H20.36A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 9V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 17H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </ActivityIconSmall>
-          </ActivityItem>
-          
-          <ActivityItem>
-            <ActivityDot color="#4facfe" />
-            <ActivityContent>
-              <ActivityText>New <strong>patient registration</strong> completed</ActivityText>
-              <ActivityTime>15 minutes ago</ActivityTime>
-            </ActivityContent>
-            <ActivityIconSmall>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </ActivityIconSmall>
-          </ActivityItem>
-        </ActivityList>
-      </RecentActivityCard>
+      <MemoizedActivityFeed />
     </DashboardContainer>
   );
 };
 
-export default ManagerDashboard;
+// Wrap the component with React.memo for performance
+const MemoizedManagerDashboard = React.memo(ManagerDashboard);
+
+export default MemoizedManagerDashboard;

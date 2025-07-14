@@ -25,7 +25,7 @@ SmartLab LIMS v1.1.0 represents a major visual and functional upgrade, introduci
 - **GlowCard**: Enhanced card components with glassmorphism
 - **AnimatedNotification**: Improved notification system
 - **PremiumCharts**: Advanced chart components with animations
-- **MathematicalAnimations**: Sophisticated mathematical visualizations
+
 
 ### 🌐 Internationalization
 - **Arabic Support**: Complete RTL language support

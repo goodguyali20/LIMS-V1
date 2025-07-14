@@ -415,12 +415,12 @@ const AuditLog = () => {
         </Header>
         <LogTable>
           <TableHeader>
-            <div>Event</div>
-            <div>Details</div>
-            <div>User</div>
-            <div>Timestamp</div>
-            <div>IP Address</div>
-            <div>Actions</div>
+            <div>{t('auditLog.eventColumn')}</div>
+            <div>{t('auditLog.detailsColumn')}</div>
+            <div>{t('auditLog.userColumn')}</div>
+            <div>{t('auditLog.timestampColumn')}</div>
+            <div>{t('auditLog.ipAddressColumn')}</div>
+            <div>{t('auditLog.actionsColumn')}</div>
           </TableHeader>
           {[...Array(5)].map((_, i) => (
             <SkeletonRow key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -457,7 +457,7 @@ const AuditLog = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <FaDownload /> Export
+            <FaDownload /> {t('auditLog.export')}
           </GlowButton>
         </HeaderActions>
       </Header>
@@ -468,7 +468,7 @@ const AuditLog = () => {
             <FaSearch />
             <input
               type="text"
-              placeholder="Search audit logs..."
+              placeholder={t('auditLog.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -478,18 +478,18 @@ const AuditLog = () => {
             value={eventFilter}
             onChange={(e) => setEventFilter(e.target.value)}
           >
-            <option value="all">All Events</option>
-            <option value="User Login">Login</option>
-            <option value="Order Created">Order Created</option>
-            <option value="Results Entered">Results Entered</option>
-            <option value="Test Updated">Test Updated</option>
+            <option value="all">{t('auditLog.allEvents')}</option>
+            <option value="User Login">{t('auditLog.login')}</option>
+            <option value="Order Created">{t('auditLog.orderCreated')}</option>
+            <option value="Results Entered">{t('auditLog.resultsEntered')}</option>
+            <option value="Test Updated">{t('auditLog.testUpdated')}</option>
           </FilterSelect>
 
           <FilterSelect
             value={userFilter}
             onChange={(e) => setUserFilter(e.target.value)}
           >
-            <option value="all">All Users</option>
+            <option value="all">{t('auditLog.allUsers')}</option>
             {Array.from(new Set(auditLogs.map(log => log.user))).map(user => (
               <option key={user} value={user}>{user}</option>
             ))}
@@ -498,29 +498,29 @@ const AuditLog = () => {
 
         <FilterActions>
           <SortContainer>
-            <span>Sort by:</span>
+            <span>{t('auditLog.sortBy')}</span>
             <SortButton
               $active={sortBy === 'timestamp'}
               onClick={() => handleSort('timestamp')}
             >
-              Timestamp {getSortIcon('timestamp')}
+              {t('auditLog.timestamp')} {getSortIcon('timestamp')}
             </SortButton>
             <SortButton
               $active={sortBy === 'event'}
               onClick={() => handleSort('event')}
             >
-              Event {getSortIcon('event')}
+              {t('auditLog.event')} {getSortIcon('event')}
             </SortButton>
             <SortButton
               $active={sortBy === 'user'}
               onClick={() => handleSort('user')}
             >
-              User {getSortIcon('user')}
+              {t('auditLog.user')} {getSortIcon('user')}
             </SortButton>
           </SortContainer>
 
           <ClearFiltersButton onClick={clearFilters}>
-            <FaTimes /> Clear Filters
+            <FaTimes /> {t('auditLog.clearFilters')}
           </ClearFiltersButton>
         </FilterActions>
       </SearchAndFilterContainer>
@@ -536,11 +536,11 @@ const AuditLog = () => {
           >
             <EmptyState>
               <FaHistory />
-              <h3>No Audit Logs Found</h3>
+              <h3>{t('auditLog.noLogsFound')}</h3>
               <p>
                 {searchTerm || eventFilter !== 'all' || userFilter !== 'all'
-                  ? 'Try adjusting your search criteria or filters.'
-                  : 'No audit logs are available at the moment.'}
+                  ? t('auditLog.tryAdjustingSearch')
+                  : t('auditLog.noLogsAvailable')}
               </p>
             </EmptyState>
           </motion.div>
@@ -554,12 +554,12 @@ const AuditLog = () => {
           >
             <LogTable>
               <TableHeader>
-                <div>Event</div>
-                <div>Details</div>
-                <div>User</div>
-                <div>Timestamp</div>
-                <div>IP Address</div>
-                <div>Actions</div>
+                <div>{t('auditLog.eventColumn')}</div>
+                <div>{t('auditLog.detailsColumn')}</div>
+                <div>{t('auditLog.userColumn')}</div>
+                <div>{t('auditLog.timestampColumn')}</div>
+                <div>{t('auditLog.ipAddressColumn')}</div>
+                <div>{t('auditLog.actionsColumn')}</div>
               </TableHeader>
               <AnimatePresence>
                 {filteredLogs.map((log, index) => (
@@ -595,7 +595,7 @@ const AuditLog = () => {
                       {log.ipAddress || 'N/A'}
                     </LogCell>
                     <LogCell>
-                      <FaEye style={{ cursor: 'pointer' }} title="View Details" />
+                      <FaEye style={{ cursor: 'pointer' }} title={t('auditLog.viewDetails')} />
                     </LogCell>
                   </LogRow>
                 ))}

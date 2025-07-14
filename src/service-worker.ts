@@ -100,13 +100,13 @@ registerRoute(
     ],
     // Use a custom handler for offline fallback
     fallback: async () => {
-      return caches.match('/offline.html');
+      return caches.match('/offline.html') || new Response('Offline', { status: 503 });
     },
   })
 );
 
 // Background sync for offline actions
-self.addEventListener('sync', (event) => {
+self.addEventListener('sync', (event: any) => {
   if (event.tag === 'background-sync') {
     event.waitUntil(doBackgroundSync());
   }
@@ -117,18 +117,18 @@ async function doBackgroundSync() {
     // Get all pending requests from IndexedDB
     const pendingRequests = await getPendingRequests();
     
-    for (const request of pendingRequests) {
+    for (const request of pendingRequests as any[]) {
       try {
         // Attempt to send the request
-        const response = await fetch(request.url, {
-          method: request.method,
-          headers: request.headers,
-          body: request.body,
+        const response = await fetch((request as any).url, {
+          method: (request as any).method,
+          headers: (request as any).headers,
+          body: (request as any).body,
         });
         
         if (response.ok) {
           // Remove from pending requests if successful
-          await removePendingRequest(request.id);
+          await removePendingRequest((request as any).id);
         }
       } catch (error) {
         console.error('Background sync failed for request:', request, error);
@@ -217,7 +217,7 @@ async function getPendingRequests() {
   return [];
 }
 
-async function removePendingRequest(id: string) {
+async function removePendingRequest(_id: string) {
   // This would typically use IndexedDB
   // For now, do nothing
 }

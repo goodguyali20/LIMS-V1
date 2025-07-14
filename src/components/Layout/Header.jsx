@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
-import { useTheme } from '../../contexts/ThemeContext';
+// import { useTheme } from '../../contexts/ThemeContext'; // Unused import
 import { Bell, Settings, Search, User, LogOut, Sun, Moon, Barcode } from 'lucide-react';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 import { logAuditEvent } from '../../utils/auditLogger';
@@ -26,11 +26,14 @@ const HeaderContainer = styled.header`
   justify-content: space-between;
   gap: 2rem;
   height: 80px;
+  min-height: 80px;
+  contain: layout style paint;
   
   @media (max-width: 768px) {
     padding: 1rem;
     gap: 1rem;
     height: 70px;
+    min-height: 70px;
   }
 `;
 
@@ -277,7 +280,7 @@ const Header = () => {
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
-  const [currentTime, setCurrentTime] = useState('');
+  // const [currentTime, setCurrentTime] = useState(''); // Unused variable, comment out or remove
   const [particles, setParticles] = useState([]);
   const [searchValue, setSearchValue] = useState('');
   const searchInputRef = useRef(null);
@@ -325,7 +328,7 @@ const Header = () => {
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setCurrentTime(now.toLocaleTimeString());
+      // setCurrentTime(now.toLocaleTimeString()); // Unused variable, comment out or remove
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
@@ -473,4 +476,6 @@ const Header = () => {
   );
 };
 
-export default Header;
+const MemoizedHeader = React.memo(Header);
+
+export default MemoizedHeader;

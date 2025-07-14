@@ -1,24 +1,290 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useTestCatalog } from '../../contexts/TestContext';
-import { useSettings } from '../../contexts/SettingsContext';
-import { FaSave, FaPlus, FaEdit, FaTrash, FaExclamationCircle, FaFlask } from 'react-icons/fa';
-import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Settings as SettingsIcon,
+  Building2,
+  FlaskConical,
+  Users,
+  User,
+  Monitor,
+  Printer,
+  Shield,
+  Database,
+  Palette,
+  Bell,
+  Globe,
+  FileText,
+  Download,
+  Upload,
+  Search,
+  Filter,
+  Plus,
+  Edit,
+  Trash2,
+  Save,
+  RefreshCw,
+  Eye,
+  EyeOff,
+  CheckCircle,
+  AlertCircle,
+  Info,
+  Zap,
+  Lock,
+  Unlock,
+  Palette as PaletteIcon,
+  Languages,
+  Volume2,
+  VolumeX,
+  Sun,
+  Moon,
+  Smartphone,
+  Mail,
+  Phone,
+  MapPin,
+  Globe as GlobeIcon,
+  Shield as ShieldIcon,
+  Database as DatabaseIcon,
 
-// Components
-import Modal from '../../components/Common/Modal';
-// import TestPanelManager from '../../components/Settings/TestPanelManager'; // Temporarily disabled
+  Download as DownloadIcon,
+  Upload as UploadIcon,
+  Search as SearchIcon,
+  Filter as FilterIcon,
+  Plus as PlusIcon,
+  Edit as EditIcon,
+  Trash2 as TrashIcon,
+  Save as SaveIcon,
+  RefreshCw as RefreshIcon,
+  Eye as EyeIcon,
+  EyeOff as EyeOffIcon,
+  CheckCircle as CheckIcon,
+  AlertCircle as AlertIcon,
+  Info as InfoIcon,
+  Zap as ZapIcon,
+  Lock as LockIcon,
+  Unlock as UnlockIcon,
+  Languages as LanguagesIcon,
+  Volume2 as VolumeIcon,
+  VolumeX as VolumeXIcon,
+  Sun as SunIcon,
+  Moon as MoonIcon,
+  Smartphone as SmartphoneIcon,
+  Mail as MailIcon,
+  Phone as PhoneIcon,
+  MapPin as MapPinIcon
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { GlowCard, GlowButton, AnimatedModal, AnimatedNotification } from '../../components/common';
+import { useSettings } from '../../contexts/SettingsContext';
 
-const SettingsContainer = styled.div`
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'react-toastify';
+import UsersManagement from './Users';
+import Print from './Print';
+import PatientRegistrationSettings from './PatientRegistration';
+import TestCatalog from './TestCatalog';
+
+// Styled Components
+const SettingsContainer = styled(motion.div)`
+  min-height: 100vh;
+  background: ${({ theme }) => theme.isDarkMode 
+    ? `linear-gradient(135deg, ${theme.colors.dark.background} 0%, #1a1a2e 50%, #16213e 100%)`
+    : `linear-gradient(135deg, ${theme.colors.background} 0%, #f1f5f9 50%, #e2e8f0 100%)`
+  };
   padding: 2rem;
-  animation: fadeIn 0.3s ease-in-out;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+`;
+
+const SettingsHeader = styled(motion.div)`
+  margin-bottom: 2rem;
+`;
+
+const SettingsTitle = styled.h1`
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: ${({ theme }) => theme.colors.text};
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
+`;
+
+const SettingsDescription = styled.p`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 1.1rem;
+  margin: 0;
+`;
+
+const SearchAndFilterContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  
+  @media (min-width: 640px) {
+    flex-direction: row;
+  }
+`;
+
+const SearchContainer = styled.div`
+  flex: 1;
+  position: relative;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
+  }
+  
+  &::placeholder {
+    color: ${({ theme }) => theme.colors.textSecondary};
+  }
+`;
+
+const StyledSearchIcon = styled(SearchIcon)`
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: ${({ theme }) => theme.colors.textSecondary};
+  width: 1.25rem;
+  height: 1.25rem;
+`;
+
+const FilterSelect = styled.select`
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: ${({ theme }) => theme.colors.text};
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
+  }
+`;
+
+const SettingsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+`;
+
+const SettingCard = styled(GlowCard)`
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: ${({ color }) => color};
+  }
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const SettingCardContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const SettingIcon = styled.div`
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ color }) => color}20;
+  color: ${({ color }) => color};
+`;
+
+const SettingInfo = styled.div`
+  flex: 1;
+`;
+
+const SettingTitle = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.text};
+  margin: 0 0 0.5rem 0;
+`;
+
+const SettingDescription = styled.p`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 0.875rem;
+  margin: 0;
+  line-height: 1.4;
+`;
+
+const SettingBadge = styled.span`
+  background: ${({ color }) => color}20;
+  color: ${({ color }) => color};
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
 `;
 
 const TabsContainer = styled.div`
   display: flex;
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   margin-bottom: 2rem;
+  overflow-x: auto;
+  
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: ${({ theme }) => theme.colors.border};
+    border-radius: 2px;
+  }
 `;
 
 const TabButton = styled(motion.button)`
@@ -26,12 +292,13 @@ const TabButton = styled(motion.button)`
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: ${({ theme, $active }) => $active ? theme.colors.primary : theme.colors.textSecondary};
   border-bottom: 3px solid ${({ theme, $active }) => $active ? theme.colors.primary : 'transparent'};
   transition: all 0.2s ease-in-out;
-
+  white-space: nowrap;
+  
   &:hover {
     color: ${({ theme }) => theme.colors.primary};
   }
@@ -41,26 +308,12 @@ const TabContent = styled(motion.div)`
   animation: fadeIn 0.5s;
 `;
 
-const SkeletonCard = styled(motion.div)`
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  padding: 1.5rem;
-  min-height: 100px;
-  margin-bottom: 1.5rem;
-  box-shadow: ${({ theme }) => theme.shadows.main};
-  opacity: 0.7;
-  animation: pulse 1.5s infinite alternate;
-  @keyframes pulse {
-    0% { background: ${({ theme }) => theme.colors.surface}; }
-    100% { background: ${({ theme }) => theme.colors.surfaceSecondary}; }
-  }
-`;
-
 const Section = styled.div`
   background: ${({ theme }) => theme.colors.surface};
   padding: 2rem;
   border-radius: ${({ theme }) => theme.shapes.squircle};
   box-shadow: ${({ theme }) => theme.shadows.main};
+  margin-bottom: 2rem;
 `;
 
 const SectionHeader = styled.div`
@@ -72,25 +325,28 @@ const SectionHeader = styled.div`
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
-const ActionButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.7rem 1.5rem;
-  border: none;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  background: ${({ theme }) => theme.colors.primary};
-  color: white;
-  cursor: pointer;
-  font-weight: 600;
-  transition: opacity 0.2s ease;
-  &:hover { opacity: 0.9; }
-`;
-
 const Form = styled.form`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const InputGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const Label = styled.label`
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.text};
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 `;
 
 const Input = styled.input`
@@ -100,227 +356,563 @@ const Input = styled.input`
   border: 1px solid ${({ theme }) => theme.colors.border};
   background-color: ${({ theme }) => theme.colors.input};
   color: ${({ theme }) => theme.colors.text};
+  font-size: 1rem;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 2px ${({ theme }) => theme.colors.primary}20;
+  }
 `;
 
-const TestList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
+const TextArea = styled.textarea`
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: ${({ theme }) => theme.shapes.squircle};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background-color: ${({ theme }) => theme.colors.input};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1rem;
+  min-height: 100px;
+  resize: vertical;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 2px ${({ theme }) => theme.colors.primary}20;
+  }
 `;
 
-const TestListItem = styled.li`
+const ToggleContainer = styled.div`
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
   padding: 1rem;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  &:last-child {
-    border-bottom: none;
-  }
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.hover};
-  }
+  border-radius: ${({ theme }) => theme.shapes.squircle};
+  background: ${({ theme }) => theme.colors.surfaceSecondary};
+  margin-bottom: 1rem;
 `;
 
-const TestInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-`;
-
-const TestActions = styled.div`
-  display: flex;
-  gap: 1.5rem;
-  & > svg {
-    cursor: pointer;
-    color: ${({ theme }) => theme.colors.textSecondary};
-    font-size: 1.1rem;
-    &:hover {
-      color: ${({ theme }) => theme.colors.primary};
-    }
-  }
-`;
-
-const SpecialBadge = styled.span`
-  background-color: ${({ theme }) => theme.colors.warning}20;
-  color: ${({ theme }) => theme.colors.warning};
-  border: 1px solid ${({ theme }) => theme.colors.warning}80;
-  padding: 0.2rem 0.6rem;
-  border-radius: 1rem;
-  font-size: 0.75rem;
-  font-weight: bold;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-`;
-
-const CheckboxContainer = styled.label`
+const ToggleLabel = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  cursor: pointer;
-  font-size: 1rem;
-  padding: 0.8rem;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  transition: background-color 0.2s ease;
-  user-select: none;
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
-  grid-column: 1 / -1;
+`;
 
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.hover};
+const ToggleSwitch = styled.label`
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+  
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
   }
-
-  input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: ${({ theme }) => theme.colors.primary};
+  
+  span {
+    position: absolute;
     cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: ${({ theme }) => theme.colors.border};
+    transition: 0.3s;
+    border-radius: 24px;
+    
+    &:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+  }
+  
+  input:checked + span {
+    background-color: ${({ theme }) => theme.colors.primary};
+  }
+  
+  input:checked + span:before {
+    transform: translateX(26px);
   }
 `;
 
-const ModalForm = styled.form`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-`;
 
-const ButtonContainer = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
-`;
 
-const SaveButton = styled(ActionButton)``;
-const CancelButton = styled(ActionButton)`
-  background: ${({ theme }) => theme.colors.surface};
-  color: ${({ theme }) => theme.colors.textSecondary};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-`;
 
 
 const Settings = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('general');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
   const { settings, updateSettings, loading: settingsLoading } = useSettings();
-  const { labTests, addTest, updateTest, deleteTest, loading: testsLoading } = useTestCatalog();
+  const { user } = useAuth();
   
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTest, setEditingTest] = useState(null);
-  const [testFormState, setTestFormState] = useState({
-    name: '',
-    department: '',
-    unit: '',
-    referenceRange: '',
-    requiresSpecialSlip: false
-  });
-
   const [generalFormState, setGeneralFormState] = useState(settings);
+
+  // Settings categories with icons and colors
+  const settingsCategories = [
+    {
+      id: 'general',
+      title: 'General Settings',
+      description: 'Hospital information, contact details, and basic configuration',
+      icon: Building2,
+      color: '#3b82f6',
+      badge: 'Core'
+    },
+    {
+      id: 'tests',
+      title: 'Test Catalog',
+      description: 'Manage laboratory tests, panels, and test configurations',
+      icon: FlaskConical,
+      color: '#10b981',
+      badge: 'Essential'
+    },
+    {
+      id: 'patientRegistration',
+      title: 'Patient Registration',
+      description: 'Configure required and optional fields for patient registration',
+      icon: User,
+      color: '#06b6d4',
+      badge: 'Forms'
+    },
+    {
+      id: 'users',
+      title: 'User Management',
+      description: 'User roles, permissions, and access control settings',
+      icon: Users,
+      color: '#8b5cf6',
+      badge: 'Admin'
+    },
+    {
+      id: 'system',
+      title: 'System Configuration',
+      description: 'Theme, language, notifications, and system preferences',
+      icon: Monitor,
+      color: '#f59e0b',
+      badge: 'Advanced'
+    },
+    {
+      id: 'print',
+      title: 'Print Settings',
+      description: 'Report templates, slip configurations, and print options',
+      icon: Printer,
+      color: '#ef4444',
+      badge: 'Reports'
+    },
+    {
+      id: 'security',
+      title: 'Security & Privacy',
+      description: 'Security settings, data protection, and audit logs',
+      icon: Shield,
+      color: '#dc2626',
+      badge: 'Critical'
+    },
+    {
+      id: 'backup',
+              title: t('settings.backupExport'),
+        description: t('settings.backupExportDescription'),
+      icon: Database,
+      color: '#6366f1',
+      badge: 'Data'
+    },
+    {
+      id: 'advanced',
+      title: 'Advanced Features',
+      description: 'API keys, integrations, and advanced configurations',
+      icon: Zap,
+      color: '#ec4899',
+      badge: 'Expert'
+    }
+  ];
 
   useEffect(() => {
     setGeneralFormState(settings);
   }, [settings]);
   
-  useEffect(() => {
-    if (editingTest) {
-      setTestFormState({
-        name: editingTest.name || '',
-        department: editingTest.department || '',
-        unit: editingTest.unit || '',
-        referenceRange: editingTest.referenceRange || '',
-        requiresSpecialSlip: editingTest.requiresSpecialSlip || false,
-      });
-    } else {
-      setTestFormState({ name: '', department: '', unit: '', referenceRange: '', requiresSpecialSlip: false });
-    }
-  }, [editingTest, isModalOpen]);
+
 
   const handleGeneralInputChange = (e) => {
     const { name, value } = e.target;
     setGeneralFormState(prev => ({ ...prev, [name]: value }));
   };
   
-  const handleTestFormChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setTestFormState(prev => ({
-        ...prev,
-        [name]: type === 'checkbox' ? checked : value
-    }));
-  };
-
-  const handleGeneralSubmit = async (e) => {
-    e.preventDefault();
-    await updateSettings(generalFormState);
-    toast.success('General settings updated!');
-  };
-
-  const handleOpenModal = (test = null) => {
-    setEditingTest(test);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setEditingTest(null);
-    setIsModalOpen(false);
-  };
-
-  const handleSaveTest = async (e) => {
-    e.preventDefault();
+    const handleGeneralSubmit = async () => {
     try {
-      if (!testFormState.name || !testFormState.department) {
-        toast.warn('Test Name and Department are required.');
-        return;
-      }
-
-      if (editingTest) {
-        await updateTest(editingTest.id, testFormState);
-        toast.success(`Test "${testFormState.name}" updated successfully!`);
-      } else {
-        await addTest(testFormState);
-        toast.success(`Test "${testFormState.name}" added successfully!`);
-      }
-      handleCloseModal();
+      await updateSettings(generalFormState);
+      toast.success('General settings updated successfully!');
     } catch (error) {
-      toast.error("Failed to save test.");
+      toast.error('Failed to update settings.');
     }
   };
 
-  const handleDeleteTest = async (testId, testName) => {
-    if (window.confirm(`Are you sure you want to delete the test "${testName}"? This cannot be undone.`)) {
-      await deleteTest(testId);
-    }
-  };
+
+
+  const filteredCategories = settingsCategories.filter(category => {
+    const matchesSearch = category.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         category.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterCategory === 'all' || category.badge.toLowerCase() === filterCategory.toLowerCase();
+    return matchesSearch && matchesFilter;
+  });
+
+  const renderGeneralSettings = () => (
+    <Section as={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <SectionHeader>
+        <h2>General Settings</h2>
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <GlowButton 
+            onClick={handleGeneralSubmit}
+            disabled={settingsLoading}
+          >
+            <SaveIcon size={16} />
+            {settingsLoading ? 'Saving...' : 'Save Changes'}
+          </GlowButton>
+        </motion.div>
+      </SectionHeader>
+      
+      <Form>
+        <InputGroup>
+          <Label>
+            <Building2 size={16} />
+            Hospital Name
+          </Label>
+          <Input 
+            name="hospitalName" 
+            value={generalFormState.hospitalName || ''} 
+            onChange={handleGeneralInputChange} 
+            placeholder="Enter hospital name" 
+          />
+        </InputGroup>
+        
+        <InputGroup>
+          <Label>
+            <MapPinIcon size={16} />
+            Hospital Address
+          </Label>
+          <Input 
+            name="hospitalAddress" 
+            value={generalFormState.hospitalAddress || ''} 
+            onChange={handleGeneralInputChange} 
+            placeholder="Enter hospital address" 
+          />
+        </InputGroup>
+        
+        <InputGroup>
+          <Label>
+            <PhoneIcon size={16} />
+            Hospital Phone
+          </Label>
+          <Input 
+            name="hospitalPhone" 
+            value={generalFormState.hospitalPhone || ''} 
+            onChange={handleGeneralInputChange} 
+            placeholder="Enter hospital phone" 
+          />
+        </InputGroup>
+        
+        <InputGroup>
+          <Label>
+            <MailIcon size={16} />
+            Hospital Email
+          </Label>
+          <Input 
+            name="hospitalEmail" 
+            value={generalFormState.hospitalEmail || ''} 
+            onChange={handleGeneralInputChange} 
+            placeholder="Enter hospital email" 
+          />
+        </InputGroup>
+        
+        <InputGroup>
+          <Label>
+            <GlobeIcon size={16} />
+            Hospital Website
+          </Label>
+          <Input 
+            name="hospitalWebsite" 
+            value={generalFormState.hospitalWebsite || ''} 
+            onChange={handleGeneralInputChange} 
+            placeholder="Enter hospital website" 
+          />
+        </InputGroup>
+        
+        <InputGroup>
+          <Label>
+            <Users size={16} />
+            Lab Director
+          </Label>
+          <Input 
+            name="labDirector" 
+            value={generalFormState.labDirector || ''} 
+            onChange={handleGeneralInputChange} 
+            placeholder="Enter lab director name" 
+          />
+        </InputGroup>
+      </Form>
+    </Section>
+  );
+
+
+
+  const renderSystemSettings = () => (
+    <Section as={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <SectionHeader>
+        <h2>System Configuration</h2>
+      </SectionHeader>
+      
+      <ToggleContainer>
+        <ToggleLabel>
+          <SunIcon size={16} />
+          <div>
+            <strong>Dark Mode</strong>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
+              Switch between light and dark themes
+            </p>
+          </div>
+        </ToggleLabel>
+        <ToggleSwitch>
+          <input type="checkbox" defaultChecked={false} />
+          <span></span>
+        </ToggleSwitch>
+      </ToggleContainer>
+      
+      <ToggleContainer>
+        <ToggleLabel>
+          <Bell size={16} />
+          <div>
+            <strong>Notifications</strong>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
+              Enable system notifications and alerts
+            </p>
+          </div>
+        </ToggleLabel>
+        <ToggleSwitch>
+          <input type="checkbox" defaultChecked={true} />
+          <span></span>
+        </ToggleSwitch>
+      </ToggleContainer>
+      
+      <ToggleContainer>
+        <ToggleLabel>
+          <LanguagesIcon size={16} />
+          <div>
+            <strong>Multi-language Support</strong>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
+              Enable Arabic and English language switching
+            </p>
+          </div>
+        </ToggleLabel>
+        <ToggleSwitch>
+          <input type="checkbox" defaultChecked={true} />
+          <span></span>
+        </ToggleSwitch>
+      </ToggleContainer>
+      
+      <ToggleContainer>
+        <ToggleLabel>
+          <VolumeIcon size={16} />
+          <div>
+            <strong>Sound Effects</strong>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
+              Play sound effects for user interactions
+            </p>
+          </div>
+        </ToggleLabel>
+        <ToggleSwitch>
+          <input type="checkbox" defaultChecked={false} />
+          <span></span>
+        </ToggleSwitch>
+      </ToggleContainer>
+    </Section>
+  );
+
+  const renderSecuritySettings = () => (
+    <Section as={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <SectionHeader>
+        <h2>Security & Privacy</h2>
+      </SectionHeader>
+      
+      <ToggleContainer>
+        <ToggleLabel>
+          <LockIcon size={16} />
+          <div>
+            <strong>Two-Factor Authentication</strong>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
+              Require 2FA for all user accounts
+            </p>
+          </div>
+        </ToggleLabel>
+        <ToggleSwitch>
+          <input type="checkbox" defaultChecked={false} />
+          <span></span>
+        </ToggleSwitch>
+      </ToggleContainer>
+      
+      <ToggleContainer>
+        <ToggleLabel>
+          <ShieldIcon size={16} />
+          <div>
+            <strong>Session Timeout</strong>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
+              Automatically log out inactive users
+            </p>
+          </div>
+        </ToggleLabel>
+        <ToggleSwitch>
+          <input type="checkbox" defaultChecked={true} />
+          <span></span>
+        </ToggleSwitch>
+      </ToggleContainer>
+      
+      <ToggleContainer>
+        <ToggleLabel>
+          <FileTextIcon size={16} />
+          <div>
+            <strong>Audit Logging</strong>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
+              Log all system activities and changes
+            </p>
+          </div>
+        </ToggleLabel>
+        <ToggleSwitch>
+          <input type="checkbox" defaultChecked={true} />
+          <span></span>
+        </ToggleSwitch>
+      </ToggleContainer>
+    </Section>
+  );
+
+  const renderBackupSettings = () => (
+    <Section as={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <SectionHeader>
+        <h2>{t('settings.backupExport')}</h2>
+      </SectionHeader>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+        <GlowButton>
+          <DownloadIcon size={16} />
+                      {t('settings.exportAllData')}
+        </GlowButton>
+        <GlowButton>
+          <UploadIcon size={16} />
+          Import Data
+        </GlowButton>
+      </div>
+      
+      <ToggleContainer>
+        <ToggleLabel>
+          <DatabaseIcon size={16} />
+          <div>
+            <strong>Auto Backup</strong>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
+              Automatically backup data daily
+            </p>
+          </div>
+        </ToggleLabel>
+        <ToggleSwitch>
+          <input type="checkbox" defaultChecked={true} />
+          <span></span>
+        </ToggleSwitch>
+      </ToggleContainer>
+    </Section>
+  );
 
   return (
-    <SettingsContainer>
-      <motion.h1 initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        Settings
-      </motion.h1>
+    <SettingsContainer
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <SettingsHeader>
+        <SettingsTitle>
+          <SettingsIcon size={32} />
+          Settings
+        </SettingsTitle>
+        <SettingsDescription>
+          Configure your laboratory information system and customize your experience
+        </SettingsDescription>
+      </SettingsHeader>
+
+      <SearchAndFilterContainer>
+        <SearchContainer>
+          <StyledSearchIcon />
+          <SearchInput
+            type="text"
+            placeholder="Search settings..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </SearchContainer>
+        <FilterSelect
+          value={filterCategory}
+          onChange={(e) => setFilterCategory(e.target.value)}
+        >
+          <option value="all">All Categories</option>
+          <option value="core">Core</option>
+          <option value="essential">Essential</option>
+          <option value="forms">Forms</option>
+          <option value="admin">Admin</option>
+          <option value="advanced">Advanced</option>
+          <option value="reports">Reports</option>
+          <option value="critical">Critical</option>
+          <option value="data">Data</option>
+          <option value="expert">Expert</option>
+        </FilterSelect>
+      </SearchAndFilterContainer>
+
+      <SettingsGrid>
+        {filteredCategories.map((category, index) => (
+          <SettingCard
+            key={category.id}
+            as={motion.div}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            color={category.color}
+            onClick={() => setActiveTab(category.id)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <SettingCardContent>
+              <SettingIcon color={category.color}>
+                <category.icon size={24} />
+              </SettingIcon>
+              <SettingInfo>
+                <SettingTitle>{category.title}</SettingTitle>
+                <SettingDescription>{category.description}</SettingDescription>
+              </SettingInfo>
+              <SettingBadge color={category.color}>{category.badge}</SettingBadge>
+            </SettingCardContent>
+          </SettingCard>
+        ))}
+      </SettingsGrid>
+
       <TabsContainer>
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <TabButton 
-            $active={activeTab === 'general'} 
-            onClick={() => setActiveTab('general')}
+        {settingsCategories.map((category) => (
+          <motion.div
+            key={category.id}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            General
-          </TabButton>
-        </motion.div>
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <TabButton 
-            $active={activeTab === 'catalog'} 
-            onClick={() => setActiveTab('catalog')}
-          >
-            Test Catalog
-          </TabButton>
-        </motion.div>
-        {/* <TabButton active={activeTab === 'panels'} onClick={() => setActiveTab('panels')}>Test Panels</TabButton> */}
+            <TabButton 
+              $active={activeTab === category.id} 
+              onClick={() => setActiveTab(category.id)}
+            >
+              {category.title}
+            </TabButton>
+          </motion.div>
+        ))}
       </TabsContainer>
 
       <AnimatePresence mode="wait">
@@ -331,125 +923,26 @@ const Settings = () => {
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.3 }}
         >
-          {activeTab === 'general' && (
-            <Section as={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <form onSubmit={handleGeneralSubmit}>
-                <SectionHeader>
-                  <h2>General Settings</h2>
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <ActionButton 
-                      type="submit" 
-                      disabled={settingsLoading}
-                    >
-                      <FaSave /> {settingsLoading ? 'Saving...' : 'Save Changes'}
-                    </ActionButton>
-                  </motion.div>
-                </SectionHeader>
-                <Form>
-                  <Input name="hospitalName" value={generalFormState.hospitalName || ''} onChange={handleGeneralInputChange} placeholder="Hospital Name" />
-                  <Input name="hospitalAddress" value={generalFormState.hospitalAddress || ''} onChange={handleGeneralInputChange} placeholder="Hospital Address" />
-                  <Input name="hospitalPhone" value={generalFormState.hospitalPhone || ''} onChange={handleGeneralInputChange} placeholder="Hospital Phone" />
-                </Form>
-              </form>
-            </Section>
-          )}
-
-          {activeTab === 'catalog' && (
-            <Section as={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <SectionHeader>
-                <h2>Test Catalog</h2>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <ActionButton 
-                    onClick={() => handleOpenModal()}
-                  >
-                    <FaPlus /> Add New Test
-                  </ActionButton>
-                </motion.div>
-              </SectionHeader>
-              <TestList>
-                {testsLoading ? (
-                  [...Array(3)].map((_, i) => (
-                    <SkeletonCard key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} />
-                  ))
-                ) : labTests.length === 0 ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}
-                  >
-                    <FaFlask size={48} style={{ marginBottom: 16, opacity: 0.5 }} />
-                    <p>No tests found. Add your first test to get started.</p>
-                  </motion.div>
-                ) : (
-                  labTests.map((test, index) => (
-                    <TestListItem 
-                      key={test.id}
-                      as={motion.li}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      whileHover={{ scale: 1.02 }}
-                    >
-                      <TestInfo>
-                        <strong>{test.name}</strong>
-                        <span>({test.department})</span>
-                        {test.requiresSpecialSlip && (
-                          <SpecialBadge>
-                            <FaExclamationCircle size={12} />
-                            Special Slip
-                          </SpecialBadge>
-                        )}
-                      </TestInfo>
-                      <TestActions>
-                        <FaEdit onClick={() => handleOpenModal(test)} title="Edit Test"/>
-                        <FaTrash onClick={() => handleDeleteTest(test.id, test.name)} title="Delete Test"/>
-                      </TestActions>
-                    </TestListItem>
-                  ))
-                )}
-              </TestList>
-            </Section>
-          )}
-
-          {/* {activeTab === 'panels' && (
+          {activeTab === 'general' && renderGeneralSettings()}
+          {activeTab === 'tests' && <TestCatalog />}
+          {activeTab === 'patientRegistration' && <PatientRegistrationSettings />}
+          {activeTab === 'system' && renderSystemSettings()}
+          {activeTab === 'security' && renderSecuritySettings()}
+          {activeTab === 'backup' && renderBackupSettings()}
+          {activeTab === 'users' && <UsersManagement />}
+          {activeTab === 'print' && <Print />}
+          {activeTab === 'advanced' && (
             <Section>
               <SectionHeader>
-                <h2>Test Panels</h2>
+                <h2>Advanced Features</h2>
               </SectionHeader>
+              <p>Advanced features coming soon...</p>
             </Section>
-          )} */}
+          )}
         </TabContent>
       </AnimatePresence>
 
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingTest ? 'Edit Test' : 'Add New Test'}>
-        <ModalForm onSubmit={handleSaveTest}>
-            <Input name="name" value={testFormState.name} onChange={handleTestFormChange} placeholder="Test Name (e.g., Glucose)" required />
-            <Input name="department" value={testFormState.department} onChange={handleTestFormChange} placeholder="Department (e.g., Chemistry)" required />
-            <Input name="unit" value={testFormState.unit} onChange={handleTestFormChange} placeholder="Unit (e.g., mg/dL)" />
-            <Input name="referenceRange" value={testFormState.referenceRange} onChange={handleTestFormChange} placeholder="Reference Range (e.g., 70-100)" />
-            
-            <CheckboxContainer>
-                <input
-                    type="checkbox"
-                    name="requiresSpecialSlip"
-                    checked={testFormState.requiresSpecialSlip}
-                    onChange={handleTestFormChange}
-                />
-                <span>Generate a special, individual slip for this test</span>
-            </CheckboxContainer>
 
-            <ButtonContainer>
-                <CancelButton type="button" onClick={handleCloseModal}>Cancel</CancelButton>
-                <SaveButton type="submit">Save Test</SaveButton>
-            </ButtonContainer>
-        </ModalForm>
-      </Modal>
     </SettingsContainer>
   );
 };

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { memo, useMemo, Suspense, useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import PageLoader from '../common/PageLoader';
 
 const LayoutContainer = styled(motion.div)`
   display: flex;
@@ -40,6 +41,11 @@ const MainContent = styled.main`
   position: relative;
   z-index: 1;
   margin-left: 280px;
+  contain: layout style paint;
+  
+  @media (max-width: 768px) {
+    margin-left: 0;
+  }
 `;
 
 const ContentArea = styled(motion.div)`
@@ -48,6 +54,13 @@ const ContentArea = styled(motion.div)`
   padding: 0;
   padding-top: 80px; /* Account for fixed header height */
   position: relative;
+  /* Prevent layout shifts */
+  contain: layout style paint;
+  min-height: calc(100vh - 80px);
+  box-sizing: border-box;
+  /* Additional layout shift prevention */
+  min-width: 0;
+  min-height: 0;
   
   /* Custom scrollbar for content area */
   &::-webkit-scrollbar {
@@ -84,64 +97,43 @@ const FloatingElement = styled(motion.div)`
   filter: blur(2px);
   pointer-events: none;
   z-index: 0;
+  /* Performance optimizations */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 `;
 
-const Layout = () => {
-  const location = useLocation();
-
-  // Page transition variants
-  const pageVariants = {
-    initial: {
-      opacity: 0,
-      y: 20,
-      scale: 0.98
-    },
-    in: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: {
-        duration: 0.4,
-        ease: "easeOut"
-      }
-    },
-    out: {
-      opacity: 0,
-      y: -20,
-      scale: 0.98,
-      transition: {
-        duration: 0.3,
-        ease: "easeIn"
-      }
+// Memoized floating elements component
+const FloatingElements = memo(() => {
+  // Reduce floating elements on mobile for better performance
+  const isMobile = window.innerWidth <= 768;
+  const isLowEndDevice = navigator.hardwareConcurrency <= 4 || 
+                        (navigator.deviceMemory || 8) <= 4;
+  
+  const floatingElements = useMemo(() => {
+    const elements = [
+      { id: 1, size: 100, x: '10%', y: '20%', color: 'rgba(59, 130, 246, 0.3)' },
+    ];
+    
+    // Add more elements based on device capability
+    if (!isMobile && !isLowEndDevice) {
+      elements.push(
+        { id: 2, size: 150, x: '85%', y: '15%', color: 'rgba(16, 185, 129, 0.3)' },
+        { id: 3, size: 80, x: '20%', y: '80%', color: 'rgba(245, 158, 11, 0.3)' },
+        { id: 4, size: 120, x: '75%', y: '70%', color: 'rgba(239, 68, 68, 0.3)' }
+      );
+    } else if (!isMobile) {
+      // Medium capability device
+      elements.push(
+        { id: 2, size: 150, x: '85%', y: '15%', color: 'rgba(16, 185, 129, 0.3)' }
+      );
     }
-  };
-
-  const layoutVariants = {
-    initial: { opacity: 0 },
-    animate: { 
-      opacity: 1,
-      transition: {
-        duration: 0.6,
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  // Create floating background elements
-  const floatingElements = [
-    { id: 1, size: 100, x: '10%', y: '20%', color: 'rgba(59, 130, 246, 0.3)' },
-    { id: 2, size: 150, x: '85%', y: '15%', color: 'rgba(16, 185, 129, 0.3)' },
-    { id: 3, size: 80, x: '20%', y: '80%', color: 'rgba(245, 158, 11, 0.3)' },
-    { id: 4, size: 120, x: '75%', y: '70%', color: 'rgba(239, 68, 68, 0.3)' },
-  ];
+    
+    return elements;
+  }, [isMobile, isLowEndDevice]);
 
   return (
-    <LayoutContainer
-      variants={layoutVariants}
-      initial="initial"
-      animate="animate"
-    >
-      {/* Floating background elements */}
+    <>
       {floatingElements.map(element => (
         <FloatingElement
           key={element.id}
@@ -154,36 +146,115 @@ const Layout = () => {
           }}
           animate={{
             y: [0, -20, 0],
-            rotate: [0, 180, 360],
-            scale: [1, 1.1, 1],
+            rotate: isMobile ? [0, 90, 180] : [0, 180, 360],
+            scale: isMobile ? [1, 1.05, 1] : [1, 1.1, 1],
           }}
           transition={{
-            duration: 8 + element.id * 2,
+            duration: isLowEndDevice ? 4 + element.id : isMobile ? 6 + element.id : 8 + element.id * 2,
             repeat: Infinity,
             ease: "easeInOut"
           }}
         />
       ))}
+    </>
+  );
+});
 
+FloatingElements.displayName = 'FloatingElements';
+
+// Memoized page content component
+const PageContent = memo(({ location }) => {
+  // Page transition variants
+  const pageVariants = useMemo(() => ({
+    initial: {
+      opacity: 0,
+      y: 10,
+      scale: 0.99
+    },
+    in: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.2,
+        ease: "easeOut"
+      }
+    },
+    out: {
+      opacity: 0,
+      y: -10,
+      scale: 0.99,
+      transition: {
+        duration: 0.15,
+        ease: "easeIn"
+      }
+    }
+  }), []);
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        variants={pageVariants}
+        initial="initial"
+        animate="in"
+        exit="out"
+      >
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
+      </motion.div>
+    </AnimatePresence>
+  );
+});
+
+PageContent.displayName = 'PageContent';
+
+const Layout = memo(() => {
+  const location = useLocation();
+  const [debouncedLocation, setDebouncedLocation] = useState(location);
+
+  // Debounce location changes to prevent rapid re-renders
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedLocation(location);
+    }, 50); // 50ms debounce
+
+    return () => clearTimeout(timer);
+  }, [location]);
+
+  const layoutVariants = useMemo(() => ({
+    initial: { opacity: 0 },
+    animate: { 
+      opacity: 1,
+      transition: {
+        duration: 0.3,
+        staggerChildren: 0.05
+      }
+    }
+  }), []);
+
+  // Memoize the location to prevent unnecessary re-renders
+  const memoizedLocation = useMemo(() => debouncedLocation, [debouncedLocation.pathname]);
+
+  return (
+    <LayoutContainer
+      variants={layoutVariants}
+      initial="initial"
+      animate="animate"
+    >
+      <FloatingElements />
       <Sidebar />
       <MainContent>
         <Header />
         <ContentArea>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              variants={pageVariants}
-              initial="initial"
-              animate="in"
-              exit="out"
-            >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
+          <PageContent location={memoizedLocation} />
         </ContentArea>
       </MainContent>
     </LayoutContainer>
   );
-};
+});
+
+Layout.displayName = 'Layout';
 
 export default Layout; 

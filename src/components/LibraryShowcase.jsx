@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
-import { IconMicroscope, IconFlask, IconTestPipe, IconChartLine, IconCode, IconPalette, IconUpload, IconFileText, IconMath } from '@tabler/icons-react';
-import MathematicalAnimations from './MathematicalAnimations';
+import { IconMicroscope, IconFlask, IconTestPipe, IconChartLine, IconCode, IconPalette, IconUpload, IconFileText } from '@tabler/icons-react';
+import { usePerformanceMonitor } from '../utils/performanceOptimizer';
+
 
 // Styled Components
 const ShowcaseContainer = styled.div`
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
+  contain: layout style paint;
+  min-height: 100vh;
 `;
 
 const Section = styled(motion.section)`
@@ -44,6 +47,10 @@ const Card = styled(motion.div)`
   padding: 1.5rem;
   border: 1px solid ${({ theme }) => theme.colors.border};
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  contain: layout style;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
 `;
 
 const ChartContainer = styled.div`
@@ -58,6 +65,23 @@ const ChartContainer = styled.div`
 `;
 
 const Button = styled(motion.button)`
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+`;
+
+const MotionSpan = styled(motion.span)`
+  display: inline-block;
   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: white;
   border: none;
@@ -127,34 +151,55 @@ const LibraryShowcase = () => {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Simple animation effect
-  useEffect(() => {
-    const cards = document.querySelectorAll('.showcase-card');
-    cards.forEach((card, index) => {
-      card.style.animationDelay = `${index * 0.1}s`;
-    });
-  }, []);
+  // Performance monitoring
+  usePerformanceMonitor('LibraryShowcase');
 
-  const handleFileUpload = (e) => {
+  // Memoized data
+  const chartData = useMemo(() => [
+    { label: 'Jan', value: 85, height: 85 },
+    { label: 'Feb', value: 92, height: 92 },
+    { label: 'Mar', value: 88, height: 88 },
+    { label: 'Apr', value: 95, height: 95 },
+    { label: 'May', value: 91, height: 91 },
+    { label: 'Jun', value: 97, height: 97 }
+  ], []);
+
+  const pieData = useMemo(() => [
+    { label: 'Hematology', value: 35, color: '#3b82f6' },
+    { label: 'Biochemistry', value: 25, color: '#10b981' },
+    { label: 'Microbiology', value: 20, color: '#f59e0b' },
+    { label: 'Immunology', value: 15, color: '#ef4444' },
+    { label: 'Molecular', value: 5, color: '#8b5cf6' }
+  ], []);
+
+  const workflowSteps = useMemo(() => [
+    { step: 'Sample Collection', status: 'completed', icon: '🩸' },
+    { step: 'Sample Processing', status: 'completed', icon: '🧪' },
+    { step: 'Testing', status: 'in-progress', icon: '🔬' },
+    { step: 'Results', status: 'pending', icon: '📊' }
+  ], []);
+
+  // Optimized handlers
+  const handleFileUpload = useCallback((e) => {
     const files = Array.from(e.target.files);
     setUploadedFiles(files.map(file => ({
       name: file.name,
       size: file.size,
       type: file.type
     })));
-  };
+  }, []);
 
-  const handleDragOver = (e) => {
+  const handleDragOver = useCallback((e) => {
     e.preventDefault();
     setIsDragging(true);
-  };
+  }, []);
 
-  const handleDragLeave = (e) => {
+  const handleDragLeave = useCallback((e) => {
     e.preventDefault();
     setIsDragging(false);
-  };
+  }, []);
 
-  const handleDrop = (e) => {
+  const handleDrop = useCallback((e) => {
     e.preventDefault();
     setIsDragging(false);
     const files = Array.from(e.dataTransfer.files);
@@ -163,24 +208,19 @@ const LibraryShowcase = () => {
       size: file.size,
       type: file.type
     })));
-  };
+  }, []);
 
-  const chartData = [
-    { label: 'Jan', value: 85, height: 85 },
-    { label: 'Feb', value: 92, height: 92 },
-    { label: 'Mar', value: 88, height: 88 },
-    { label: 'Apr', value: 95, height: 95 },
-    { label: 'May', value: 91, height: 91 },
-    { label: 'Jun', value: 97, height: 97 }
-  ];
+  // Simple animation effect
+  useEffect(() => {
+    const cards = document.querySelectorAll('.showcase-card');
+    cards.forEach((card, index) => {
+      card.style.animationDelay = `${index * 0.1}s`;
+    });
+  }, []);
 
-  const pieData = [
-    { label: 'Hematology', value: 35, color: '#3b82f6' },
-    { label: 'Biochemistry', value: 25, color: '#10b981' },
-    { label: 'Microbiology', value: 20, color: '#f59e0b' },
-    { label: 'Immunology', value: 15, color: '#ef4444' },
-    { label: 'Molecular', value: 5, color: '#8b5cf6' }
-  ];
+
+
+
 
   return (
     <ShowcaseContainer>
@@ -432,13 +472,12 @@ const LibraryShowcase = () => {
                 id="file-upload"
               />
               <label htmlFor="file-upload">
-                <Button
-                  as="span"
+                <MotionSpan
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   Select Files
-                </Button>
+                </MotionSpan>
               </label>
             </DropzoneContainer>
             {uploadedFiles.length > 0 && (
@@ -496,12 +535,7 @@ const LibraryShowcase = () => {
           <Card className="showcase-card">
             <h3>Workflow Status</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {[
-                { step: 'Sample Collection', status: 'completed', icon: '🩸' },
-                { step: 'Sample Processing', status: 'completed', icon: '🧪' },
-                { step: 'Testing', status: 'in-progress', icon: '🔬' },
-                { step: 'Results', status: 'pending', icon: '📊' }
-              ].map((item, index) => (
+              {workflowSteps.map((item, index) => (
                 <div key={index} style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -573,18 +607,7 @@ const LibraryShowcase = () => {
         </Grid>
       </Section>
 
-      {/* Mathematical Animations Section */}
-      <Section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.5 }}
-      >
-        <SectionTitle>
-          <IconMath size={24} />
-          Mathematical Animations & Visualizations
-        </SectionTitle>
-        <MathematicalAnimations />
-      </Section>
+
 
       <motion.div
         initial={{ opacity: 0 }}

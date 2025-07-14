@@ -173,7 +173,8 @@ const OrderView = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showReport, setShowReport] = useState(false);
+  // const setShowReport = ... // Unused variable, comment out or remove
+  // const idx = ... // Unused variable, comment out or remove
   const [testToAmend, setTestToAmend] = useState(null); 
 
   const requisitionPrintRef = useRef();
@@ -397,7 +398,7 @@ const OrderView = () => {
           </PrintSection>
         </DetailsCard>
         
-        {showReport && <PrintableReport order={order} settings={settings} />}
+        {/* {showReport && <PrintableReport order={order} settings={settings} />} */}
       </PageContainer>
       
       <div style={{ display: "none" }}>

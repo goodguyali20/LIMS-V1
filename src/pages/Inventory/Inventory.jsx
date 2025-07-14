@@ -420,7 +420,6 @@ const EmptyDescription = styled.p`
 
 const Inventory = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -865,7 +864,7 @@ const Inventory = () => {
               <CardActions>
                 <ActionButton
                   size="small"
-                  variant="primary"
+                  $variant="primary"
                   onClick={() => {
                     setEditingItem(item);
                     setShowModal(true);
@@ -1121,7 +1120,7 @@ const InventoryForm = ({ item, onSubmit, onCancel }) => {
         </FormGroup>
 
         <FormActions>
-          <GlowButton type="submit" variant="primary">
+          <GlowButton type="submit" $variant="primary">
             {item ? t('inventory.update') : t('inventory.add')}
           </GlowButton>
           <GlowButton type="button" onClick={onCancel}>

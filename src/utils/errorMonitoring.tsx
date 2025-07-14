@@ -12,11 +12,11 @@ export const initializeErrorMonitoring = () => {
         new BrowserTracing({
           // Properly configure routing instrumentation
           routingInstrumentation: Sentry.reactRouterV6Instrumentation(
-            (useEffect) => useEffect,
-            (useLocation) => useLocation,
-            (useNavigationType) => useNavigationType,
-            (createRoutesFromChildren) => createRoutesFromChildren,
-            (matchRoutes) => matchRoutes
+            (useEffect: any) => useEffect,
+            (useLocation: any) => useLocation,
+            (useNavigationType: any) => useNavigationType,
+            (createRoutesFromChildren: any) => createRoutesFromChildren,
+            (matchRoutes: any) => matchRoutes
           ),
         }),
       ],
@@ -220,7 +220,7 @@ export const createErrorBoundary = (fallback?: React.ComponentType<{ error: Erro
   return Sentry.withErrorBoundary(
     ({ children }: { children: React.ReactNode }) => <>{children}</>,
     {
-      fallback: fallback || (({ error }: { error: Error }) => (
+      fallback: fallback || (({ error: _error }: { error: Error }) => (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
           <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6">
             <div className="text-center">
@@ -335,4 +335,4 @@ export const reportError = (
 };
 
 // Export error types for use in other modules
-export type { SmartLabError }; 
+// Remove duplicate export 

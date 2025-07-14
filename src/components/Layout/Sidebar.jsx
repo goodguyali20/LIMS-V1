@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -68,6 +68,7 @@ import {
 
 const SidebarContainer = styled(motion.create('aside'))`
   width: 280px;
+  min-width: 280px;
   height: 100vh;
   background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
@@ -79,6 +80,7 @@ const SidebarContainer = styled(motion.create('aside'))`
   z-index: 1000;
   overflow-y: auto;
   overflow-x: hidden;
+  contain: layout style paint;
   
   &::-webkit-scrollbar {
     width: 6px;
@@ -358,16 +360,16 @@ const JourneyDescription = styled.span`
 `;
 
 const JourneyBadge = styled.span`
-  background: ${({ variant }) => {
-    switch (variant) {
+  background: ${({ $variant }) => {
+    switch ($variant) {
       case 'pending': return 'rgba(245, 158, 11, 0.2)';
       case 'completed': return 'rgba(16, 185, 129, 0.2)';
       case 'urgent': return 'rgba(239, 68, 68, 0.2)';
       default: return 'rgba(59, 130, 246, 0.2)';
     }
   }};
-  color: ${({ variant }) => {
-    switch (variant) {
+  color: ${({ $variant }) => {
+    switch ($variant) {
       case 'pending': return '#f59e0b';
       case 'completed': return '#10b981';
       case 'urgent': return '#ef4444';
@@ -378,8 +380,8 @@ const JourneyBadge = styled.span`
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 600;
-  border: 1px solid ${({ variant }) => {
-    switch (variant) {
+  border: 1px solid ${({ $variant }) => {
+    switch ($variant) {
       case 'pending': return 'rgba(245, 158, 11, 0.3)';
       case 'completed': return 'rgba(16, 185, 129, 0.3)';
       case 'urgent': return 'rgba(239, 68, 68, 0.3)';
@@ -428,7 +430,7 @@ const Sidebar = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const navItems = [
+  const navItems = useMemo(() => [
     { path: '/app/dashboard', icon: Home, label: t('sidebar.dashboard'), badge: null },
     { path: '/app/orders', icon: FileText, label: t('sidebar.orders'), badge: null },
     { path: '/app/register', icon: Users, label: t('sidebar.patientRegistration'), badge: null },
@@ -439,9 +441,9 @@ const Sidebar = () => {
     { path: '/app/workload', icon: BarChart3, label: t('sidebar.workload'), badge: null },
     { path: '/app/audit-log', icon: Activity, label: t('sidebar.auditLog'), badge: null },
     { path: '/app/showcase', icon: Zap, label: 'Library Showcase', badge: 'NEW' },
-  ];
+  ], [t, unreadCount]);
 
-  const journeySteps = [
+  const journeySteps = useMemo(() => [
     {
       icon: User,
       title: 'Patient Registration',
@@ -477,7 +479,7 @@ const Sidebar = () => {
       status: 'pending',
       path: '/app/work-queue'
     }
-  ];
+  ], []);
 
   const containerVariants = {
     hidden: { x: -280 },
@@ -545,7 +547,7 @@ const Sidebar = () => {
       </SidebarHeader>
 
       <NavSection variants={itemVariants}>
-        {navItems.map((item, index) => (
+        {navItems.map((item) => (
           <NavItem
             key={item.path}
             to={item.path}
@@ -595,7 +597,7 @@ const Sidebar = () => {
           Workflow Journey
         </motion.h3>
         
-        {journeySteps.map((step, index) => (
+        {journeySteps.map((step) => (
           <JourneyStep
             key={step.path}
             to={step.path}
@@ -611,7 +613,7 @@ const Sidebar = () => {
               <JourneyTitle>{step.title}</JourneyTitle>
               <JourneyDescription>{step.description}</JourneyDescription>
             </JourneyContent>
-            <JourneyBadge variant={step.status}>
+            <JourneyBadge $variant={step.status}>
               {step.status === 'completed' ? '✓' : 
                step.status === 'urgent' ? '!' : '⏳'}
             </JourneyBadge>
@@ -632,4 +634,6 @@ const Sidebar = () => {
   );
 };
 
-export default Sidebar;
+const MemoizedSidebar = React.memo(Sidebar);
+
+export default MemoizedSidebar;

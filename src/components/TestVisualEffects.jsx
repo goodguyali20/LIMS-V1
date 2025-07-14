@@ -1,7 +1,7 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+// import { motion } from 'framer-motion'; // Unused import
 import { useTheme } from '../contexts/ThemeContext';
-import { GlowCard, GlowButton } from './common';
+// import { GlowCard, GlowButton } from './common'; // Unused import
 import { 
   BarChart3, 
   TrendingUp, 
@@ -57,7 +57,7 @@ const TestVisualEffects = () => {
           
           <GlowButton 
             onClick={toggleTheme}
-            variant="primary"
+                            $variant="primary"
             style={{ marginBottom: '2rem' }}
           >
             Toggle {isDarkMode ? 'Light' : 'Dark'} Mode
@@ -168,27 +168,27 @@ const TestVisualEffects = () => {
 
         {/* Test Buttons */}
         <div style={{ marginTop: '3rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <GlowButton variant="primary" glowColor="primary">
+          <GlowButton $variant="primary" glowColor="primary">
             <Download style={{ width: '1rem', height: '1rem' }} />
             Primary Button
           </GlowButton>
           
-          <GlowButton variant="success" glowColor="success">
+          <GlowButton $variant="success" glowColor="success">
             <Star style={{ width: '1rem', height: '1rem' }} />
             Success Button
           </GlowButton>
           
-          <GlowButton variant="warning" glowColor="warning">
+          <GlowButton $variant="warning" glowColor="warning">
             <Bell style={{ width: '1rem', height: '1rem' }} />
             Warning Button
           </GlowButton>
           
-          <GlowButton variant="danger" glowColor="danger">
+          <GlowButton $variant="danger" glowColor="danger">
             <Settings style={{ width: '1rem', height: '1rem' }} />
             Danger Button
           </GlowButton>
           
-          <GlowButton variant="ghost">
+          <GlowButton $variant="ghost">
             Ghost Button
           </GlowButton>
         </div>

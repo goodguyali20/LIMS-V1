@@ -28,7 +28,7 @@ import Phlebotomist from './pages/Phlebotomist/Phlebotomist.jsx';
 import SearchResults from './pages/SearchResults.jsx';
 import Scanner from './pages/Scanner/Scanner.jsx';
 import LibraryShowcase from './components/LibraryShowcase.jsx';
-import MathematicalAnimations from './components/MathematicalAnimations.jsx';
+
 import AdvancedLibraryShowcase from './components/AdvancedLibraryShowcase.jsx';
 
 // Wrapper component that uses theme context
@@ -37,12 +37,7 @@ const AppContent = () => {
   
   return (
     <StyledThemeProvider theme={theme}>
-      <Routes
-        future={{
-          v7_startTransition: true,
-          v7_relativeSplatPath: true
-        }}
-      >
+      <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/app"
@@ -73,7 +68,7 @@ const AppContent = () => {
           <Route path="search" element={<SearchResults />} />
           <Route path="showcase" element={<LibraryShowcase />} />
           <Route path="advanced-showcase" element={<AdvancedLibraryShowcase />} />
-          <Route path="math-animations" element={<MathematicalAnimations />} />
+  
           <Route path="settings" element={<Settings />}>
             <Route index element={<Navigate to="general" replace />} />
             <Route path="general" element={<General />} />

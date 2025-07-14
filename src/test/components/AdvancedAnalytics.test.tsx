@@ -1,72 +1,56 @@
-import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
-import { ThemeProvider } from '../../contexts/ThemeContext.jsx';
-import { AuthProvider } from '../../contexts/AuthContext.jsx';
-import { TestProvider } from '../../contexts/TestContext.jsx';
-import { NotificationProvider } from '../../contexts/NotificationContext.tsx';
-import { OrderProvider } from '../../contexts/OrderContext.jsx';
-import { SettingsProvider } from '../../contexts/SettingsContext.jsx';
-import AdvancedAnalytics from '../../components/Analytics/AdvancedAnalytics.jsx';
+import AdvancedAnalytics from '../../components/Analytics/AdvancedAnalytics';
 
 // Mock the translation hook
-jest.mock('react-i18next', () => ({
+vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key) => key,
+    t: (key: string) => key,
     i18n: {
-      changeLanguage: jest.fn(),
+      changeLanguage: vi.fn(),
     },
   }),
 }));
 
-// Mock Recharts components
-jest.mock('recharts', () => ({
-  LineChart: ({ children }) => <div data-testid="line-chart">{children}</div>,
-  Line: () => <div data-testid="line" />,
-  BarChart: ({ children }) => <div data-testid="bar-chart">{children}</div>,
-  Bar: () => <div data-testid="bar" />,
-  PieChart: ({ children }) => <div data-testid="pie-chart">{children}</div>,
-  Pie: () => <div data-testid="pie" />,
-  Cell: () => <div data-testid="cell" />,
-  XAxis: () => <div data-testid="x-axis" />,
-  YAxis: () => <div data-testid="y-axis" />,
-  CartesianGrid: () => <div data-testid="cartesian-grid" />,
-  Tooltip: () => <div data-testid="tooltip" />,
-  Legend: () => <div data-testid="legend" />,
-  ResponsiveContainer: ({ children }) => <div data-testid="responsive-container">{children}</div>,
-  AreaChart: ({ children }) => <div data-testid="area-chart">{children}</div>,
-  Area: () => <div data-testid="area" />,
-  ScatterChart: ({ children }) => <div data-testid="scatter-chart">{children}</div>,
-  Scatter: () => <div data-testid="scatter" />,
+// Mock recharts components
+vi.mock('recharts', () => ({
+  LineChart: ({ children }: { children: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
+  Line: () => null,
+  XAxis: () => null,
+  YAxis: () => null,
+  CartesianGrid: () => null,
+  Tooltip: () => null,
+  BarChart: ({ children }: { children: React.ReactNode }) => <div data-testid="bar-chart">{children}</div>,
+  Bar: () => null,
+  PieChart: ({ children }: { children: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
+  Pie: () => null,
+  Cell: () => null,
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
+  AreaChart: ({ children }: { children: React.ReactNode }) => <div data-testid="area-chart">{children}</div>,
+  Area: () => null,
+  ScatterChart: ({ children }: { children: React.ReactNode }) => <div data-testid="scatter-chart">{children}</div>,
+  Scatter: () => null,
 }));
 
 // Mock date-fns
-jest.mock('date-fns', () => ({
-  format: jest.fn((date) => 'Jan 01'),
-  subDays: jest.fn((date, days) => new Date()),
+vi.mock('date-fns', () => ({
+  format: vi.fn((_date: Date) => 'Jan 01'),
+  subDays: vi.fn((_date: Date, _days: number) => new Date()),
+  startOfDay: vi.fn((date: Date) => date),
+  endOfDay: vi.fn((date: Date) => date),
 }));
 
-const renderWithProviders = (component) => {
-  return render(
-    <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <TestProvider>
-            <NotificationProvider>
-              <OrderProvider>
-                <SettingsProvider>
-                  {component}
-                </SettingsProvider>
-              </OrderProvider>
-            </NotificationProvider>
-          </TestProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
-  );
+// Mock providers
+const renderWithProviders = (component: React.ReactElement) => {
+  return render(component);
 };
 
 describe('AdvancedAnalytics', () => {
+  beforeEach(() => {
+    // Reset all mocks before each test
+    vi.clearAllMocks();
+  });
+
   it('renders analytics dashboard', () => {
     renderWithProviders(<AdvancedAnalytics />);
     

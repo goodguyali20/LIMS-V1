@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { useTheme } from '../../contexts/ThemeContext.jsx';
+// import { useTheme } from '../../contexts/ThemeContext.jsx'; // Unused import
 
 const Container = styled(motion.create('div'))`
   display: flex;

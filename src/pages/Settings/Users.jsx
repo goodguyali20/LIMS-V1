@@ -1,95 +1,209 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { collection, query, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Users,
+  UserPlus,
+  UserCheck,
+  UserX,
+  Shield,
+  Eye,
+  EyeOff,
+  Edit,
+  Trash2,
+  Search,
+  Filter,
+  MoreVertical,
+  Mail,
+  Phone,
+  Calendar,
+  MapPin,
+  Building,
+  Key,
+  Lock,
+  Unlock,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  Star,
+  Crown,
+  User,
+  Settings,
+  Database,
+  FileText,
+  Printer,
+  FlaskConical,
+  BarChart3,
+  Shield as ShieldIcon,
+  Eye as EyeIcon,
+  EyeOff as EyeOffIcon,
+  Edit as EditIcon,
+  Trash2 as TrashIcon,
+  Search as SearchIcon,
+  Filter as FilterIcon,
+  MoreVertical as MoreVerticalIcon,
+  Mail as MailIcon,
+  Phone as PhoneIcon,
+  Calendar as CalendarIcon,
+  MapPin as MapPinIcon,
+  Building as BuildingIcon,
+  Key as KeyIcon,
+  Lock as LockIcon,
+  Unlock as UnlockIcon,
+  CheckCircle as CheckIcon,
+  AlertCircle as AlertIcon,
+  Clock as ClockIcon,
+  Star as StarIcon,
+  Crown as CrownIcon,
+  User as UserIcon,
+  Settings as SettingsIcon,
+  Database as DatabaseIcon,
+  FileText as FileTextIcon,
+  Printer as PrinterIcon,
+  FlaskConical as FlaskIcon,
+  BarChart3 as BarChartIcon
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { GlowCard, GlowButton, AnimatedModal, AnimatedNotification } from '../../components/common';
 import { toast } from 'react-toastify';
-import { FaUser, FaEnvelope, FaShieldAlt, FaEdit, FaTrash, FaSearch, FaSpinner, FaPlus } from 'react-icons/fa';
-import Modal from '../../components/Common/Modal';
 
+// Styled Components
 const UsersContainer = styled.div`
   padding: 2rem;
-  animation: fadeIn 0.3s ease-in-out;
 `;
 
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+const UsersHeader = styled.div`
   margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const UsersTitle = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.text};
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const UsersDescription = styled.p`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 1rem;
+  margin: 0;
+`;
+
+const SearchAndFilterContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  
+  @media (min-width: 640px) {
+    flex-direction: row;
+  }
 `;
 
 const SearchContainer = styled.div`
-  position: relative;
   flex: 1;
-  max-width: 400px;
+  position: relative;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1rem;
+  transition: all 0.3s ease;
   
-  input {
-    width: 100%;
-    padding: 0.8rem 1rem 0.8rem 2.5rem;
-    border-radius: ${({ theme }) => theme.shapes.squircle};
-    border: 1px solid ${({ theme }) => theme.colors.border};
-    background-color: ${({ theme }) => theme.colors.input};
-    color: ${({ theme }) => theme.colors.text};
-    
-    &:focus {
-      outline: none;
-      border-color: ${({ theme }) => theme.colors.primary};
-    }
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
   }
   
-  svg {
-    position: absolute;
-    left: 0.8rem;
-    top: 50%;
-    transform: translateY(-50%);
+  &::placeholder {
     color: ${({ theme }) => theme.colors.textSecondary};
   }
 `;
 
-const AddButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.8rem 1.5rem;
-  border: none;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  background: ${({ theme }) => theme.colors.primary};
-  color: white;
+const StyledSearchIcon = styled(SearchIcon)`
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: ${({ theme }) => theme.colors.textSecondary};
+  width: 1.25rem;
+  height: 1.25rem;
+`;
+
+const FilterSelect = styled.select`
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: ${({ theme }) => theme.colors.text};
   cursor: pointer;
-  font-weight: 600;
-  transition: opacity 0.2s ease;
+  font-size: 1rem;
+  transition: all 0.3s ease;
   
-  &:hover {
-    opacity: 0.9;
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20;
   }
 `;
 
 const UsersGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: 1.5rem;
+  margin-bottom: 2rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
 `;
 
-const UserCard = styled.div`
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
+const UserCard = styled(GlowCard)`
   padding: 1.5rem;
-  box-shadow: ${({ theme }) => theme.shadows.main};
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
   
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: ${({ theme }) => theme.shadows.hover};
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: ${({ roleColor }) => roleColor};
   }
 `;
 
 const UserHeader = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 1rem;
   margin-bottom: 1rem;
+`;
+
+const UserAvatar = styled.div`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: ${({ color }) => color}20;
+  color: ${({ color }) => color};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.25rem;
 `;
 
 const UserInfo = styled.div`
@@ -97,133 +211,93 @@ const UserInfo = styled.div`
 `;
 
 const UserName = styled.h3`
-  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
   color: ${({ theme }) => theme.colors.text};
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  margin: 0 0 0.25rem 0;
 `;
 
 const UserEmail = styled.p`
-  margin: 0;
   color: ${({ theme }) => theme.colors.textSecondary};
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  font-size: 0.875rem;
+  margin: 0;
 `;
 
-const RoleBadge = styled.span`
-  padding: 0.3rem 0.8rem;
+const UserRole = styled.span`
+  background: ${({ color }) => color}20;
+  color: ${({ color }) => color};
+  padding: 0.25rem 0.75rem;
   border-radius: 1rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  background: ${({ role, theme }) => {
-    switch (role) {
-      case 'admin': return `${theme.colors.error}20`;
-      case 'manager': return `${theme.colors.warning}20`;
-      case 'technician': return `${theme.colors.info}20`;
-      case 'phlebotomist': return `${theme.colors.success}20`;
-      default: return `${theme.colors.textSecondary}20`;
-    }
-  }};
-  color: ${({ role, theme }) => {
-    switch (role) {
-      case 'admin': return theme.colors.error;
-      case 'manager': return theme.colors.warning;
-      case 'technician': return theme.colors.info;
-      case 'phlebotomist': return theme.colors.success;
-      default: return theme.colors.textSecondary;
-    }
-  }};
+  font-size: 0.75rem;
+  font-weight: 500;
 `;
 
 const UserActions = styled.div`
   display: flex;
   gap: 0.5rem;
-`;
-
-const ActionButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.5rem 0.8rem;
-  border: none;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  background: ${({ $variant, theme }) => 
-    $variant === 'danger' ? theme.colors.error : 
-    $variant === 'secondary' ? theme.colors.surface : 
-    theme.colors.primary};
-  color: ${({ $variant, theme }) => 
-    $variant === 'danger' ? 'white' : 
-    $variant === 'secondary' ? theme.colors.textSecondary : 
-    'white'};
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 600;
-  transition: opacity 0.2s ease;
   
-  &:hover {
-    opacity: 0.8;
+  svg {
+    cursor: pointer;
+    color: ${({ theme }) => theme.colors.textSecondary};
+    width: 1.25rem;
+    height: 1.25rem;
+    
+    &:hover {
+      color: ${({ theme }) => theme.colors.primary};
+    }
   }
 `;
 
 const UserDetails = styled.div`
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid ${({ theme }) => theme.colors.border};
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
 `;
 
 const DetailItem = styled.div`
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-  
-  span:first-child {
-    color: ${({ theme }) => theme.colors.textSecondary};
-    font-size: 0.9rem;
-  }
-  
-  span:last-child {
-    font-weight: 600;
-    font-size: 0.9rem;
-  }
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
   align-items: center;
-  height: 200px;
+  gap: 0.5rem;
+  font-size: 0.875rem;
   color: ${({ theme }) => theme.colors.textSecondary};
+  
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
 `;
 
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 4rem;
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  box-shadow: ${({ theme }) => theme.shadows.main};
-  
-  h3 {
-    margin-bottom: 1rem;
-    color: ${({ theme }) => theme.colors.textSecondary};
-  }
-  
-  p {
-    color: ${({ theme }) => theme.colors.textSecondary};
-  }
+const PermissionsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+  margin-top: 1rem;
+`;
+
+const PermissionBadge = styled.span`
+  background: ${({ $active, theme }) => $active ? theme.colors.success + '20' : theme.colors.surfaceSecondary};
+  color: ${({ $active, theme }) => $active ? theme.colors.success : theme.colors.textSecondary};
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 `;
 
 const ModalForm = styled.form`
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
-const FormGroup = styled.div`
+const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -232,6 +306,9 @@ const FormGroup = styled.div`
 const Label = styled.label`
   font-weight: 600;
   color: ${({ theme }) => theme.colors.text};
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 `;
 
 const Input = styled.input`
@@ -241,10 +318,12 @@ const Input = styled.input`
   border: 1px solid ${({ theme }) => theme.colors.border};
   background-color: ${({ theme }) => theme.colors.input};
   color: ${({ theme }) => theme.colors.text};
+  font-size: 1rem;
   
   &:focus {
     outline: none;
     border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 2px ${({ theme }) => theme.colors.primary}20;
   }
 `;
 
@@ -255,11 +334,75 @@ const Select = styled.select`
   border: 1px solid ${({ theme }) => theme.colors.border};
   background-color: ${({ theme }) => theme.colors.input};
   color: ${({ theme }) => theme.colors.text};
+  font-size: 1rem;
   cursor: pointer;
   
   &:focus {
     outline: none;
     border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 2px ${({ theme }) => theme.colors.primary}20;
+  }
+`;
+
+const ToggleContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-radius: ${({ theme }) => theme.shapes.squircle};
+  background: ${({ theme }) => theme.colors.surfaceSecondary};
+  margin-bottom: 1rem;
+  grid-column: 1 / -1;
+`;
+
+const ToggleLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const ToggleSwitch = styled.label`
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+  
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  span {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: ${({ theme }) => theme.colors.border};
+    transition: 0.3s;
+    border-radius: 24px;
+    
+    &:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+  }
+  
+  input:checked + span {
+    background-color: ${({ theme }) => theme.colors.primary};
+  }
+  
+  input:checked + span:before {
+    transform: translateX(26px);
   }
 `;
 
@@ -268,82 +411,224 @@ const ButtonContainer = styled.div`
   justify-content: flex-end;
   gap: 1rem;
   margin-top: 1rem;
+  grid-column: 1 / -1;
 `;
 
-const SaveButton = styled(ActionButton)``;
-const CancelButton = styled(ActionButton)`
+const SaveButton = styled(GlowButton)``;
+const CancelButton = styled(GlowButton)`
   background: ${({ theme }) => theme.colors.surface};
   color: ${({ theme }) => theme.colors.textSecondary};
   border: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
-const Users = () => {
-  const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+const UsersManagement = () => {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterRole, setFilterRole] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [userFormState, setUserFormState] = useState({
-    displayName: '',
+    name: '',
     email: '',
-    role: 'technician',
+    role: 'user',
     department: '',
-    phone: ''
+    phone: '',
+    isActive: true,
+    permissions: {
+      dashboard: true,
+      patients: true,
+      orders: true,
+      tests: false,
+      inventory: false,
+      reports: false,
+      settings: false,
+      users: false
+    }
   });
 
-  useEffect(() => {
-    const q = query(collection(db, "users"));
-
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const usersData = [];
-      querySnapshot.forEach((doc) => {
-        usersData.push({ id: doc.id, ...doc.data() });
-      });
-      setUsers(usersData);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error fetching users:', error);
-      toast.error('Failed to load users');
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    let filtered = users;
-
-    if (searchTerm) {
-      filtered = filtered.filter(user => 
-        user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.role?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  // Mock user data - in real app this would come from context/API
+  const [users, setUsers] = useState([
+    {
+      id: 1,
+      name: 'Dr. Ahmed Hassan',
+      email: 'ahmed.hassan@hospital.com',
+      role: 'admin',
+      department: 'Laboratory',
+      phone: '+964 750 123 4567',
+      isActive: true,
+      lastLogin: '2024-01-15T10:30:00Z',
+      permissions: {
+        dashboard: true,
+        patients: true,
+        orders: true,
+        tests: true,
+        inventory: true,
+        reports: true,
+        settings: true,
+        users: true
+      }
+    },
+    {
+      id: 2,
+      name: 'Nurse Sarah Johnson',
+      email: 'sarah.johnson@hospital.com',
+      role: 'nurse',
+      department: 'Phlebotomy',
+      phone: '+964 750 234 5678',
+      isActive: true,
+      lastLogin: '2024-01-15T09:15:00Z',
+      permissions: {
+        dashboard: true,
+        patients: true,
+        orders: true,
+        tests: false,
+        inventory: false,
+        reports: false,
+        settings: false,
+        users: false
+      }
+    },
+    {
+      id: 3,
+      name: 'Lab Tech Mohammed Ali',
+      email: 'mohammed.ali@hospital.com',
+      role: 'technician',
+      department: 'Chemistry',
+      phone: '+964 750 345 6789',
+      isActive: true,
+      lastLogin: '2024-01-15T08:45:00Z',
+      permissions: {
+        dashboard: true,
+        patients: false,
+        orders: true,
+        tests: true,
+        inventory: true,
+        reports: true,
+        settings: false,
+        users: false
+      }
+    },
+    {
+      id: 4,
+      name: 'Dr. Fatima Al-Zahra',
+      email: 'fatima.alzahra@hospital.com',
+      role: 'doctor',
+      department: 'Hematology',
+      phone: '+964 750 456 7890',
+      isActive: false,
+      lastLogin: '2024-01-10T14:20:00Z',
+      permissions: {
+        dashboard: true,
+        patients: true,
+        orders: true,
+        tests: true,
+        inventory: false,
+        reports: true,
+        settings: false,
+        users: false
+      }
     }
+  ]);
 
-    setFilteredUsers(filtered);
-  }, [users, searchTerm]);
+  const roleConfig = {
+    admin: {
+      label: 'Administrator',
+      color: '#dc2626',
+      icon: Crown
+    },
+    doctor: {
+      label: 'Doctor',
+      color: '#3b82f6',
+      icon: User
+    },
+    nurse: {
+      label: 'Nurse',
+      color: '#10b981',
+      icon: UserCheck
+    },
+    technician: {
+      label: 'Lab Technician',
+      color: '#f59e0b',
+      icon: FlaskIcon
+    },
+    user: {
+      label: 'User',
+      color: '#6b7280',
+      icon: User
+    }
+  };
+
+  const permissionConfig = {
+    dashboard: { label: 'Dashboard', icon: BarChartIcon },
+    patients: { label: 'Patients', icon: UserIcon },
+    orders: { label: 'Orders', icon: FileTextIcon },
+    tests: { label: 'Tests', icon: FlaskIcon },
+    inventory: { label: 'Inventory', icon: DatabaseIcon },
+    reports: { label: 'Reports', icon: PrinterIcon },
+    settings: { label: 'Settings', icon: SettingsIcon },
+    users: { label: 'Users', icon: Users }
+  };
 
   useEffect(() => {
     if (editingUser) {
       setUserFormState({
-        displayName: editingUser.displayName || '',
+        name: editingUser.name || '',
         email: editingUser.email || '',
-        role: editingUser.role || 'technician',
+        role: editingUser.role || 'user',
         department: editingUser.department || '',
-        phone: editingUser.phone || ''
+        phone: editingUser.phone || '',
+        isActive: editingUser.isActive !== undefined ? editingUser.isActive : true,
+        permissions: editingUser.permissions || {
+          dashboard: true,
+          patients: true,
+          orders: true,
+          tests: false,
+          inventory: false,
+          reports: false,
+          settings: false,
+          users: false
+        }
       });
     } else {
       setUserFormState({
-        displayName: '',
+        name: '',
         email: '',
-        role: 'technician',
+        role: 'user',
         department: '',
-        phone: ''
+        phone: '',
+        isActive: true,
+        permissions: {
+          dashboard: true,
+          patients: true,
+          orders: true,
+          tests: false,
+          inventory: false,
+          reports: false,
+          settings: false,
+          users: false
+        }
       });
     }
   }, [editingUser, isModalOpen]);
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    if (name.startsWith('permissions.')) {
+      const permission = name.split('.')[1];
+      setUserFormState(prev => ({
+        ...prev,
+        permissions: {
+          ...prev.permissions,
+          [permission]: checked
+        }
+      }));
+    } else {
+      setUserFormState(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }));
+    }
+  };
 
   const handleOpenModal = (user = null) => {
     setEditingUser(user);
@@ -355,235 +640,344 @@ const Users = () => {
     setIsModalOpen(false);
   };
 
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setUserFormState(prev => ({ ...prev, [name]: value }));
-  };
-
   const handleSaveUser = async (e) => {
     e.preventDefault();
     try {
-      if (!userFormState.displayName || !userFormState.email) {
+      if (!userFormState.name || !userFormState.email) {
         toast.warn('Name and Email are required.');
         return;
       }
 
       if (editingUser) {
-        await updateDoc(doc(db, "users", editingUser.id), userFormState);
-        toast.success(`User "${userFormState.displayName}" updated successfully!`);
+        // Update existing user
+        setUsers(prev => prev.map(user => 
+          user.id === editingUser.id 
+            ? { ...user, ...userFormState }
+            : user
+        ));
+        toast.success(`User "${userFormState.name}" updated successfully!`);
       } else {
-        // For now, we'll just show a message since user creation requires Firebase Auth
-        toast.info('User creation requires Firebase Authentication setup.');
+        // Add new user
+        const newUser = {
+          id: Date.now(),
+          ...userFormState,
+          lastLogin: null
+        };
+        setUsers(prev => [...prev, newUser]);
+        toast.success(`User "${userFormState.name}" added successfully!`);
       }
       handleCloseModal();
     } catch (error) {
-      console.error('Error saving user:', error);
       toast.error("Failed to save user.");
     }
   };
 
   const handleDeleteUser = async (userId, userName) => {
     if (window.confirm(`Are you sure you want to delete the user "${userName}"? This cannot be undone.`)) {
-      try {
-        await deleteDoc(doc(db, "users", userId));
-        toast.success(`User "${userName}" deleted successfully!`);
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        toast.error("Failed to delete user.");
-      }
+      setUsers(prev => prev.filter(user => user.id !== userId));
+      toast.success(`User "${userName}" deleted successfully!`);
     }
   };
 
-  const getRoleDisplayName = (role) => {
-    switch (role) {
-      case 'admin': return 'Administrator';
-      case 'manager': return 'Manager';
-      case 'technician': return 'Technician';
-      case 'phlebotomist': return 'Phlebotomist';
-      default: return role;
-    }
+  const handleToggleUserStatus = (userId) => {
+    setUsers(prev => prev.map(user => 
+      user.id === userId 
+        ? { ...user, isActive: !user.isActive }
+        : user
+    ));
   };
 
-  if (loading) {
-    return (
-      <UsersContainer>
-        <LoadingContainer>
-          <FaSpinner className="fa-spin" size={24} />
-          <span>Loading users...</span>
-        </LoadingContainer>
-      </UsersContainer>
-    );
-  }
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.department.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterRole === 'all' || user.role === filterRole;
+    return matchesSearch && matchesFilter;
+  });
+
+  const getInitials = (name) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  const formatLastLogin = (lastLogin) => {
+    if (!lastLogin) return 'Never';
+    const date = new Date(lastLogin);
+    const now = new Date();
+    const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
+    return date.toLocaleDateString();
+  };
 
   return (
     <UsersContainer>
-      <Header>
-        <div>
-          <h1>User Management</h1>
-          <p>Manage user accounts and permissions</p>
-        </div>
-        <AddButton onClick={() => handleOpenModal()}>
-          <FaPlus /> Add New User
-        </AddButton>
-      </Header>
+      <UsersHeader>
+        <UsersTitle>
+          <Users size={24} />
+          User Management
+        </UsersTitle>
+        <UsersDescription>
+          Manage user accounts, roles, permissions, and access control
+        </UsersDescription>
+      </UsersHeader>
 
-      <SearchContainer>
-        <FaSearch />
-        <input
-          type="text"
-          placeholder="Search users..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </SearchContainer>
+      <SearchAndFilterContainer>
+        <SearchContainer>
+          <StyledSearchIcon />
+          <SearchInput
+            type="text"
+            placeholder="Search users..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </SearchContainer>
+        <FilterSelect
+          value={filterRole}
+          onChange={(e) => setFilterRole(e.target.value)}
+        >
+          <option value="all">All Roles</option>
+          <option value="admin">Administrators</option>
+          <option value="doctor">Doctors</option>
+          <option value="nurse">Nurses</option>
+          <option value="technician">Technicians</option>
+          <option value="user">Users</option>
+        </FilterSelect>
+        <GlowButton onClick={() => handleOpenModal()}>
+          <UserPlus size={16} />
+          Add User
+        </GlowButton>
+      </SearchAndFilterContainer>
 
-      {filteredUsers.length === 0 ? (
-        <EmptyState>
-          <h3>No Users Found</h3>
-          <p>
-            {searchTerm 
-              ? 'Try adjusting your search criteria.'
-              : 'No users have been added yet.'
-            }
-          </p>
-        </EmptyState>
-      ) : (
-        <UsersGrid>
-          {filteredUsers.map((user) => (
-            <UserCard key={user.id}>
+      <UsersGrid>
+        {filteredUsers.map((user, index) => {
+          const roleInfo = roleConfig[user.role];
+          const RoleIcon = roleInfo.icon;
+          
+          return (
+            <UserCard
+              key={user.id}
+              as={motion.div}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              roleColor={roleInfo.color}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
               <UserHeader>
+                <UserAvatar color={roleInfo.color}>
+                  {getInitials(user.name)}
+                </UserAvatar>
                 <UserInfo>
-                  <UserName>
-                    <FaUser />
-                    {user.displayName}
-                  </UserName>
-                  <UserEmail>
-                    <FaEnvelope />
-                    {user.email}
-                  </UserEmail>
+                  <UserName>{user.name}</UserName>
+                  <UserEmail>{user.email}</UserEmail>
                 </UserInfo>
+                <UserRole color={roleInfo.color}>
+                  <RoleIcon size={12} />
+                  {roleInfo.label}
+                </UserRole>
                 <UserActions>
-                  <ActionButton
-                    $variant="secondary"
-                    onClick={() => handleOpenModal(user)}
-                  >
-                    <FaEdit /> Edit
-                  </ActionButton>
-                  <ActionButton
-                    $variant="danger"
-                    onClick={() => handleDeleteUser(user.id, user.displayName)}
-                  >
-                    <FaTrash /> Delete
-                  </ActionButton>
+                  <EditIcon onClick={() => handleOpenModal(user)} title="Edit User"/>
+                  {user.isActive ? (
+                    <LockIcon onClick={() => handleToggleUserStatus(user.id)} title="Deactivate User"/>
+                  ) : (
+                    <UnlockIcon onClick={() => handleToggleUserStatus(user.id)} title="Activate User"/>
+                  )}
+                  <TrashIcon onClick={() => handleDeleteUser(user.id, user.name)} title="Delete User"/>
                 </UserActions>
               </UserHeader>
-              
+
               <UserDetails>
                 <DetailItem>
-                  <span>Role:</span>
-                  <RoleBadge role={user.role}>
-                    {getRoleDisplayName(user.role)}
-                  </RoleBadge>
+                  <BuildingIcon size={16} />
+                  {user.department}
                 </DetailItem>
-                
-                {user.department && (
-                  <DetailItem>
-                    <span>Department:</span>
-                    <span>{user.department}</span>
-                  </DetailItem>
-                )}
-                
-                {user.phone && (
-                  <DetailItem>
-                    <span>Phone:</span>
-                    <span>{user.phone}</span>
-                  </DetailItem>
-                )}
-                
                 <DetailItem>
-                  <span>Status:</span>
-                  <span style={{ color: user.disabled ? '#e74c3c' : '#27ae60' }}>
-                    {user.disabled ? 'Disabled' : 'Active'}
-                  </span>
+                  <PhoneIcon size={16} />
+                  {user.phone}
+                </DetailItem>
+                <DetailItem>
+                  <ClockIcon size={16} />
+                  {formatLastLogin(user.lastLogin)}
+                </DetailItem>
+                <DetailItem>
+                  {user.isActive ? (
+                    <CheckIcon size={16} style={{ color: '#10b981' }} />
+                  ) : (
+                    <AlertIcon size={16} style={{ color: '#ef4444' }} />
+                  )}
+                  {user.isActive ? 'Active' : 'Inactive'}
                 </DetailItem>
               </UserDetails>
-            </UserCard>
-          ))}
-        </UsersGrid>
-      )}
 
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingUser ? 'Edit User' : 'Add New User'}>
+              <PermissionsGrid>
+                {Object.entries(user.permissions).map(([key, value]) => {
+                  const permInfo = permissionConfig[key];
+                  const PermIcon = permInfo.icon;
+                  
+                  return (
+                    <PermissionBadge key={key} $active={value}>
+                      <PermIcon size={12} />
+                      {permInfo.label}
+                    </PermissionBadge>
+                  );
+                })}
+              </PermissionsGrid>
+            </UserCard>
+          );
+        })}
+      </UsersGrid>
+
+      <AnimatedModal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal} 
+        title={editingUser ? 'Edit User' : 'Add New User'}
+      >
         <ModalForm onSubmit={handleSaveUser}>
-          <FormGroup>
-            <Label>Full Name *</Label>
-            <Input
-              name="displayName"
-              value={userFormState.displayName}
-              onChange={handleFormChange}
-              placeholder="Enter full name"
-              required
+          <InputGroup>
+            <Label>
+              <UserIcon size={16} />
+              Full Name
+            </Label>
+            <Input 
+              name="name" 
+              value={userFormState.name} 
+              onChange={handleInputChange} 
+              placeholder="Enter full name" 
+              required 
             />
-          </FormGroup>
+          </InputGroup>
           
-          <FormGroup>
-            <Label>Email *</Label>
-            <Input
-              name="email"
+          <InputGroup>
+            <Label>
+              <MailIcon size={16} />
+              Email
+            </Label>
+            <Input 
+              name="email" 
               type="email"
-              value={userFormState.email}
-              onChange={handleFormChange}
-              placeholder="user@hospital.com"
-              required
+              value={userFormState.email} 
+              onChange={handleInputChange} 
+              placeholder="Enter email address" 
+              required 
             />
-          </FormGroup>
+          </InputGroup>
           
-          <FormGroup>
-            <Label>Role *</Label>
-            <Select
-              name="role"
-              value={userFormState.role}
-              onChange={handleFormChange}
-              required
+          <InputGroup>
+            <Label>
+              <ShieldIcon size={16} />
+              Role
+            </Label>
+            <Select 
+              name="role" 
+              value={userFormState.role} 
+              onChange={handleInputChange}
             >
-              <option value="technician">Technician</option>
-              <option value="phlebotomist">Phlebotomist</option>
-              <option value="manager">Manager</option>
+              <option value="user">User</option>
+              <option value="technician">Lab Technician</option>
+              <option value="nurse">Nurse</option>
+              <option value="doctor">Doctor</option>
               <option value="admin">Administrator</option>
             </Select>
-          </FormGroup>
+          </InputGroup>
           
-          <FormGroup>
-            <Label>Department</Label>
-            <Input
-              name="department"
-              value={userFormState.department}
-              onChange={handleFormChange}
-              placeholder="e.g., Chemistry Lab"
+          <InputGroup>
+            <Label>
+              <BuildingIcon size={16} />
+              Department
+            </Label>
+            <Input 
+              name="department" 
+              value={userFormState.department} 
+              onChange={handleInputChange} 
+              placeholder="Enter department" 
             />
-          </FormGroup>
+          </InputGroup>
           
-          <FormGroup>
-            <Label>Phone</Label>
-            <Input
-              name="phone"
-              value={userFormState.phone}
-              onChange={handleFormChange}
-              placeholder="+964 XXX XXX XXXX"
+          <InputGroup>
+            <Label>
+              <PhoneIcon size={16} />
+              Phone
+            </Label>
+            <Input 
+              name="phone" 
+              value={userFormState.phone} 
+              onChange={handleInputChange} 
+              placeholder="Enter phone number" 
             />
-          </FormGroup>
+          </InputGroup>
+          
+          <ToggleContainer>
+            <ToggleLabel>
+              {userFormState.isActive ? <CheckIcon size={16} /> : <AlertIcon size={16} />}
+              <div>
+                <strong>Active Account</strong>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
+                  Allow this user to access the system
+                </p>
+              </div>
+            </ToggleLabel>
+            <ToggleSwitch>
+              <input
+                type="checkbox"
+                name="isActive"
+                checked={userFormState.isActive}
+                onChange={handleInputChange}
+              />
+              <span></span>
+            </ToggleSwitch>
+          </ToggleContainer>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <Label style={{ marginBottom: '1rem' }}>
+              <KeyIcon size={16} />
+              Permissions
+            </Label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              {Object.entries(permissionConfig).map(([key, permInfo]) => {
+                const PermIcon = permInfo.icon;
+                
+                return (
+                  <ToggleContainer key={key} style={{ margin: 0 }}>
+                    <ToggleLabel>
+                      <PermIcon size={16} />
+                      <div>
+                        <strong>{permInfo.label}</strong>
+                        <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
+                          Access to {permInfo.label.toLowerCase()} features
+                        </p>
+                      </div>
+                    </ToggleLabel>
+                    <ToggleSwitch>
+                      <input
+                        type="checkbox"
+                        name={`permissions.${key}`}
+                        checked={userFormState.permissions[key]}
+                        onChange={handleInputChange}
+                      />
+                      <span></span>
+                    </ToggleSwitch>
+                  </ToggleContainer>
+                );
+              })}
+            </div>
+          </div>
 
           <ButtonContainer>
             <CancelButton type="button" onClick={handleCloseModal}>
               Cancel
             </CancelButton>
             <SaveButton type="submit">
-              {editingUser ? 'Update User' : 'Add User'}
+              <CheckIcon size={16} />
+              {editingUser ? 'Update User' : 'Create User'}
             </SaveButton>
           </ButtonContainer>
         </ModalForm>
-      </Modal>
+      </AnimatedModal>
     </UsersContainer>
   );
 };
 
-export default Users; 
+export default UsersManagement; 

@@ -13,126 +13,23 @@ import {
   FaFilter, FaSort, FaEye, FaEdit, FaTrash, FaPlus, FaCheck,
   FaExclamationTriangle, FaInfoCircle, FaSpinner, FaRedo
 } from 'react-icons/fa';
-import { collection, addDoc, query, where, getDocs, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { formatDate, getAge } from '../../utils/dateUtils.js';
+import { 
+  generatePatientSchema, 
+  generateDefaultValues, 
+  shouldRenderField, 
+  isFieldRequired 
+} from '../../utils/patientRegistrationUtils.js';
 import GlowCard from '../../components/common/GlowCard.jsx';
 import GlowButton from '../../components/common/GlowButton.jsx';
 import AnimatedDataTable from '../../components/common/AnimatedDataTable.jsx';
+import { useSettings } from '../../contexts/SettingsContext';
 
-// Zod schema for patient registration
-const patientSchema = z.object({
-  firstName: z.string()
-    .min(2, 'First name must be at least 2 characters')
-    .max(50, 'First name must be less than 50 characters')
-    .regex(/^[a-zA-Z\s]+$/, 'First name can only contain letters and spaces'),
-  
-  lastName: z.string()
-    .min(2, 'Last name must be at least 2 characters')
-    .max(50, 'Last name must be less than 50 characters')
-    .regex(/^[a-zA-Z\s]+$/, 'Last name can only contain letters and spaces'),
-  
-  dateOfBirth: z.string()
-    .min(1, 'Date of birth is required')
-    .refine((date) => {
-      const age = getAge(date);
-      return age >= 0 && age <= 120;
-    }, 'Invalid date of birth'),
-  
-  gender: z.enum(['male', 'female', 'other'], {
-    required_error: 'Gender is required'
-  }),
-  
-  phoneNumber: z.string()
-    .min(10, 'Phone number must be at least 10 digits')
-    .max(15, 'Phone number must be less than 15 digits')
-    .regex(/^[\d\s\-\+\(\)]+$/, 'Phone number can only contain digits, spaces, hyphens, plus signs, and parentheses'),
-  
-  email: z.string()
-    .email('Invalid email address')
-    .optional()
-    .or(z.literal('')),
-  
-  address: z.object({
-    street: z.string()
-      .min(5, 'Street address must be at least 5 characters')
-      .max(100, 'Street address must be less than 100 characters'),
-    
-    city: z.string()
-      .min(2, 'City must be at least 2 characters')
-      .max(50, 'City must be less than 50 characters'),
-    
-    state: z.string()
-      .min(2, 'State must be at least 2 characters')
-      .max(50, 'State must be less than 50 characters'),
-    
-    zipCode: z.string()
-      .min(5, 'ZIP code must be at least 5 characters')
-      .max(10, 'ZIP code must be less than 10 characters')
-      .regex(/^[\d\-]+$/, 'ZIP code can only contain digits and hyphens'),
-    
-    country: z.string()
-      .min(2, 'Country must be at least 2 characters')
-      .max(50, 'Country must be less than 50 characters')
-      .default('United States')
-  }),
-  
-  emergencyContact: z.object({
-    name: z.string()
-      .min(2, 'Emergency contact name must be at least 2 characters')
-      .max(100, 'Emergency contact name must be less than 100 characters'),
-    
-    relationship: z.string()
-      .min(2, 'Relationship must be at least 2 characters')
-      .max(50, 'Relationship must be less than 50 characters'),
-    
-    phoneNumber: z.string()
-      .min(10, 'Emergency contact phone must be at least 10 digits')
-      .max(15, 'Emergency contact phone must be less than 15 digits')
-      .regex(/^[\d\s\-\+\(\)]+$/, 'Phone number can only contain digits, spaces, hyphens, plus signs, and parentheses')
-  }),
-  
-  medicalHistory: z.object({
-    allergies: z.string()
-      .max(500, 'Allergies description must be less than 500 characters')
-      .optional()
-      .or(z.literal('')),
-    
-    medications: z.string()
-      .max(500, 'Medications description must be less than 500 characters')
-      .optional()
-      .or(z.literal('')),
-    
-    conditions: z.string()
-      .max(500, 'Medical conditions description must be less than 500 characters')
-      .optional()
-      .or(z.literal('')),
-    
-    notes: z.string()
-      .max(1000, 'Notes must be less than 1000 characters')
-      .optional()
-      .or(z.literal(''))
-  }),
-  
-  insurance: z.object({
-    provider: z.string()
-      .max(100, 'Insurance provider must be less than 100 characters')
-      .optional()
-      .or(z.literal('')),
-    
-    policyNumber: z.string()
-      .max(50, 'Policy number must be less than 50 characters')
-      .optional()
-      .or(z.literal('')),
-    
-    groupNumber: z.string()
-      .max(50, 'Group number must be less than 50 characters')
-      .optional()
-      .or(z.literal(''))
-  })
-});
+// Dynamic schema will be generated based on settings
 
 const PageContainer = styled(motion.div)`
   padding: 2rem;
@@ -297,6 +194,19 @@ const Input = styled.input`
   outline: none;
   transition: all 0.3s ease;
   backdrop-filter: blur(20px);
+  position: relative;
+  z-index: 1;
+  
+  &:hover {
+    border-color: rgba(102, 126, 234, 0.5) !important;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%) !important;
+    backdrop-filter: blur(25px) !important;
+    box-shadow: 
+      0 8px 32px rgba(102, 126, 234, 0.3),
+      0 4px 16px rgba(255, 255, 255, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    transform: translateY(-2px) !important;
+  }
   
   &:focus {
     border-color: ${({ theme, $hasError }) => 
@@ -304,11 +214,15 @@ const Input = styled.input`
     box-shadow: ${({ theme, $hasError }) => 
       $hasError ? theme.shadows.glow.error : '0 0 0 3px rgba(102, 126, 234, 0.2)'};
     transform: scale(1.02);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: none;
+    color: #333;
   }
   
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    backdrop-filter: blur(20px);
   }
   
   &::placeholder {
@@ -329,6 +243,19 @@ const TextArea = styled.textarea`
   resize: vertical;
   min-height: 100px;
   backdrop-filter: blur(20px);
+  position: relative;
+  z-index: 1;
+  
+  &:hover {
+    border-color: rgba(102, 126, 234, 0.5) !important;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%) !important;
+    backdrop-filter: blur(25px) !important;
+    box-shadow: 
+      0 8px 32px rgba(102, 126, 234, 0.3),
+      0 4px 16px rgba(255, 255, 255, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    transform: translateY(-2px) !important;
+  }
   
   &:focus {
     border-color: ${({ theme, $hasError }) => 
@@ -336,6 +263,9 @@ const TextArea = styled.textarea`
     box-shadow: ${({ theme, $hasError }) => 
       $hasError ? theme.shadows.glow.error : '0 0 0 3px rgba(102, 126, 234, 0.2)'};
     transform: scale(1.02);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: none;
+    color: #333;
   }
   
   &::placeholder {
@@ -358,10 +288,18 @@ const SelectContainer = styled.div`
     min-height: 48px;
     box-shadow: none;
     backdrop-filter: blur(20px);
+    transition: all 0.3s ease;
     
     &:hover {
       border-color: ${({ theme, $hasError }) => 
-        $hasError ? theme.colors.error : '#667eea'};
+        $hasError ? theme.colors.error : 'rgba(102, 126, 234, 0.5)'} !important;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%) !important;
+      backdrop-filter: blur(25px) !important;
+      box-shadow: 
+        0 8px 32px rgba(102, 126, 234, 0.3),
+        0 4px 16px rgba(255, 255, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+      transform: translateY(-2px) !important;
     }
     
     &.react-select__control--is-focused {
@@ -370,6 +308,8 @@ const SelectContainer = styled.div`
       box-shadow: ${({ theme, $hasError }) => 
         $hasError ? theme.shadows.glow.error : '0 0 0 3px rgba(102, 126, 234, 0.2)'};
       transform: scale(1.02);
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: none;
     }
   }
   
@@ -425,10 +365,26 @@ const FormActions = styled.div`
 const PatientRegistration = () => {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const { settings } = useSettings();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+
+  // Debug: Log settings changes
+  useEffect(() => {
+    console.log('Patient Registration - Settings updated:', settings.patientRegistrationFields);
+  }, [settings.patientRegistrationFields]);
+
+  // Generate dynamic schema and default values based on settings
+  const patientSchema = useMemo(() => 
+    generatePatientSchema(settings.patientRegistrationFields), 
+    [settings.patientRegistrationFields]
+  );
+  
+  const defaultValues = useMemo(() => 
+    generateDefaultValues(settings.patientRegistrationFields), 
+    [settings.patientRegistrationFields]
+  );
 
   // React Hook Form setup
   const {
@@ -437,41 +393,10 @@ const PatientRegistration = () => {
     formState: { errors, isValid },
     reset,
     watch,
-    setValue
   } = useForm({
     resolver: zodResolver(patientSchema),
     mode: 'onChange',
-    defaultValues: {
-      firstName: '',
-      lastName: '',
-      dateOfBirth: '',
-      gender: '',
-      phoneNumber: '',
-      email: '',
-      address: {
-        street: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        country: 'United States'
-      },
-      emergencyContact: {
-        name: '',
-        relationship: '',
-        phoneNumber: ''
-      },
-      medicalHistory: {
-        allergies: '',
-        medications: '',
-        conditions: '',
-        notes: ''
-      },
-      insurance: {
-        provider: '',
-        policyNumber: '',
-        groupNumber: ''
-      }
-    }
+    defaultValues
   });
 
   // Gender options for React Select
@@ -605,6 +530,117 @@ const PatientRegistration = () => {
   // Watch form values for conditional rendering
   const watchedValues = watch();
 
+  // Helper function to render a field conditionally
+  const renderField = (fieldName, fieldConfig, section = null) => {
+    if (!shouldRenderField(settings.patientRegistrationFields, section, fieldName)) {
+      return null;
+    }
+
+    const isRequired = isFieldRequired(settings.patientRegistrationFields, section, fieldName);
+    const fieldPath = section ? `${section}.${fieldName}` : fieldName;
+    const errorPath = section ? errors[section]?.[fieldName] : errors[fieldName];
+    const fieldLabel = fieldConfig.label || fieldName;
+
+    return (
+      <InputGroup key={fieldPath}>
+        <Label htmlFor={fieldName}>
+          {fieldLabel} {isRequired && '*'}
+        </Label>
+        <Controller
+          name={fieldPath}
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              id={fieldName}
+              type={fieldName === 'dateOfBirth' ? 'date' : fieldName === 'email' ? 'email' : 'text'}
+              placeholder={`Enter ${fieldLabel.toLowerCase()}`}
+              $hasError={!!errorPath}
+            />
+          )}
+        />
+        {errorPath && (
+          <ErrorMessage>{errorPath.message}</ErrorMessage>
+        )}
+      </InputGroup>
+    );
+  };
+
+  // Helper function to render select fields
+  const renderSelectField = (fieldName, fieldConfig, options, section = null) => {
+    if (!shouldRenderField(settings.patientRegistrationFields, section, fieldName)) {
+      return null;
+    }
+
+    const isRequired = isFieldRequired(settings.patientRegistrationFields, section, fieldName);
+    const fieldPath = section ? `${section}.${fieldName}` : fieldName;
+    const errorPath = section ? errors[section]?.[fieldName] : errors[fieldName];
+    const fieldLabel = fieldConfig.label || fieldName;
+
+    return (
+      <InputGroup key={fieldPath}>
+        <Label htmlFor={fieldName}>
+          {fieldLabel} {isRequired && '*'}
+        </Label>
+        <Controller
+          name={fieldPath}
+          control={control}
+          render={({ field }) => (
+            <SelectContainer $hasError={!!errorPath}>
+              <Select
+                {...field}
+                options={options}
+                placeholder={`Select ${fieldLabel.toLowerCase()}`}
+                classNamePrefix="react-select"
+                isClearable
+                onChange={(option) => field.onChange(option?.value || '')}
+                value={options.find(option => option.value === field.value) || null}
+              />
+            </SelectContainer>
+          )}
+        />
+        {errorPath && (
+          <ErrorMessage>{errorPath.message}</ErrorMessage>
+        )}
+      </InputGroup>
+    );
+  };
+
+  // Helper function to render textarea fields
+  const renderTextAreaField = (fieldName, fieldConfig, section = null) => {
+    if (!shouldRenderField(settings.patientRegistrationFields, section, fieldName)) {
+      return null;
+    }
+
+    const isRequired = isFieldRequired(settings.patientRegistrationFields, section, fieldName);
+    const fieldPath = section ? `${section}.${fieldName}` : fieldName;
+    const errorPath = section ? errors[section]?.[fieldName] : errors[fieldName];
+    const fieldLabel = fieldConfig.label || fieldName;
+
+    return (
+      <InputGroup key={fieldPath}>
+        <Label htmlFor={fieldName}>
+          {fieldLabel} {isRequired && '*'}
+        </Label>
+        <Controller
+          name={fieldPath}
+          control={control}
+          render={({ field }) => (
+            <TextArea
+              {...field}
+              id={fieldName}
+              placeholder={`Enter ${fieldLabel.toLowerCase()}`}
+              $hasError={!!errorPath}
+            />
+          )}
+        />
+        {errorPath && (
+          <ErrorMessage>{errorPath.message}</ErrorMessage>
+        )}
+      </InputGroup>
+    );
+  };
+
   return (
     <PageContainer
       initial={{ opacity: 0 }}
@@ -616,6 +652,15 @@ const PatientRegistration = () => {
           <FaUser /> {t('patientRegistration.title')}
         </Title>
         <div style={{ display: 'flex', gap: '1rem' }}>
+          <GlowButton
+            onClick={() => {
+              console.log('Refreshing settings...');
+              window.location.reload();
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <FaRedo /> Refresh Settings
+          </GlowButton>
           <GlowButton
             onClick={() => reset()}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
@@ -633,449 +678,73 @@ const PatientRegistration = () => {
               <FaUser /> Personal Information
             </SectionTitle>
             <FormGrid>
-              <InputGroup>
-                <Label htmlFor="firstName">First Name *</Label>
-                <Controller
-                  name="firstName"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="firstName"
-                      placeholder="Enter first name"
-                      $hasError={!!errors.firstName}
-                    />
-                  )}
-                />
-                {errors.firstName && (
-                  <ErrorMessage>{errors.firstName.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="lastName">Last Name *</Label>
-                <Controller
-                  name="lastName"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="lastName"
-                      placeholder="Enter last name"
-                      $hasError={!!errors.lastName}
-                    />
-                  )}
-                />
-                {errors.lastName && (
-                  <ErrorMessage>{errors.lastName.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="dateOfBirth">Date of Birth *</Label>
-                <Controller
-                  name="dateOfBirth"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="dateOfBirth"
-                      type="date"
-                      $hasError={!!errors.dateOfBirth}
-                    />
-                  )}
-                />
-                {errors.dateOfBirth && (
-                  <ErrorMessage>{errors.dateOfBirth.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="gender">Gender *</Label>
-                <Controller
-                  name="gender"
-                  control={control}
-                  render={({ field }) => (
-                    <SelectContainer $hasError={!!errors.gender}>
-                      <Select
-                        {...field}
-                        options={genderOptions}
-                        placeholder="Select gender"
-                        classNamePrefix="react-select"
-                        isClearable
-                        onChange={(option) => field.onChange(option?.value || '')}
-                        value={genderOptions.find(option => option.value === field.value) || null}
-                      />
-                    </SelectContainer>
-                  )}
-                />
-                {errors.gender && (
-                  <ErrorMessage>{errors.gender.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="phoneNumber">Phone Number *</Label>
-                <Controller
-                  name="phoneNumber"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="phoneNumber"
-                      placeholder="Enter phone number"
-                      $hasError={!!errors.phoneNumber}
-                    />
-                  )}
-                />
-                {errors.phoneNumber && (
-                  <ErrorMessage>{errors.phoneNumber.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="email">Email</Label>
-                <Controller
-                  name="email"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="email"
-                      type="email"
-                      placeholder="Enter email address"
-                      $hasError={!!errors.email}
-                    />
-                  )}
-                />
-                {errors.email && (
-                  <ErrorMessage>{errors.email.message}</ErrorMessage>
-                )}
-              </InputGroup>
+              {renderField('firstName', settings.patientRegistrationFields.firstName)}
+              {renderField('lastName', settings.patientRegistrationFields.lastName)}
+              {renderField('dateOfBirth', settings.patientRegistrationFields.dateOfBirth)}
+              {renderSelectField('gender', settings.patientRegistrationFields.gender, genderOptions)}
+              {renderField('phoneNumber', settings.patientRegistrationFields.phoneNumber)}
+              {renderField('email', settings.patientRegistrationFields.email)}
             </FormGrid>
           </FormSection>
 
           {/* Address Information */}
-          <FormSection>
-            <SectionTitle>
-              <FaMapMarkerAlt /> Address Information
-            </SectionTitle>
-            <FormGrid>
-              <InputGroup>
-                <Label htmlFor="street">Street Address *</Label>
-                <Controller
-                  name="address.street"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="street"
-                      placeholder="Enter street address"
-                      $hasError={!!errors.address?.street}
-                    />
-                  )}
-                />
-                {errors.address?.street && (
-                  <ErrorMessage>{errors.address.street.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="city">City *</Label>
-                <Controller
-                  name="address.city"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="city"
-                      placeholder="Enter city"
-                      $hasError={!!errors.address?.city}
-                    />
-                  )}
-                />
-                {errors.address?.city && (
-                  <ErrorMessage>{errors.address.city.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="state">State *</Label>
-                <Controller
-                  name="address.state"
-                  control={control}
-                  render={({ field }) => (
-                    <SelectContainer $hasError={!!errors.address?.state}>
-                      <Select
-                        {...field}
-                        options={stateOptions}
-                        placeholder="Select state"
-                        classNamePrefix="react-select"
-                        isClearable
-                        onChange={(option) => field.onChange(option?.value || '')}
-                        value={stateOptions.find(option => option.value === field.value) || null}
-                      />
-                    </SelectContainer>
-                  )}
-                />
-                {errors.address?.state && (
-                  <ErrorMessage>{errors.address.state.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="zipCode">ZIP Code *</Label>
-                <Controller
-                  name="address.zipCode"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="zipCode"
-                      placeholder="Enter ZIP code"
-                      $hasError={!!errors.address?.zipCode}
-                    />
-                  )}
-                />
-                {errors.address?.zipCode && (
-                  <ErrorMessage>{errors.address.zipCode.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="country">Country</Label>
-                <Controller
-                  name="address.country"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="country"
-                      placeholder="Enter country"
-                      $hasError={!!errors.address?.country}
-                    />
-                  )}
-                />
-                {errors.address?.country && (
-                  <ErrorMessage>{errors.address.country.message}</ErrorMessage>
-                )}
-              </InputGroup>
-            </FormGrid>
-          </FormSection>
+          {shouldRenderField(settings.patientRegistrationFields, 'address') && (
+            <FormSection>
+              <SectionTitle>
+                <FaMapMarkerAlt /> Address Information
+              </SectionTitle>
+              <FormGrid>
+                {renderField('street', settings.patientRegistrationFields.address.street, 'address')}
+                {renderField('city', settings.patientRegistrationFields.address.city, 'address')}
+                {renderSelectField('state', settings.patientRegistrationFields.address.state, stateOptions, 'address')}
+                {renderField('zipCode', settings.patientRegistrationFields.address.zipCode, 'address')}
+                {renderField('country', settings.patientRegistrationFields.address.country, 'address')}
+              </FormGrid>
+            </FormSection>
+          )}
 
           {/* Emergency Contact */}
-          <FormSection>
-            <SectionTitle>
-              <FaPhone /> Emergency Contact
-            </SectionTitle>
-            <FormGrid>
-              <InputGroup>
-                <Label htmlFor="emergencyName">Emergency Contact Name *</Label>
-                <Controller
-                  name="emergencyContact.name"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="emergencyName"
-                      placeholder="Enter emergency contact name"
-                      $hasError={!!errors.emergencyContact?.name}
-                    />
-                  )}
-                />
-                {errors.emergencyContact?.name && (
-                  <ErrorMessage>{errors.emergencyContact.name.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="relationship">Relationship *</Label>
-                <Controller
-                  name="emergencyContact.relationship"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="relationship"
-                      placeholder="Enter relationship"
-                      $hasError={!!errors.emergencyContact?.relationship}
-                    />
-                  )}
-                />
-                {errors.emergencyContact?.relationship && (
-                  <ErrorMessage>{errors.emergencyContact.relationship.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="emergencyPhone">Emergency Contact Phone *</Label>
-                <Controller
-                  name="emergencyContact.phoneNumber"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="emergencyPhone"
-                      placeholder="Enter emergency contact phone"
-                      $hasError={!!errors.emergencyContact?.phoneNumber}
-                    />
-                  )}
-                />
-                {errors.emergencyContact?.phoneNumber && (
-                  <ErrorMessage>{errors.emergencyContact.phoneNumber.message}</ErrorMessage>
-                )}
-              </InputGroup>
-            </FormGrid>
-          </FormSection>
+          {shouldRenderField(settings.patientRegistrationFields, 'emergencyContact') && (
+            <FormSection>
+              <SectionTitle>
+                <FaPhone /> Emergency Contact
+              </SectionTitle>
+              <FormGrid>
+                {renderField('name', settings.patientRegistrationFields.emergencyContact.name, 'emergencyContact')}
+                {renderField('relationship', settings.patientRegistrationFields.emergencyContact.relationship, 'emergencyContact')}
+                {renderField('phoneNumber', settings.patientRegistrationFields.emergencyContact.phoneNumber, 'emergencyContact')}
+              </FormGrid>
+            </FormSection>
+          )}
 
           {/* Medical History */}
-          <FormSection>
-            <SectionTitle>
-              <FaNotesMedical /> Medical History
-            </SectionTitle>
-            <FormGrid>
-              <InputGroup>
-                <Label htmlFor="allergies">Allergies</Label>
-                <Controller
-                  name="medicalHistory.allergies"
-                  control={control}
-                  render={({ field }) => (
-                    <TextArea
-                      {...field}
-                      id="allergies"
-                      placeholder="List any known allergies"
-                      $hasError={!!errors.medicalHistory?.allergies}
-                    />
-                  )}
-                />
-                {errors.medicalHistory?.allergies && (
-                  <ErrorMessage>{errors.medicalHistory.allergies.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="medications">Current Medications</Label>
-                <Controller
-                  name="medicalHistory.medications"
-                  control={control}
-                  render={({ field }) => (
-                    <TextArea
-                      {...field}
-                      id="medications"
-                      placeholder="List current medications"
-                      $hasError={!!errors.medicalHistory?.medications}
-                    />
-                  )}
-                />
-                {errors.medicalHistory?.medications && (
-                  <ErrorMessage>{errors.medicalHistory.medications.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="conditions">Medical Conditions</Label>
-                <Controller
-                  name="medicalHistory.conditions"
-                  control={control}
-                  render={({ field }) => (
-                    <TextArea
-                      {...field}
-                      id="conditions"
-                      placeholder="List any medical conditions"
-                      $hasError={!!errors.medicalHistory?.conditions}
-                    />
-                  )}
-                />
-                {errors.medicalHistory?.conditions && (
-                  <ErrorMessage>{errors.medicalHistory.conditions.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="notes">Additional Notes</Label>
-                <Controller
-                  name="medicalHistory.notes"
-                  control={control}
-                  render={({ field }) => (
-                    <TextArea
-                      {...field}
-                      id="notes"
-                      placeholder="Any additional medical notes"
-                      $hasError={!!errors.medicalHistory?.notes}
-                    />
-                  )}
-                />
-                {errors.medicalHistory?.notes && (
-                  <ErrorMessage>{errors.medicalHistory.notes.message}</ErrorMessage>
-                )}
-              </InputGroup>
-            </FormGrid>
-          </FormSection>
+          {shouldRenderField(settings.patientRegistrationFields, 'medicalHistory') && (
+            <FormSection>
+              <SectionTitle>
+                <FaNotesMedical /> Medical History
+              </SectionTitle>
+              <FormGrid>
+                {renderTextAreaField('allergies', settings.patientRegistrationFields.medicalHistory.allergies, 'medicalHistory')}
+                {renderTextAreaField('medications', settings.patientRegistrationFields.medicalHistory.medications, 'medicalHistory')}
+                {renderTextAreaField('conditions', settings.patientRegistrationFields.medicalHistory.conditions, 'medicalHistory')}
+                {renderTextAreaField('notes', settings.patientRegistrationFields.medicalHistory.notes, 'medicalHistory')}
+              </FormGrid>
+            </FormSection>
+          )}
 
           {/* Insurance Information */}
-          <FormSection>
-            <SectionTitle>
-              <FaIdCard /> Insurance Information
-            </SectionTitle>
-            <FormGrid>
-              <InputGroup>
-                <Label htmlFor="insuranceProvider">Insurance Provider</Label>
-                <Controller
-                  name="insurance.provider"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="insuranceProvider"
-                      placeholder="Enter insurance provider"
-                      $hasError={!!errors.insurance?.provider}
-                    />
-                  )}
-                />
-                {errors.insurance?.provider && (
-                  <ErrorMessage>{errors.insurance.provider.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="policyNumber">Policy Number</Label>
-                <Controller
-                  name="insurance.policyNumber"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="policyNumber"
-                      placeholder="Enter policy number"
-                      $hasError={!!errors.insurance?.policyNumber}
-                    />
-                  )}
-                />
-                {errors.insurance?.policyNumber && (
-                  <ErrorMessage>{errors.insurance.policyNumber.message}</ErrorMessage>
-                )}
-              </InputGroup>
-
-              <InputGroup>
-                <Label htmlFor="groupNumber">Group Number</Label>
-                <Controller
-                  name="insurance.groupNumber"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      id="groupNumber"
-                      placeholder="Enter group number"
-                      $hasError={!!errors.insurance?.groupNumber}
-                    />
-                  )}
-                />
-                {errors.insurance?.groupNumber && (
-                  <ErrorMessage>{errors.insurance.groupNumber.message}</ErrorMessage>
-                )}
-              </InputGroup>
-            </FormGrid>
-          </FormSection>
+          {shouldRenderField(settings.patientRegistrationFields, 'insurance') && (
+            <FormSection>
+              <SectionTitle>
+                <FaIdCard /> Insurance Information
+              </SectionTitle>
+              <FormGrid>
+                {renderField('provider', settings.patientRegistrationFields.insurance.provider, 'insurance')}
+                {renderField('policyNumber', settings.patientRegistrationFields.insurance.policyNumber, 'insurance')}
+                {renderField('groupNumber', settings.patientRegistrationFields.insurance.groupNumber, 'insurance')}
+              </FormGrid>
+            </FormSection>
+          )}
 
           <FormActions>
             <GlowButton
@@ -1179,7 +848,7 @@ const PatientRegistration = () => {
                     </GlowButton>
                     <GlowButton
                       size="small"
-                      variant="primary"
+                      $variant="primary"
                       onClick={() => {/* Handle edit */}}
                     >
                       <FaEdit /> Edit

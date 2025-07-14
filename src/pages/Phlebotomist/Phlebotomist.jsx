@@ -18,6 +18,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import GlowCard from '../../components/common/GlowCard';
 import GlowButton from '../../components/common/GlowButton';
+import { FixedSizeList as List } from 'react-window';
 
 
 // --- Enhanced Main Container ---
@@ -691,18 +692,6 @@ const Phlebotomist = () => {
     navigate(`/app/order/${sample.id}`, { state: { sample } });
   };
 
-  const handlePrintSlip = (sample) => {
-    toast.info(`Printing slip for ${sample.patientName}`);
-  };
-
-  const handleAddNotes = (sample) => {
-    const notes = prompt('Enter phlebotomist notes:', sample.phlebotomistNotes || '');
-    if (notes !== null) {
-      // Update notes in database
-      toast.success('Notes updated');
-    }
-  };
-
   const clearFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
@@ -722,16 +711,6 @@ const Phlebotomist = () => {
     if (sortBy !== field) return <FaSort />;
     return sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />;
   };
-
-  const getPriorityIcon = (priority) => {
-    switch (priority) {
-      case 'urgent': return <FaExclamationTriangle />;
-      case 'high': return <FaThermometer />;
-      case 'normal': return <FaInfoCircle />;
-      default: return <FaInfoCircle />;
-    }
-  };
-
 
 
   if (loading) {
@@ -888,163 +867,67 @@ const Phlebotomist = () => {
               <p>No samples found matching your criteria</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              {filteredSamples.map((sample) => (
-                <div
-                  key={sample.id}
-                  style={{
-                    padding: '1rem',
-                    border: `1px solid ${theme.colors.border}`,
-                    borderRadius: '12px',
-                    background: theme.colors.surface,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  <div>
-                    <h4 style={{ margin: '0 0 0.5rem 0', color: theme.colors.text }}>
-                      {sample.patientName}
-                    </h4>
-                    <p style={{ margin: '0', color: theme.colors.textSecondary, fontSize: '0.9rem' }}>
-                      Order ID: {sample.orderId} • Status: {sample.status}
-                    </p>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <GlowButton
-                      size="small"
-                      onClick={() => handleViewDetails(sample)}
-                    >
-                      <FaEye /> View
-                    </GlowButton>
-                    {sample.status === 'Pending Sample' && (
-                      <GlowButton
-                        size="small"
-                        variant="success"
-                        onClick={() => handleCollectSample(sample)}
+            <div style={{ width: '100%', height: Math.min(filteredSamples.length * 100, 600), maxWidth: '100%' }}>
+              <List
+                height={Math.min(filteredSamples.length * 100, 600)}
+                itemCount={filteredSamples.length}
+                itemSize={120} // Adjust based on sample item height
+                width={'100%'}
+                style={{ overflowX: 'hidden' }}
+              >
+                {({ index, style }) => {
+                  const sample = filteredSamples[index];
+                  return (
+                    <div style={style} key={sample.id}>
+                      <div
+                        style={{
+                          padding: '1rem',
+                          border: `1px solid ${theme.colors.border}`,
+                          borderRadius: '12px',
+                          background: theme.colors.surface,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          margin: '0.5rem 0'
+                        }}
                       >
-                        <FaCheckCircle /> Collect
-                      </GlowButton>
-                    )}
-                  </div>
-                </div>
-              ))}
+                        <div>
+                          <h4 style={{ margin: '0 0 0.5rem 0', color: theme.colors.text }}>
+                            {sample.patientName}
+                          </h4>
+                          <p style={{ margin: '0', color: theme.colors.textSecondary, fontSize: '0.9rem' }}>
+                            Order ID: {sample.orderId} • Status: {sample.status}
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <GlowButton
+                            size="small"
+                            onClick={() => handleViewDetails(sample)}
+                          >
+                            <FaEye /> View
+                          </GlowButton>
+                          {sample.status === 'Pending Sample' && (
+                            <GlowButton
+                              size="small"
+                              $variant="success"
+                              onClick={() => handleCollectSample(sample)}
+                            >
+                              <FaCheckCircle /> Collect
+                            </GlowButton>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }}
+              </List>
             </div>
           )}
         </div>
       </GlowCard>
-      {/*
-      <SamplesGrid>
-        {filteredSamples.map((sample, index) => (
-          <motion.div
-            key={sample.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <SampleCard $priority={sample.priority}>
-              <SampleHeader>
-                <SampleInfo>
-                  <PatientName>
-                    <FaUser />
-                    {sample.patientName}
-                  </PatientName>
-                  <SampleId>
-                    <FaBarcode />
-                    Order: {sample.orderId || sample.id}
-                  </SampleId>
-                </SampleInfo>
-                <PriorityBadge $priority={sample.priority}>
-                  {getPriorityIcon(sample.priority)}
-                  {sample.priority.charAt(0).toUpperCase() + sample.priority.slice(1)}
-                </PriorityBadge>
-              </SampleHeader>
-
-              <SampleDetails>
-                <DetailItem>
-                  <FaIdCard />
-                  <span>Patient ID:</span>
-                  <span>{sample.patientId}</span>
-                </DetailItem>
-                <DetailItem>
-                  <FaCalendar />
-                  <span>Created:</span>
-                  <span>
-                    {sample.createdAt?.toDate ? 
-                      sample.createdAt.toDate().toLocaleDateString() : 
-                      new Date(sample.createdAt).toLocaleDateString()
-                    }
-                  </span>
-                </DetailItem>
-                <DetailItem>
-                  <FaClock />
-                  <span>Status:</span>
-                  <span>{sample.status}</span>
-                </DetailItem>
-                <DetailItem>
-                  <FaUserMd />
-                  <span>Doctor:</span>
-                  <span>{sample.referringDoctor}</span>
-                </DetailItem>
-                <DetailItem>
-                  <FaPhone />
-                  <span>Phone:</span>
-                  <span>{sample.phone}</span>
-                </DetailItem>
-                <DetailItem>
-                  <FaMapMarker />
-                  <span>Location:</span>
-                  <span>{sample.collectionLocation || 'Main Lab'}</span>
-                </DetailItem>
-              </SampleDetails>
-
-              <TestsList>
-                <TestsHeader>
-                  <TestsTitle>Tests Required</TestsTitle>
-                  <TestsCount>{sample.tests?.length || 0}</TestsCount>
-                </TestsHeader>
-                <TestTags>
-                  {sample.tests?.map((test, idx) => (
-                    <TestTag key={idx}>{test.name}</TestTag>
-                  )) || ['No tests specified']}
-                </TestTags>
-              </TestsList>
-
-              <SampleActions onClick={(e) => e.stopPropagation()}>
-                {sample.status === 'Pending Sample' ? (
-                  <>
-                    <ActionButton
-                      onClick={() => handleCollectSample(sample)}
-                      $variant="success"
-                    >
-                      <FaCheckCircle /> Collect Sample
-                    </ActionButton>
-                    <ActionButton
-                      onClick={() => handleAddNotes(sample)}
-                      $variant="secondary"
-                    >
-                      <FaFileAlt /> Add Notes
-                    </ActionButton>
-                  </>
-                ) : (
-                  <ActionButton
-                    onClick={() => handleViewDetails(sample)}
-                    $variant="primary"
-                  >
-                    <FaEye /> View Details
-                  </ActionButton>
-                )}
-                <ActionButton
-                  onClick={() => handlePrintSlip(sample)}
-                  $variant="secondary"
-                >
-                  <FaPrint /> Print Slip
-                </ActionButton>
-              </SampleActions>
-            </SampleCard>
-          </motion.div>
-        ))}
-      </SamplesGrid>
+      {/* 
+      // Commented out old sample grid implementation
+      // This section was causing JSX parsing issues due to nested comments
       */}
     </PhlebotomistContainer>
   );

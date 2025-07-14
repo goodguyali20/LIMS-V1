@@ -184,16 +184,17 @@ const GlowButton = ({
         color: particleColors[variant] || particleColors.primary
       };
       setParticles(prev => [...prev, particle]);
+      
+      // Clean up particle effect
+      setTimeout(() => {
+        setParticles(prev => prev.filter(p => p.id !== particle.id));
+      }, 1000);
     }
 
-    // Clean up effects
+    // Clean up ripple effect
     setTimeout(() => {
       setRipples(prev => prev.filter(r => r.id !== ripple.id));
     }, 600);
-
-    setTimeout(() => {
-      setParticles(prev => prev.filter(p => p.id !== particle.id));
-    }, 1000);
 
     if (onClick) onClick(event);
   };
@@ -225,6 +226,9 @@ const GlowButton = ({
     }
   };
 
+  // Filter out props that shouldn't be passed to DOM
+  const { variant: _, size: __, loading: ___, ...domProps } = props;
+  
   return (
     <ButtonContainer
       $variant={variant}
@@ -238,7 +242,7 @@ const GlowButton = ({
       initial="initial"
       whileHover="hover"
       whileTap="tap"
-      {...props}
+      {...domProps}
     >
       {/* Ripple effects */}
       <AnimatePresence>

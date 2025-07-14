@@ -30,6 +30,11 @@
       "@/types/*": ["src/types/*"]
     }
   },
-  "include": ["src"],
+  "include": [
+    "src",
+    "vitest.config.ts",
+    "src/types/**/*.d.ts",
+    "src/types/**/*.ts"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 } 

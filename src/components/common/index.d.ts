@@ -37,7 +37,7 @@ export interface AnimatedModalProps {
 export interface AnimatedNotificationProps {
   type: 'success' | 'error' | 'warning' | 'info';
   message: string;
-  icon?: React.ComponentType<any>;
+  icon?: React.ComponentType<unknown>;
   onClose?: () => void;
   duration?: number;
 }

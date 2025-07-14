@@ -1,6 +1,8 @@
 import { createGlobalStyle } from 'styled-components';
+import { layoutShiftPreventionCSS } from '../utils/layoutShiftPrevention.tsx';
 
 export const GlobalStyles = createGlobalStyle`
+  ${layoutShiftPreventionCSS}
   /* Apply theme colors to body */
   body {
     background-color: ${({ theme }) => theme.colors.background};

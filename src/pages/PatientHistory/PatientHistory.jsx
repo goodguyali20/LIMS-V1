@@ -889,7 +889,7 @@ const PatientHistory = () => {
               <CardActions>
                 <ActionButton
                   size="small"
-                  variant="primary"
+                  $variant="primary"
                   onClick={() => handleViewHistory(patient)}
                 >
                   <Eye size={16} />

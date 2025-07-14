@@ -239,7 +239,7 @@ export const exportQCSamples = (
 // Analytics export
 export const exportAnalytics = (
   data: any,
-  options: ExportOptions
+  _options: ExportOptions
 ) => {
   const processedData = [
     {

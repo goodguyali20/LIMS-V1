@@ -1,15 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import App from './App.tsx';
 import './i18n';
 import './styles/index.css';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { initializeErrorMonitoring, setupGlobalErrorHandling } from './utils/errorMonitoring.tsx';
+import { initializePerformanceMonitoring } from './utils/performanceOptimizer';
 
 // Initialize error monitoring
 initializeErrorMonitoring();
 setupGlobalErrorHandling();
+
+// Initialize performance monitoring
+const performanceOptimizer = initializePerformanceMonitoring();
 
 // Register service worker for PWA
 // Temporarily disabled to fix MIME type error
@@ -27,26 +29,31 @@ setupGlobalErrorHandling();
 // }
 
 // Initialize PWA install prompt
-let deferredPrompt: any;
+// let deferredPrompt: any; // Unused variable
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
 });
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-    <ToastContainer
-      position="top-right"
-      autoClose={5000}
-      hideProgressBar={false}
-      newestOnTop={false}
-      closeOnClick
-      rtl={true}
-      pauseOnFocusLoss
-      draggable
-      pauseOnHover
-      theme="light"
-    />
-  </React.StrictMode>
-); 
+// Performance optimization: Use requestIdleCallback for non-critical initialization
+const initializeApp = () => {
+  const root = ReactDOM.createRoot(document.getElementById('root')!);
+  
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+};
+
+// Use requestIdleCallback for better performance, fallback to setTimeout
+if ('requestIdleCallback' in window) {
+  (window as any).requestIdleCallback(initializeApp);
+} else {
+  setTimeout(initializeApp, 1);
+}
+
+// Expose performance optimizer for debugging
+if (process.env.NODE_ENV === 'development') {
+  (window as any).performanceOptimizer = performanceOptimizer;
+} 

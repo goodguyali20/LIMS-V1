@@ -339,13 +339,13 @@ export interface AuditLog {
   userId: string;
   userEmail: string;
   timestamp: Date;
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
 }
 
 // API Response Types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -406,7 +406,7 @@ export interface FormField {
 }
 
 export interface FormData {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface FormErrors {
@@ -417,7 +417,7 @@ export interface FormErrors {
 export interface ChartData {
   name: string;
   value: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface AnalyticsData {
@@ -462,7 +462,7 @@ export interface PrintTemplate {
   name: string;
   type: 'requisition' | 'report' | 'slip';
   layout: 'A4' | 'Thermal';
-  content: Record<string, any>;
+  content: Record<string, unknown>;
   isDefault: boolean;
 }
 
@@ -510,7 +510,7 @@ export interface RolePermissions {
 export interface AppError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   timestamp: Date;
   userId?: string;
 }
@@ -534,7 +534,7 @@ export interface PaginationConfig {
 export interface RealtimeUpdate {
   type: 'order' | 'test' | 'inventory' | 'qc';
   action: 'create' | 'update' | 'delete';
-  data: any;
+  data: unknown;
   timestamp: Date;
 }
 
@@ -544,7 +544,7 @@ export interface ValidationRule {
   min?: number;
   max?: number;
   pattern?: RegExp;
-  custom?: (value: any) => boolean | string;
+  custom?: (value: unknown) => boolean | string;
 }
 
 export interface ValidationSchema {
@@ -560,9 +560,9 @@ export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
 
-export type EventHandler<T = any> = (event: T) => void;
+export type EventHandler<T = unknown> = (event: T) => void;
 
-export type AsyncFunction<T = any, R = any> = (params: T) => Promise<R>;
+export type AsyncFunction<T = unknown, R = unknown> = (params: T) => Promise<R>;
 
 // React Component Types
 export type FC<P = {}> = React.FC<P>;
