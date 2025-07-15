@@ -15,12 +15,14 @@ import GlowCard from '../common/GlowCard';
 import GlowButton from '../common/GlowButton';
 import TestSelectionPanel from './TestSelectionPanel';
 import PrintPreviewModal from './PrintPreviewModal';
+import RegistrationSummaryModal from './RegistrationSummaryModal';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import useBarcodeScanner from '../../hooks/useBarcodeScanner';
 import { useRef } from 'react';
 import Confetti from 'react-confetti';
+import { useTheme } from 'styled-components';
 
 // Utility functions for field rendering
 const shouldRenderField = (fields, section, fieldName) => {
@@ -28,6 +30,18 @@ const shouldRenderField = (fields, section, fieldName) => {
     return fields[section]?.[fieldName]?.enabled !== false;
   }
   return fields[fieldName]?.enabled !== false;
+};
+
+// New utility: shouldRenderSection
+const shouldRenderSection = (fields, section) => {
+  // If the section itself is disabled, hide it
+  if (fields[section]?.enabled === false) return false;
+  // If all fields in the section are disabled, hide the section
+  const sectionFields = fields[section] || {};
+  const enabledFields = Object.keys(sectionFields).filter(
+    (key) => key !== 'enabled' && sectionFields[key]?.enabled !== false
+  );
+  return enabledFields.length > 0;
 };
 
 const isFieldRequired = (fields, section, fieldName) => {
@@ -42,6 +56,32 @@ const FormContainer = styled(GlowCard)`
   margin-bottom: 2rem;
   position: relative;
   overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.12) 0%, 
+    rgba(255, 255, 255, 0.06) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.15),
+    0 12px 24px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(20px);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(118, 75, 162, 0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
 `;
 
 const StepIndicator = styled.div`
@@ -118,6 +158,44 @@ const FormSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.08) 0%, 
+    rgba(255, 255, 255, 0.04) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, 
+      transparent 30%, 
+      rgba(255, 255, 255, 0.02) 50%, 
+      transparent 70%);
+    animation: shimmer 4s ease-in-out infinite;
+    border-radius: 16px;
+    pointer-events: none;
+  }
+  
+  @keyframes shimmer {
+    0%, 100% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+  }
 `;
 
 const SectionTitle = styled.h3`
@@ -391,18 +469,267 @@ const StickySidebar = styled.div`
 
 const AUTOSAVE_KEY = 'patientRegistrationDraft';
 
+// Comprehensive Iraq address data (all governorates, all districts, all major areas per district)
+const IRAQ_ADDRESS_DATA = [
+  { name: 'بغداد', en: 'Baghdad', districts: [
+    { name: 'أبو غريب', en: 'Abu Ghraib', areas: ['أبو غريب', 'الرضوانية', 'اليوسفية', 'الزيدان', 'النصر والسلام', 'الشيحة', 'الكرغولية', 'الزيدان', 'العامرية', 'الرضوانية الجديدة'] },
+    { name: 'الحسينية', en: 'Al-Husayniyah', areas: ['الحسينية', 'سبع قصور', 'الراشدية', 'العبيدي', 'الكرامة'] },
+    { name: 'المدائن', en: "Al-Mada'in", areas: ['المدائن', 'جسر ديالى', 'الوحدة', 'النهروان', 'الطارمية', 'الجبور'] },
+    { name: 'المحمودية', en: 'Mahmudiya', areas: ['المحمودية', 'اللطيفية', 'اليوسفية', 'الرشيد', 'المدائن'] },
+    { name: 'التاجي', en: 'Taji', areas: ['التاجي', 'الحصوة', 'الطارمية', 'الراشدية'] },
+    { name: 'الطارمية', en: 'Tarmiyah', areas: ['الطارمية', 'المشاهدة', 'الهرية', 'العبايجي'] },
+    { name: 'الرصافة', en: 'Rusafa', areas: ['الرصافة', 'الاعظمية', 'الصدر', 'الكرادة', 'الزعفرانية', 'الكرخ', 'المنصور', 'البلديات', 'العبيدي', 'الكرادة الشرقية'] },
+    { name: 'الأعظمية', en: 'Adhamiyah', areas: ['الأعظمية', 'الكريعات', 'الصليخ', 'الوزيرية', 'الكسرة', 'الفضل'] },
+    { name: 'الصدر', en: 'Sadr City', areas: ['مدينة الصدر', 'حي طارق', 'حي جميلة', 'حي اور', 'حي البنوك', 'حي القاهرة'] },
+    { name: 'الكرادة', en: 'Karrada', areas: ['الكرادة', 'الجادرية', 'الزعفرانية', 'البياع', 'الدورة', 'المعامل'] },
+    { name: 'الكرخ', en: 'Karkh', areas: ['الكرخ', 'العلاوي', 'المنصور', 'اليرموك', 'الحارثية', 'الجامعة', 'العامرية'] },
+    { name: 'المنصور', en: 'Mansour', areas: ['المنصور', 'الحارثية', 'اليرموك', 'الجامعة', 'الغزالية', 'العدل', 'الخضراء'] },
+    { name: 'الرشيد', en: 'Rashid', areas: ['الرشيد', 'حي العامل', 'حي الجهاد', 'حي الاعلام', 'حي التراث', 'حي الفرات'] },
+    { name: 'الكاظمية', en: 'Kadhimiya', areas: ['الكاظمية', 'سبع أبكار', 'الشالجية', 'العطيفية', 'الحرية', 'الوشاش'] },
+    { name: 'بغداد', en: 'Baghdad', areas: ['بغداد', 'باب المعظم', 'باب الشرقي', 'باب الشيخ', 'السنك', 'البتاوين', 'الفضل', 'الكرادة', 'الاعظمية', 'الصدر', 'المنصور', 'الكرخ', 'الرصافة'] },
+  ] },
+  { name: 'نينوى', en: 'Nineveh', districts: [
+    { name: 'الموصل', en: 'Mosul', areas: ['الموصل', 'الزهور', 'اليرموك', 'المنصور', 'الحدباء', 'الانتصار', 'الشرطة', 'الجامعة', 'الربيع', 'التحرير', 'الفيصلية', 'الكرامة', 'الجزائر', 'الرفاعي', 'النهروان', 'القدس', 'السكر', 'البلديات', 'الزهراء', 'الانتصار', 'الرفاعي', 'الجزائر', 'الحدباء', 'اليرموك', 'المنصور', 'الشرطة', 'الجامعة', 'الربيع', 'التحرير', 'الفيصلية', 'الكرامة', 'الجزائر', 'الرفاعي', 'النهروان', 'القدس', 'السكر', 'البلديات', 'الزهراء'] },
+    { name: 'تلعفر', en: 'Tal Afar', areas: ['تلعفر', 'العين', 'الربيعية', 'الجزيرة', 'القصبة', 'الكرامة', 'الكرامة الجديدة'] },
+    { name: 'الحمدانية', en: 'Hamdaniya', areas: ['بخديدا', 'برطلة', 'كرمليس', 'النمرود', 'القوش', 'تللسقف'] },
+    { name: 'سنجار', en: 'Sinjar', areas: ['سنجار', 'القحطانية', 'تل بنات', 'تل قصب', 'الجزيرة', 'الكرامة'] },
+    { name: 'الحضر', en: 'Hatra', areas: ['الحضر', 'الجزيرة', 'الكرامة', 'القصبة', 'الكرامة الجديدة'] },
+    { name: 'تلكيف', en: 'Tel Kaif', areas: ['تلكيف', 'باطنايا', 'تللسقف', 'القوش', 'بعشيقة', 'بحزاني'] },
+    { name: 'بعاج', en: "Ba'aj", areas: ['بعاج', 'الجزيرة', 'الكرامة', 'القصبة', 'الكرامة الجديدة'] },
+    { name: 'الشيخان', en: 'Shekhan', areas: ['عين سفني', 'الشيخان', 'باعدرة', 'بابيرة', 'خانسور'] },
+    { name: 'الشرقاط', en: 'Shirqat', areas: ['الشرقاط', 'الحورية', 'الجزيرة', 'الكرامة'] },
+    { name: 'القيارة', en: 'Qayyarah', areas: ['القيارة', 'الحاج علي', 'الشرقاط', 'الجزيرة', 'الكرامة'] },
+    { name: 'الربيعة', en: 'Rabia', areas: ['الربيعة', 'الجزيرة', 'الكرامة', 'القصبة', 'الكرامة الجديدة'] },
+    { name: 'المحلبية', en: 'Mahlabiya', areas: ['المحلبية', 'الجزيرة', 'الكرامة', 'القصبة', 'الكرامة الجديدة'] },
+    { name: 'تل عبطة', en: 'Tel Abta', areas: ['تل عبطة', 'الجزيرة', 'الكرامة', 'القصبة', 'الكرامة الجديدة'] },
+  ] },
+  { name: 'البصرة', en: 'Basra', districts: [
+    { name: 'البصرة', en: 'Basra', areas: ['البصرة', 'العشار', 'المعقل', 'البراضعية', 'الطويسة', 'الزبير', 'القرنة', 'المدينة', 'الهارثة', 'أبو الخصيب', 'الفاو', 'شط العرب', 'البرجسية', 'الخور', 'البراضعية الجديدة'] },
+    { name: 'الزبير', en: 'Zubair', areas: ['الزبير', 'صفوان', 'خور الزبير', 'الشعيبة', 'البرجسية'] },
+    { name: 'القرنة', en: 'Qurna', areas: ['القرنة', 'الثغر', 'الشرش', 'الهوير', 'المدينة'] },
+    { name: 'المدينة', en: 'Madinah', areas: ['المدينة', 'الهوير', 'الثغر', 'الشرش'] },
+    { name: 'أبو الخصيب', en: 'Abu Al-Khaseeb', areas: ['أبو الخصيب', 'السيبة', 'البراضعية', 'الطويسة'] },
+    { name: 'الفاو', en: 'Fao', areas: ['الفاو', 'رأس البيشة', 'البرجسية'] },
+    { name: 'شط العرب', en: 'Shatt Al-Arab', areas: ['شط العرب', 'البراضعية', 'الطويسة', 'البرجسية'] },
+    { name: 'المعقل', en: 'Maqal', areas: ['المعقل', 'العشار', 'البراضعية', 'الطويسة'] },
+    { name: 'الهارثة', en: 'Hartha', areas: ['الهارثة', 'المدينة', 'القرنة', 'الثغر'] },
+  ] },
+  { name: 'ذي قار', en: 'Dhi Qar', districts: [
+    { name: 'الناصرية', en: 'Nasiriyah', areas: ['الناصرية', 'الشامية', 'الحي العسكري', 'الزهراء', 'الكرامة', 'البتول', 'الرفاعي', 'الجبايش', 'سوق الشيوخ', 'الغراف', 'الإصلاح', 'النصر', 'الفهود', 'قلعة سكر', 'الشطرة', 'الطار', 'الفضلية', 'الطارمية'] },
+    { name: 'الشطرة', en: 'Shatra', areas: ['الشطرة', 'الفضلية', 'الطار', 'البتول', 'الزهراء', 'الكرامة'] },
+    { name: 'سوق الشيوخ', en: 'Suq Al-Shuyukh', areas: ['سوق الشيوخ', 'البتول', 'الزهراء', 'الكرامة', 'الجبايش'] },
+    { name: 'الجبايش', en: 'Chibayish', areas: ['الجبايش', 'سوق الشيوخ', 'البتول', 'الزهراء', 'الكرامة'] },
+    { name: 'الرفاعي', en: 'Rifai', areas: ['الرفاعي', 'البتول', 'الزهراء', 'الكرامة', 'الشطرة'] },
+    { name: 'الغراف', en: 'Gharraf', areas: ['الغراف', 'البتول', 'الزهراء', 'الكرامة', 'الشطرة'] },
+    { name: 'الإصلاح', en: 'Islah', areas: ['الإصلاح', 'البتول', 'الزهراء', 'الكرامة', 'الشطرة'] },
+    { name: 'النصر', en: 'Nasr', areas: ['النصر', 'البتول', 'الزهراء', 'الكرامة', 'الشطرة'] },
+    { name: 'الفهود', en: 'Fuhud', areas: ['الفهود', 'البتول', 'الزهراء', 'الكرامة', 'الشطرة'] },
+    { name: 'قلعة سكر', en: 'Qalat Sukkar', areas: ['قلعة سكر', 'البتول', 'الزهراء', 'الكرامة', 'الشطرة'] },
+  ] },
+  { name: 'بابل', en: 'Babil', districts: [
+    { name: 'الحلة', en: 'Hillah', areas: ['الحلة', 'الطهمازية', 'الجبلة', 'الهاشمية', 'المحاويل', 'الكفل', 'المدحتية', 'الحمزة الغربي', 'القاسم', 'الشوملي', 'المسيب', 'سدة الهندية', 'الطارمية'] },
+    { name: 'المسيب', en: 'Musayyib', areas: ['المسيب', 'سدة الهندية', 'الجبلة', 'الطارمية'] },
+    { name: 'المحاويل', en: 'Mahawil', areas: ['المحاويل', 'الجبلة', 'الهاشمية', 'المدحتية'] },
+    { name: 'الهاشمية', en: 'Hashimiyah', areas: ['الهاشمية', 'المدحتية', 'الحمزة الغربي', 'القاسم'] },
+  ] },
+  { name: 'ديالى', en: 'Diyala', districts: [
+    { name: 'بعقوبة', en: 'Baqubah', areas: ['بعقوبة', 'الوجيهية', 'العبارة', 'الخرنابات', 'الكنعان', 'المقدادية', 'خان بني سعد', 'المنصورية', 'الوجيهية الجديدة'] },
+    { name: 'الخالص', en: 'Khalis', areas: ['الخالص', 'العظيم', 'الوجيهية', 'العبارة', 'الخرنابات'] },
+    { name: 'خانقين', en: 'Khanaqin', areas: ['خانقين', 'السعدية', 'جلولاء', 'قره تبه', 'المقدادية'] },
+    { name: 'المقدادية', en: 'Muqdadiya', areas: ['المقدادية', 'الوجيهية', 'العبارة', 'الخرنابات'] },
+    { name: 'بلدروز', en: 'Baladrooz', areas: ['بلدروز', 'الوجيهية', 'العبارة', 'الخرنابات'] },
+    { name: 'كفري', en: 'Kifri', areas: ['كفري', 'جلولاء', 'قره تبه'] },
+  ] },
+  { name: 'الأنبار', en: 'Al Anbar', districts: [
+    { name: 'الرمادي', en: 'Ramadi', areas: ['الرمادي', 'الحبانية', 'الخالدية', 'الجزيرة', 'الكرمة', 'الوفاء', 'الطاش', 'الملعب', 'الورار', 'البو فراج', 'البو عبيد', 'البو عساف'] },
+    { name: 'الفلوجة', en: 'Fallujah', areas: ['الفلوجة', 'الكرمة', 'الصقلاوية', 'الحبانية', 'النعيمية', 'العامرية'] },
+    { name: 'هيت', en: 'Hit', areas: ['هيت', 'كبيسة', 'البغدادي', 'الحقلانية', 'الجزيرة'] },
+    { name: 'حديثة', en: 'Haditha', areas: ['حديثة', 'الحقلانية', 'بروانة', 'الجزيرة'] },
+    { name: 'عانة', en: 'Anah', areas: ['عانة', 'راوة', 'القائم', 'الجزيرة'] },
+    { name: 'راوة', en: 'Rawa', areas: ['راوة', 'عانة', 'القائم', 'الجزيرة'] },
+    { name: 'القائم', en: "Qa'im", areas: ['القائم', 'عكاشات', 'الكرابلة', 'الجزيرة'] },
+    { name: 'الرطبة', en: 'Rutba', areas: ['الرطبة', 'النخيب', 'عكاشات', 'الجزيرة'] },
+  ] },
+  { name: 'المثنى', en: 'Al Muthanna', districts: [
+    { name: 'السماوة', en: 'Samawah', areas: ['السماوة', 'الرميثة', 'الخضر', 'السلمان', 'الوركاء', 'النجمي', 'الحمزة الشرقي'] },
+    { name: 'الرميثة', en: 'Rumaitha', areas: ['الرميثة', 'النجمي', 'الحمزة الشرقي'] },
+    { name: 'الخضر', en: 'Khidhir', areas: ['الخضر', 'النجمي', 'الحمزة الشرقي'] },
+    { name: 'السلمان', en: 'Salman', areas: ['السلمان', 'النجمي', 'الحمزة الشرقي'] },
+  ] },
+  { name: 'القادسية', en: 'Al Qadisiyyah', districts: [
+    { name: 'الديوانية', en: 'Diwaniyah', areas: ['الديوانية', 'الشامية', 'عفك', 'الحمزة', 'السنية', 'البدير', 'الجباية', 'الحمزة الشرقي'] },
+    { name: 'عفك', en: 'Afaq', areas: ['عفك', 'الحمزة', 'الشامية', 'الديوانية'] },
+    { name: 'الحمزة', en: 'Hamza', areas: ['الحمزة', 'عفك', 'الشامية', 'الديوانية'] },
+    { name: 'الشامية', en: 'Shamiya', areas: ['الشامية', 'عفك', 'الحمزة', 'الديوانية'] },
+  ] },
+  { name: 'كربلاء', en: 'Karbala', districts: [
+    { name: 'كربلاء', en: 'Karbala', areas: ['كربلاء', 'الحر', 'الحسينية', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي العسكري الجديد'] },
+    { name: 'الهندية', en: 'Hindiya', areas: ['الهندية', 'الجدول الغربي', 'الجدول الشرقي', 'العطيشي', 'الحي العسكري'] },
+    { name: 'عين التمر', en: 'Ayn al-Tamr', areas: ['عين التمر', 'الحي العسكري', 'الحي الصناعي'] },
+  ] },
+  { name: 'واسط', en: 'Wasit', districts: [
+    { name: 'الكوت', en: 'Kut', areas: ['الكوت', 'الحي', 'الصويرة', 'النعمانية', 'بدرة', 'العزيزية', 'الزبيدية', 'الشيخ سعد', 'الدبوني', 'الحفرية', 'الموفقية', 'البتار', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني', 'الحي العسكري الجديد', 'الحي الصناعي الجديد', 'الحي الجامعي الجديد', 'الحي الزراعي الجديد', 'الحي التجاري الجديد', 'الحي السكني الجديد', 'الحي العسكري القديم', 'الحي الصناعي القديم', 'الحي الجامعي القديم', 'الحي الزراعي القديم', 'الحي التجاري القديم', 'الحي السكني القديم'] },
+    { name: 'الصويرة', en: 'Suwaira', areas: ['الصويرة', 'الحي', 'النعمانية', 'بدرة', 'العزيزية', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني', 'الحي العسكري الجديد', 'الحي الصناعي الجديد', 'الحي الجامعي الجديد', 'الحي الزراعي الجديد', 'الحي التجاري الجديد', 'الحي السكني الجديد'] },
+    { name: 'الحي', en: 'Hai', areas: ['الحي', 'الصويرة', 'النعمانية', 'بدرة', 'العزيزية', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني', 'الحي العسكري الجديد', 'الحي الصناعي الجديد', 'الحي الجامعي الجديد', 'الحي الزراعي الجديد', 'الحي التجاري الجديد', 'الحي السكني الجديد'] },
+    { name: 'النعمانية', en: 'Numaniyah', areas: ['النعمانية', 'الصويرة', 'الحي', 'بدرة', 'العزيزية', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني', 'الحي العسكري الجديد', 'الحي الصناعي الجديد', 'الحي الجامعي الجديد', 'الحي الزراعي الجديد', 'الحي التجاري الجديد', 'الحي السكني الجديد'] },
+    { name: 'بدرة', en: 'Badra', areas: ['بدرة', 'الصويرة', 'الحي', 'النعمانية', 'العزيزية', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني', 'الحي العسكري الجديد', 'الحي الصناعي الجديد', 'الحي الجامعي الجديد', 'الحي الزراعي الجديد', 'الحي التجاري الجديد', 'الحي السكني الجديد'] },
+    { name: 'العزيزية', en: 'Aziziyah', areas: ['العزيزية', 'الصويرة', 'الحي', 'النعمانية', 'بدرة', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني', 'الحي العسكري الجديد', 'الحي الصناعي الجديد', 'الحي الجامعي الجديد', 'الحي الزراعي الجديد', 'الحي التجاري الجديد', 'الحي السكني الجديد'] },
+  ] },
+  { name: 'ميسان', en: 'Maysan', districts: [
+    { name: 'العمارة', en: 'Amarah', areas: ['العمارة', 'علي الغربي', 'الميمونة', 'المجر الكبير', 'الكحلاء', 'قلعة صالح', 'الكحلاء الجديدة', 'البتيرة', 'الحي العسكري', 'الحي الصناعي'] },
+    { name: 'علي الغربي', en: 'Ali Al-Gharbi', areas: ['علي الغربي', 'العمارة', 'الميمونة', 'المجر الكبير', 'الكحلاء'] },
+    { name: 'الميمونة', en: 'Maimouna', areas: ['الميمونة', 'العمارة', 'علي الغربي', 'المجر الكبير', 'الكحلاء'] },
+    { name: 'المجر الكبير', en: 'Mejar Al-Kabi', areas: ['المجر الكبير', 'العمارة', 'علي الغربي', 'الميمونة', 'الكحلاء'] },
+    { name: 'الكحلاء', en: 'Kahla', areas: ['الكحلاء', 'العمارة', 'علي الغربي', 'الميمونة', 'المجر الكبير'] },
+    { name: 'قلعة صالح', en: 'Qalat Saleh', areas: ['قلعة صالح', 'العمارة', 'علي الغربي', 'الميمونة', 'المجر الكبير', 'الكحلاء'] },
+  ] },
+  { name: 'النجف', en: 'Najaf', districts: [
+    { name: 'النجف', en: 'Najaf', areas: ['النجف', 'الكوفة', 'المناذرة', 'المشخاب', 'العباسية', 'الحيدرية', 'الحرية', 'الحي العسكري', 'الحي الصناعي'] },
+    { name: 'الكوفة', en: 'Kufa', areas: ['الكوفة', 'النجف', 'المناذرة', 'المشخاب'] },
+    { name: 'المناذرة', en: 'Manathera', areas: ['المناذرة', 'النجف', 'الكوفة', 'المشخاب'] },
+    { name: 'المشخاب', en: 'Meshkhab', areas: ['المشخاب', 'النجف', 'الكوفة', 'المناذرة'] },
+  ] },
+  { name: 'صلاح الدين', en: 'Salah ad Din', districts: [
+    { name: 'تكريت', en: 'Tikrit', areas: ['تكريت', 'العلم', 'الدور', 'الشرقاط', 'بيجي', 'سامراء', 'بلد', 'الدجيل', 'الضلوعية', 'الاسحاقي', 'المعتصم', 'العباسية', 'العباسية الجديدة'] },
+    { name: 'سامراء', en: 'Samarra', areas: ['سامراء', 'تكريت', 'العلم', 'الدور', 'الشرقاط'] },
+    { name: 'بلد', en: 'Balad', areas: ['بلد', 'الدجيل', 'الضلوعية', 'الاسحاقي', 'المعتصم'] },
+    { name: 'بيجي', en: 'Baiji', areas: ['بيجي', 'تكريت', 'العلم', 'الدور', 'الشرقاط'] },
+    { name: 'الدور', en: 'Daur', areas: ['الدور', 'تكريت', 'العلم', 'الشرقاط', 'بيجي'] },
+    { name: 'الدجيل', en: 'Dujail', areas: ['الدجيل', 'بلد', 'الضلوعية', 'الاسحاقي', 'المعتصم'] },
+    { name: 'الشرقاط', en: 'Shirqat', areas: ['الشرقاط', 'تكريت', 'العلم', 'الدور', 'بيجي'] },
+    { name: 'طوز خورماتو', en: 'Tuz Khurmatu', areas: ['طوز خورماتو', 'آمرلي', 'سليمان بيك', 'ينكجة'] },
+  ] },
+  { name: 'كركوك', en: 'Kirkuk', districts: [
+    { name: 'كركوك', en: 'Kirkuk', areas: ['كركوك', 'داقوق', 'الحويجة', 'الرياض', 'العباسي', 'الملا عبد الله', 'التون كوبري', 'الملتقى', 'الحرية', 'الحي الصناعي'] },
+    { name: 'الحويجة', en: 'Hawija', areas: ['الحويجة', 'الرياض', 'العباسي', 'الملتقى'] },
+    { name: 'داقوق', en: 'Daquq', areas: ['داقوق', 'كركوك', 'الحويجة', 'الرياض'] },
+    { name: 'الدبس', en: 'Dibis', areas: ['الدبس', 'كركوك', 'الحويجة', 'الرياض'] },
+  ] },
+  { name: 'أربيل', en: 'Erbil', districts: [
+    { name: 'أربيل', en: 'Erbil', areas: ['أربيل', 'عنكاوة', 'شقلاوة', 'كويسنجق', 'مخمور', 'سوران', 'جومان', 'ميركسور', 'ديانا', 'حرير', 'كنديناوة', 'كلك', 'كردكوسك', 'كنديناوة الجديدة'] },
+    { name: 'شقلاوة', en: 'Shaqlawa', areas: ['شقلاوة', 'أربيل', 'عنكاوة', 'كويسنجق'] },
+    { name: 'كويسنجق', en: 'Koy Sanjaq', areas: ['كويسنجق', 'أربيل', 'عنكاوة', 'شقلاوة'] },
+    { name: 'مخمور', en: 'Makhmur', areas: ['مخمور', 'أربيل', 'عنكاوة', 'شقلاوة'] },
+    { name: 'سوران', en: 'Soran', areas: ['سوران', 'ديانا', 'حرير', 'كنديناوة'] },
+    { name: 'جومان', en: 'Choman', areas: ['جومان', 'ديانا', 'حرير', 'كنديناوة'] },
+    { name: 'ميركسور', en: 'Mergasor', areas: ['ميركسور', 'ديانا', 'حرير', 'كنديناوة'] },
+    { name: 'عنكاوة', en: 'Ankawa', areas: ['عنكاوة', 'أربيل', 'شقلاوة', 'كويسنجق'] },
+  ] },
+  { name: 'دهوك', en: 'Duhok', districts: [
+    { name: 'دهوك', en: 'Duhok', areas: ['دهوك', 'زاخو', 'العمادية', 'سيميل', 'بردرش', 'عقرة', 'شيخان', 'سرسنك', 'كاني ماسي', 'ديرلوك', 'مانكيش', 'سريشمة', 'ديربون', 'ديرلوك الجديدة'] },
+    { name: 'زاخو', en: 'Zakho', areas: ['زاخو', 'دهوك', 'العمادية', 'سيميل'] },
+    { name: 'العمادية', en: 'Amadiya', areas: ['العمادية', 'دهوك', 'زاخو', 'سيميل'] },
+    { name: 'سيميل', en: 'Sumel', areas: ['سيميل', 'دهوك', 'زاخو', 'العمادية'] },
+    { name: 'بردرش', en: 'Bardarash', areas: ['بردرش', 'دهوك', 'زاخو', 'العمادية'] },
+    { name: 'عقرة', en: 'Akre', areas: ['عقرة', 'دهوك', 'زاخو', 'العمادية'] },
+    { name: 'شيخان', en: 'Shekhan', areas: ['شيخان', 'دهوك', 'زاخو', 'العمادية'] },
+  ] },
+  { name: 'السليمانية', en: 'Sulaymaniyah', districts: [
+    { name: 'السليمانية', en: 'Sulaymaniyah', areas: ['السليمانية', 'جمجمال', 'كلار', 'رانية', 'دربندخان', 'دوكان', 'بنجوين', 'بشدر', 'سيد صادق', 'شهرزور', 'شاربازير', 'ميدان', 'قره داغ', 'حلبجة', 'خورمال', 'سيروان', 'بيارة'] },
+    { name: 'جمجمال', en: 'Chamchamal', areas: ['جمجمال', 'السليمانية', 'كلار', 'رانية'] },
+    { name: 'كلار', en: 'Kalar', areas: ['كلار', 'جمجمال', 'السليمانية', 'رانية'] },
+    { name: 'رانية', en: 'Rania', areas: ['رانية', 'جمجمال', 'كلار', 'السليمانية'] },
+    { name: 'دربندخان', en: 'Darbandikhan', areas: ['دربندخان', 'جمجمال', 'كلار', 'السليمانية'] },
+    { name: 'دوكان', en: 'Dokan', areas: ['دوكان', 'جمجمال', 'كلار', 'السليمانية'] },
+    { name: 'بنجوين', en: 'Penjwin', areas: ['بنجوين', 'جمجمال', 'كلار', 'السليمانية'] },
+    { name: 'بشدر', en: 'Pshdar', areas: ['بشدر', 'جمجمال', 'كلار', 'السليمانية'] },
+    { name: 'سيد صادق', en: 'Saidsadiq', areas: ['سيد صادق', 'جمجمال', 'كلار', 'السليمانية'] },
+    { name: 'شهرزور', en: 'Sharazoor', areas: ['شهرزور', 'جمجمال', 'كلار', 'السليمانية'] },
+    { name: 'شاربازير', en: 'Sharbazher', areas: ['شاربازير', 'جمجمال', 'كلار', 'السليمانية'] },
+    { name: 'ميدان', en: 'Maidan', areas: ['ميدان', 'جمجمال', 'كلار', 'السليمانية'] },
+  ] },
+  { name: 'حلبجة', en: 'Halabja', districts: [
+    { name: 'حلبجة', en: 'Halabja', areas: ['حلبجة', 'خورمال', 'سيروان', 'بيارة'] },
+    { name: 'خورمال', en: 'Khurmal', areas: ['خورمال', 'حلبجة', 'سيروان', 'بيارة'] },
+    { name: 'سيروان', en: 'Sirwan', areas: ['سيروان', 'حلبجة', 'خورمال', 'بيارة'] },
+    { name: 'بيارة', en: 'Byara', areas: ['بيارة', 'حلبجة', 'خورمال', 'سيروان'] },
+  ] },
+];
+
+// Improved dark mode styles for react-select to match Input
+const selectStyles = (isDarkMode) => ({
+  control: (provided, state) => ({
+    ...provided,
+    background: isDarkMode
+      ? 'linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)'
+      : 'linear-gradient(145deg, #fff 0%, #f3f4f6 100%)',
+    color: isDarkMode ? '#fff' : '#23263a',
+    borderColor: state.isFocused
+      ? (isDarkMode ? '#667eea' : '#667eea')
+      : (isDarkMode ? 'rgba(255,255,255,0.1)' : '#ccc'),
+    borderRadius: 12,
+    minHeight: 48,
+    height: 48,
+    boxShadow: state.isFocused
+      ? (isDarkMode ? '0 0 0 3px rgba(102,126,234,0.2)' : '0 0 0 3px rgba(102,126,234,0.2)')
+      : 'none',
+    fontSize: '1rem',
+    paddingLeft: 0,
+    paddingRight: 0,
+    outline: 'none',
+    transition: 'all 0.3s ease',
+  }),
+  menu: (provided) => ({
+    ...provided,
+    background: isDarkMode
+      ? 'linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)'
+      : 'linear-gradient(145deg, #fff 0%, #f3f4f6 100%)',
+    color: isDarkMode ? '#fff' : '#23263a',
+    borderRadius: 12,
+    zIndex: 20,
+  }),
+  option: (provided, state) => ({
+    ...provided,
+    backgroundColor: state.isSelected
+      ? (isDarkMode ? '#667eea' : '#e0e7ff')
+      : state.isFocused
+      ? (isDarkMode ? '#2d3250' : '#f3f4f6')
+      : 'transparent',
+    color: isDarkMode ? '#fff' : '#23263a',
+    fontSize: '1rem',
+    borderRadius: 8,
+    cursor: 'pointer',
+  }),
+  singleValue: (provided) => ({
+    ...provided,
+    color: isDarkMode ? '#fff' : '#23263a',
+    fontSize: '1rem',
+  }),
+  input: (provided) => ({
+    ...provided,
+    color: isDarkMode ? '#fff' : '#23263a',
+    fontSize: '1rem',
+  }),
+  placeholder: (provided) => ({
+    ...provided,
+    color: isDarkMode ? '#a0aec0' : '#6b7280',
+    fontSize: '1rem',
+  }),
+  dropdownIndicator: (provided) => ({
+    ...provided,
+    color: isDarkMode ? '#a0aec0' : '#6b7280',
+  }),
+  indicatorSeparator: (provided) => ({
+    ...provided,
+    backgroundColor: isDarkMode ? '#44476a' : '#ccc',
+  }),
+});
+
 const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
   const { settings } = useSettings();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedTests, setSelectedTests] = useState([]);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const { t } = useTranslation();
   const justSubmitted = useRef(false);
   const skipNextAutosave = useRef(false);
   const autosaveSubscription = useRef(null);
+  const { theme } = useTheme();
+  const isDarkMode = theme?.isDarkMode;
 
   // React Hook Form setup
   const {
@@ -471,6 +798,81 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     maxLength: 32,
   });
 
+  // Address state
+  const [selectedGovernorate, setSelectedGovernorate] = useState(() => {
+    const defaultValue = settings?.patientRegistrationFields?.defaultLocation?.governorate?.value || '';
+    // Fix: If the value is a translation key, use empty string instead
+    return defaultValue.startsWith('patientRegistration.') ? '' : defaultValue;
+  });
+  const [selectedDistrict, setSelectedDistrict] = useState(() => {
+    const defaultValue = settings?.patientRegistrationFields?.defaultLocation?.district?.value || '';
+    return defaultValue.startsWith('patientRegistration.') ? '' : defaultValue;
+  });
+  const [selectedArea, setSelectedArea] = useState(() => {
+    const defaultValue = settings?.patientRegistrationFields?.defaultLocation?.area?.value || '';
+    return defaultValue.startsWith('patientRegistration.') ? '' : defaultValue;
+  });
+
+  // Reset address values if they contain translation keys
+  useEffect(() => {
+    if (selectedGovernorate && selectedGovernorate.startsWith('patientRegistration.')) {
+      setSelectedGovernorate('');
+    }
+    if (selectedDistrict && selectedDistrict.startsWith('patientRegistration.')) {
+      setSelectedDistrict('');
+    }
+    if (selectedArea && selectedArea.startsWith('patientRegistration.')) {
+      setSelectedArea('');
+    }
+  }, [selectedGovernorate, selectedDistrict, selectedArea]);
+
+  // Clear localStorage if it contains translation keys
+  useEffect(() => {
+    const saved = localStorage.getItem(AUTOSAVE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        let needsUpdate = false;
+        
+        // Check if any address fields contain translation keys
+        if (parsed.formData) {
+          if (parsed.formData.governorate && parsed.formData.governorate.startsWith('patientRegistration.')) {
+            parsed.formData.governorate = '';
+            needsUpdate = true;
+          }
+          if (parsed.formData.district && parsed.formData.district.startsWith('patientRegistration.')) {
+            parsed.formData.district = '';
+            needsUpdate = true;
+          }
+          if (parsed.formData.area && parsed.formData.area.startsWith('patientRegistration.')) {
+            parsed.formData.area = '';
+            needsUpdate = true;
+          }
+        }
+        
+        if (needsUpdate) {
+          localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(parsed));
+        }
+      } catch (e) {
+        // If there's an error parsing, clear the localStorage
+        localStorage.removeItem(AUTOSAVE_KEY);
+      }
+    }
+  }, []);
+
+  // Fix value matching for dropdowns (always use string values, trimmed)
+  const governorateOptions = IRAQ_ADDRESS_DATA.map(g => ({ value: String(g.name).trim(), label: String(g.name).trim() }));
+  const selectedGovObj = IRAQ_ADDRESS_DATA.find(g => String(g.name).trim() === String(selectedGovernorate).trim());
+  const districtOptions = selectedGovObj && Array.isArray(selectedGovObj.districts)
+    ? selectedGovObj.districts.map(d => ({ value: String(d.name).trim(), label: String(d.name).trim() }))
+    : [];
+  const selectedDistObj = selectedGovObj && Array.isArray(selectedGovObj.districts)
+    ? selectedGovObj.districts.find(d => String(d.name).trim() === String(selectedDistrict).trim())
+    : null;
+  const areaOptions = selectedDistObj && Array.isArray(selectedDistObj.areas)
+    ? selectedDistObj.areas.map(a => ({ value: String(a).trim(), label: String(a).trim() }))
+    : [];
+
   // Mutation for adding new patient
   const addPatientMutation = useMutation({
     mutationFn: async (patientData) => {
@@ -515,7 +917,18 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
       try {
         const parsed = JSON.parse(saved);
         if (parsed.formData) {
-          reset(parsed.formData);
+          // Clean any translation keys from form data
+          const cleanedFormData = { ...parsed.formData };
+          if (cleanedFormData.governorate && cleanedFormData.governorate.startsWith('patientRegistration.')) {
+            cleanedFormData.governorate = '';
+          }
+          if (cleanedFormData.district && cleanedFormData.district.startsWith('patientRegistration.')) {
+            cleanedFormData.district = '';
+          }
+          if (cleanedFormData.area && cleanedFormData.area.startsWith('patientRegistration.')) {
+            cleanedFormData.area = '';
+          }
+          reset(cleanedFormData);
         }
         if (parsed.selectedTests) {
           setSelectedTests(parsed.selectedTests);
@@ -556,10 +969,16 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     );
   }, [selectedTests]);
 
-  // Clear autosave on successful submit
-  const onSubmit = async (data) => {
+  // Show summary modal instead of direct submission
+  const onSubmit = (data) => {
+    setShowSummaryModal(true);
+  };
+
+  // Handle actual form submission after confirmation
+  const handleConfirmRegistration = async () => {
     setIsSubmitting(true);
     try {
+      const data = getValues();
       await addPatientMutation.mutateAsync(data);
       localStorage.removeItem(AUTOSAVE_KEY);
       justSubmitted.current = true;
@@ -582,11 +1001,21 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
           JSON.stringify({ formData, selectedTests })
         );
       });
+      setShowSummaryModal(false);
     } catch (error) {
       console.error('Form submission error:', error);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleEditForm = () => {
+    setShowSummaryModal(false);
+  };
+
+  const handlePrintSummary = () => {
+    setShowSummaryModal(false);
+    setShowPrintPreview(true);
   };
 
   const [duplicateWarning, setDuplicateWarning] = useState('');
@@ -641,7 +1070,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
       return (
         <InputGroup key={fieldPath}>
           <Label htmlFor={fieldPath}>
-            {fieldLabel} {isRequired && '*'}
+            {t(fieldLabel)} {isRequired && '*'}
           </Label>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <Controller
@@ -653,7 +1082,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                   id={fieldPath}
                   name={fieldPath}
                   type="text"
-                  placeholder={`Scan or enter ${fieldLabel.toLowerCase()}`}
+                  placeholder={`Scan or enter ${t(fieldLabel.toLowerCase())}`}
                   $hasError={!!errorPath}
                   autoComplete="off"
                   value={field.value ?? ''}
@@ -672,7 +1101,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
           {scanError && <ErrorMessage>{scanError}</ErrorMessage>}
           {errorPath && <ErrorMessage>{errorPath.message}</ErrorMessage>}
           {fieldName === 'patientId' && (
-            <FieldTip>Scan the patient ID barcode or enter it manually.</FieldTip>
+            <FieldTip>{t('patientRegistration.patientIdTip')}</FieldTip>
           )}
         </InputGroup>
       );
@@ -684,13 +1113,13 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
       (['firstName', 'lastName', 'phoneNumber', 'email'].includes(fieldName));
     // Add helpful tips for certain fields
     let tip = '';
-    if (fieldName === 'email') tip = 'Enter a valid email address (e.g., user@example.com).';
-    if (fieldName === 'phoneNumber') tip = 'Enter a valid phone number including area code.';
-    if (fieldName === 'age') tip = 'Enter the patient’s age in years.';
+    if (fieldName === 'email') tip = t('patientRegistration.emailTip');
+    if (fieldName === 'phoneNumber') tip = t('patientRegistration.phoneNumberTip');
+    if (fieldName === 'age') tip = t('patientRegistration.ageTip');
     return (
       <InputGroup key={fieldPath}>
         <Label htmlFor={fieldPath}>
-          {fieldLabel} {isRequired && '*'}
+          {t(fieldLabel)} {isRequired && '*'}
         </Label>
         <Controller
           name={fieldPath}
@@ -701,7 +1130,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
               id={fieldPath}
               name={fieldPath}
               type={fieldName === 'age' ? 'number' : fieldName === 'email' ? 'email' : 'text'}
-              placeholder={`Enter ${fieldLabel.toLowerCase()}`}
+              placeholder={`Enter ${t(fieldLabel.toLowerCase())}`}
               min={fieldName === 'age' ? '0' : undefined}
               $hasError={!!errorPath}
               autoComplete="off"
@@ -732,7 +1161,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     return (
       <InputGroup key={fieldPath}>
         <Label htmlFor={fieldPath}>
-          {fieldLabel} {isRequired && '*'}
+          {t(fieldLabel)} {isRequired && '*'}
         </Label>
         <Controller
           name={fieldPath}
@@ -742,11 +1171,12 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
               <Select
                 {...field}
                 options={options}
-                placeholder={`Select ${fieldLabel.toLowerCase()}`}
+                placeholder={`Select ${t(fieldLabel.toLowerCase())}`}
                 classNamePrefix="react-select"
                 isClearable
                 onChange={(option) => field.onChange(option?.value || '')}
                 value={options.find(option => option.value === (field.value ?? '')) || null}
+                styles={selectStyles(isDarkMode)}
               />
             </SelectContainer>
           )}
@@ -772,7 +1202,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     return (
       <InputGroup key={fieldPath}>
         <Label htmlFor={fieldPath}>
-          {fieldLabel} {isRequired && '*'}
+          {t(fieldLabel)} {isRequired && '*'}
         </Label>
         <Controller
           name={fieldPath}
@@ -782,7 +1212,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
               {...field}
               id={fieldPath}
               name={fieldPath}
-              placeholder={`Enter ${fieldLabel.toLowerCase()}`}
+              placeholder={`Enter ${t(fieldLabel.toLowerCase())}`}
               $hasError={!!errorPath}
               value={field.value ?? ''}
             />
@@ -821,24 +1251,125 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                 </FormGrid>
               </FormSection>
 
-              {/* Address Section */}
-              {shouldRenderField(settings.patientRegistrationFields, 'address') && (
+              {/* Address Section (Iraq structure) */}
+              {shouldRenderSection(settings.patientRegistrationFields, 'address') && (
                 <FormSection>
                   <SectionTitle>
                     <FaMapMarkerAlt /> {t('patientRegistration.addressInfo')}
                   </SectionTitle>
                   <FormGrid>
-                    {renderField('street', settings.patientRegistrationFields.address?.street, 'address')}
-                    {renderField('city', settings.patientRegistrationFields.address?.city, 'address')}
-                    {renderSelectField('state', settings.patientRegistrationFields.address?.state, stateOptions, 'address')}
-                    {renderField('zipCode', settings.patientRegistrationFields.address?.zipCode, 'address')}
-                    {renderField('country', settings.patientRegistrationFields.address?.country, 'address')}
+                    {/* Country (fixed to Iraq) */}
+                    <InputGroup>
+                      <Label>{t('patientRegistration.country')}</Label>
+                      <Input value={t('patientRegistration.iraq')} disabled readOnly />
+                    </InputGroup>
+                    {/* Governorate */}
+                    <InputGroup>
+                      <Label>{t('patientRegistration.governorate')}</Label>
+                      <Select
+                        options={governorateOptions}
+                        value={selectedGovernorate && !selectedGovernorate.startsWith('patientRegistration.') 
+                          ? governorateOptions.find(opt => opt.value === String(selectedGovernorate).trim()) || null
+                          : null}
+                        onChange={opt => {
+                          setSelectedGovernorate(opt?.value || '');
+                          setSelectedDistrict('');
+                          setSelectedArea('');
+                          setValue('address.governorate', opt?.value || '');
+                        }}
+                        placeholder={t('patientRegistration.selectGovernorate')}
+                        isClearable
+                        styles={selectStyles(isDarkMode)}
+                      />
+                    </InputGroup>
+                    {/* District */}
+                    <InputGroup>
+                      <Label>{t('patientRegistration.district')}</Label>
+                      <Select
+                        options={districtOptions}
+                        value={districtOptions.find(opt => opt.value === String(selectedDistrict).trim()) || 
+                               (selectedDistrict && !districtOptions.find(opt => opt.value === String(selectedDistrict).trim()) 
+                                ? { value: selectedDistrict, label: selectedDistrict } : null)}
+                        onChange={opt => {
+                          setSelectedDistrict(opt?.value || '');
+                          setSelectedArea('');
+                          setValue('address.district', opt?.value || '');
+                        }}
+                        placeholder={t('patientRegistration.selectOrTypeDistrict')}
+                        isClearable
+                        isDisabled={!selectedGovernorate}
+                        styles={selectStyles(isDarkMode)}
+                        filterOption={(option, inputValue) => {
+                          if (!inputValue) return true;
+                          return option.label.toLowerCase().includes(inputValue.toLowerCase());
+                        }}
+                        onInputChange={(inputValue) => {
+                          if (inputValue && !districtOptions.find(opt => opt.value === inputValue)) {
+                            setSelectedDistrict(inputValue);
+                            setValue('address.district', inputValue);
+                          }
+                        }}
+                        createOptionPosition="first"
+                        formatCreateLabel={(inputValue) => `Use "${inputValue}"`}
+                        isValidNewOption={(inputValue) => inputValue.length > 0}
+                        onCreateOption={(inputValue) => {
+                          setSelectedDistrict(inputValue);
+                          setValue('address.district', inputValue);
+                        }}
+                      />
+                    </InputGroup>
+                    {/* Area */}
+                    <InputGroup>
+                      <Label>{t('patientRegistration.area')}</Label>
+                      <Select
+                        options={areaOptions}
+                        value={areaOptions.find(opt => opt.value === String(selectedArea).trim()) || 
+                               (selectedArea && !areaOptions.find(opt => opt.value === String(selectedArea).trim()) 
+                                ? { value: selectedArea, label: selectedArea } : null)}
+                        onChange={opt => {
+                          setSelectedArea(opt?.value || '');
+                          setValue('address.area', opt?.value || '');
+                        }}
+                        placeholder={t('patientRegistration.selectOrTypeArea')}
+                        isClearable
+                        isDisabled={!selectedDistrict}
+                        styles={selectStyles(isDarkMode)}
+                        filterOption={(option, inputValue) => {
+                          if (!inputValue) return true;
+                          return option.label.toLowerCase().includes(inputValue.toLowerCase());
+                        }}
+                        onInputChange={(inputValue) => {
+                          if (inputValue && !areaOptions.find(opt => opt.value === inputValue)) {
+                            setSelectedArea(inputValue);
+                            setValue('address.area', inputValue);
+                          }
+                        }}
+                        createOptionPosition="first"
+                        formatCreateLabel={(inputValue) => `Use "${inputValue}"`}
+                        isValidNewOption={(inputValue) => inputValue.length > 0}
+                        onCreateOption={(inputValue) => {
+                          setSelectedArea(inputValue);
+                          setValue('address.area', inputValue);
+                        }}
+                      />
+                    </InputGroup>
+                    {/* Nearest Landmark */}
+                    <InputGroup>
+                      <Label>{t('patientRegistration.landmark')}</Label>
+                      <Controller
+                        name="address.landmark"
+                        control={control}
+                        render={({ field }) => (
+                          <Input {...field} placeholder={t('patientRegistration.landmarkPlaceholder')} />
+                        )}
+                      />
+                    </InputGroup>
                   </FormGrid>
                 </FormSection>
               )}
 
               {/* Emergency Contact Section */}
-              {shouldRenderField(settings.patientRegistrationFields, 'emergencyContact') && (
+              {shouldRenderSection(settings.patientRegistrationFields, 'emergencyContact') && (
                 <FormSection>
                   <SectionTitle>
                     <FaPhone /> {t('patientRegistration.emergencyContact')}
@@ -852,7 +1383,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
               )}
 
               {/* Medical History Section */}
-              {shouldRenderField(settings.patientRegistrationFields, 'medicalHistory') && (
+              {shouldRenderSection(settings.patientRegistrationFields, 'medicalHistory') && (
                 <FormSection>
                   <SectionTitle>
                     <FaNotesMedical /> {t('patientRegistration.medicalHistory')}
@@ -867,7 +1398,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
               )}
 
               {/* Insurance Section */}
-              {shouldRenderField(settings.patientRegistrationFields, 'insurance') && (
+              {shouldRenderSection(settings.patientRegistrationFields, 'insurance') && (
                 <FormSection>
                   <SectionTitle>
                     <FaIdCard /> {t('patientRegistration.insuranceInfo')}
@@ -917,44 +1448,17 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
               </FormActions>
             </form>
           </MainFormColumn>
-          <StickySidebar>
-            {/* Summary/Review Section (now sticky on desktop) */}
-            <FormSection>
-              <SectionTitle>
-                <FaClipboardList /> {t('patientRegistration.registrationSummary')}
-              </SectionTitle>
-              <SummaryGrid>
-                <SummaryItem>
-                  <SummaryLabel>{t('patientRegistration.patientName')}</SummaryLabel>
-                  <SummaryValue>
-                    {getValues('firstName')} {getValues('lastName')}
-                  </SummaryValue>
-                </SummaryItem>
-                <SummaryItem>
-                  <SummaryLabel>{t('patientRegistration.phoneNumber')}</SummaryLabel>
-                  <SummaryValue>{getValues('phoneNumber')}</SummaryValue>
-                </SummaryItem>
-                <SummaryItem>
-                  <SummaryLabel>{t('patientRegistration.email')}</SummaryLabel>
-                  <SummaryValue>{getValues('email')}</SummaryValue>
-                </SummaryItem>
-                <SummaryItem>
-                  <SummaryLabel>{t('patientRegistration.age')}</SummaryLabel>
-                  <SummaryValue>{getValues('age')} {t('patientRegistration.years')}</SummaryValue>
-                </SummaryItem>
-                <SummaryItem>
-                  <SummaryLabel>{t('patientRegistration.gender')}</SummaryLabel>
-                  <SummaryValue>{getValues('gender')}</SummaryValue>
-                </SummaryItem>
-                <SummaryItem>
-                  <SummaryLabel>{t('patientRegistration.selectedTests')}</SummaryLabel>
-                  <SummaryValue>{selectedTests.length} {t('patientRegistration.tests')}</SummaryValue>
-                </SummaryItem>
-              </SummaryGrid>
-            </FormSection>
-          </StickySidebar>
         </RegistrationLayout>
       </FormContainer>
+      <RegistrationSummaryModal
+        isOpen={showSummaryModal}
+        onClose={() => setShowSummaryModal(false)}
+        patientData={getValues()}
+        selectedTests={selectedTests}
+        onConfirm={handleConfirmRegistration}
+        onEdit={handleEditForm}
+        onPrint={handlePrintSummary}
+      />
       <PrintPreviewModal
         isOpen={showPrintPreview}
         onClose={() => setShowPrintPreview(false)}

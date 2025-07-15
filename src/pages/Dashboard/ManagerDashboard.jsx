@@ -25,259 +25,303 @@ import GlowButton from '../../components/common/GlowButton';
 import EmptyState from '../../components/common/EmptyState';
 import { trackEvent } from '../../utils/errorMonitoring';
 import { usePerformanceMonitor } from '../../utils/performanceOptimizer';
+import { 
+  SkeletonCard, 
+  SkeletonGrid, 
+  PreventLayoutShiftContainer,
+  FixedAspectRatioContainer,
+  withLayoutShiftPrevention,
+  SkeletonBox
+} from '../../utils/layoutShiftPrevention';
 
-// Lazy load heavy components
+// Lazy load heavy components with proper cleanup
 const AdvancedAnalytics = lazy(() => import('../../components/Analytics/AdvancedAnalytics'));
 
-// Memoized chart components for better performance
-const MemoizedLineChart = React.memo(({ data }) => (
-  <ResponsiveContainer width="100%" height="100%">
-    <LineChart 
-      data={data}
-      margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-    >
-      <defs>
-        <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="5%" stopColor="#667eea" stopOpacity={0.8}/>
-          <stop offset="95%" stopColor="#667eea" stopOpacity={0.1}/>
-        </linearGradient>
-        <linearGradient id="testsGradient" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="5%" stopColor="#764ba2" stopOpacity={0.8}/>
-          <stop offset="95%" stopColor="#764ba2" stopOpacity={0.1}/>
-        </linearGradient>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-          <feMerge> 
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-      </defs>
-      <CartesianGrid 
-        strokeDasharray="3 3" 
-        stroke="rgba(255, 255, 255, 0.1)"
-        vertical={false}
-      />
-      <XAxis 
-        dataKey="date" 
-        axisLine={false}
-        tickLine={false}
-        tick={{ fontSize: 12, fill: 'rgba(255, 255, 255, 0.7)', fontWeight: '500' }}
-      />
-      <YAxis 
-        axisLine={false}
-        tickLine={false}
-        tick={{ fontSize: 12, fill: 'rgba(255, 255, 255, 0.7)', fontWeight: '500' }}
-      />
-      <Tooltip content={<CustomTooltip />} />
-      <Legend 
-        verticalAlign="top" 
-        height={36}
-        wrapperStyle={{
-          paddingBottom: '20px',
-          color: 'rgba(255, 255, 255, 0.8)',
-          fontWeight: '600'
-        }}
-      />
-      <Line 
-        type="monotone"
-        dataKey="orders" 
-        stroke="#667eea"
-        strokeWidth={3}
-        fill="url(#ordersGradient)"
-        dot={{ 
-          fill: '#667eea', 
-          strokeWidth: 2, 
-          stroke: '#fff',
-          r: 6,
-          filter: 'url(#glow)'
-        }}
-        activeDot={{ 
-          r: 8, 
-          stroke: '#fff', 
-          strokeWidth: 3,
-          fill: '#667eea'
-        }}
-        name="Orders"
-      />
-      <Line 
-        type="monotone"
-        dataKey="tests" 
-        stroke="#764ba2"
-        strokeWidth={3}
-        fill="url(#testsGradient)"
-        dot={{ 
-          fill: '#764ba2', 
-          strokeWidth: 2, 
-          stroke: '#fff',
-          r: 6,
-          filter: 'url(#glow)'
-        }}
-        activeDot={{ 
-          r: 8, 
-          stroke: '#fff', 
-          strokeWidth: 3,
-          fill: '#764ba2'
-        }}
-        name="Tests"
-      />
-    </LineChart>
-  </ResponsiveContainer>
-));
-
-const MemoizedPieChart = React.memo(({ data }) => (
-  <ResponsiveContainer width="100%" height="100%">
-    <PieChart>
-      <Pie
+// Optimized chart components with cleanup
+const MemoizedLineChart = React.memo(({ data }) => {
+  const chartRef = useRef(null);
+  
+  useEffect(() => {
+    return () => {
+      // Cleanup chart resources
+      if (chartRef.current) {
+        // Force garbage collection of chart data
+        chartRef.current = null;
+      }
+    };
+  }, []);
+  
+  return (
+    <ResponsiveContainer width="100%" height="100%" ref={chartRef}>
+      <LineChart 
         data={data}
-        cx="50%"
-        cy="50%"
-        innerRadius={45}
-        outerRadius={95}
-        paddingAngle={3}
-        dataKey="value"
-        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-        labelLine={false}
+        margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
       >
-        {data?.map((entry, index) => (
-          <Cell 
-            key={`cell-${index}`} 
-            fill={entry.color}
-            stroke="rgba(255, 255, 255, 0.2)"
-            strokeWidth={2}
-          />
-        ))}
-      </Pie>
-      <Tooltip content={<CustomPieTooltip />} />
-    </PieChart>
-  </ResponsiveContainer>
-));
+        <defs>
+          <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#667eea" stopOpacity={0.8}/>
+            <stop offset="95%" stopColor="#667eea" stopOpacity={0.1}/>
+          </linearGradient>
+          <linearGradient id="testsGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#764ba2" stopOpacity={0.8}/>
+            <stop offset="95%" stopColor="#764ba2" stopOpacity={0.1}/>
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge> 
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <CartesianGrid 
+          strokeDasharray="3 3" 
+          stroke="rgba(255, 255, 255, 0.1)"
+          vertical={false}
+        />
+        <XAxis 
+          dataKey="date" 
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 12, fill: 'rgba(255, 255, 255, 0.7)', fontWeight: '500' }}
+        />
+        <YAxis 
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 12, fill: 'rgba(255, 255, 255, 0.7)', fontWeight: '500' }}
+        />
+        <Tooltip content={<CustomTooltip />} />
+        <Legend 
+          verticalAlign="top" 
+          height={36}
+          wrapperStyle={{
+            paddingBottom: '20px',
+            color: 'rgba(255, 255, 255, 0.8)',
+            fontWeight: '600'
+          }}
+        />
+        <Line 
+          type="monotone"
+          dataKey="orders" 
+          stroke="#667eea"
+          strokeWidth={3}
+          fill="url(#ordersGradient)"
+          dot={{ 
+            fill: '#667eea', 
+            strokeWidth: 2, 
+            stroke: '#fff',
+            r: 6,
+            filter: 'url(#glow)'
+          }}
+          activeDot={{ 
+            r: 8, 
+            stroke: '#fff', 
+            strokeWidth: 3,
+            fill: '#667eea'
+          }}
+          name="Orders"
+        />
+        <Line 
+          type="monotone"
+          dataKey="tests" 
+          stroke="#764ba2"
+          strokeWidth={3}
+          fill="url(#testsGradient)"
+          dot={{ 
+            fill: '#764ba2', 
+            strokeWidth: 2, 
+            stroke: '#fff',
+            r: 6,
+            filter: 'url(#glow)'
+          }}
+          activeDot={{ 
+            r: 8, 
+            stroke: '#fff', 
+            strokeWidth: 3,
+            fill: '#764ba2'
+          }}
+          name="Tests"
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+});
 
-// Memoized activity feed component
+const MemoizedPieChart = React.memo(({ data }) => {
+  const chartRef = useRef(null);
+  
+  useEffect(() => {
+    return () => {
+      // Cleanup chart resources
+      if (chartRef.current) {
+        chartRef.current = null;
+      }
+    };
+  }, []);
+  
+  return (
+    <ResponsiveContainer width="100%" height="100%" ref={chartRef}>
+      <PieChart>
+        <Pie
+          data={data}
+          cx="50%"
+          cy="50%"
+          innerRadius={45}
+          outerRadius={95}
+          paddingAngle={3}
+          dataKey="value"
+          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+          labelLine={false}
+        >
+          {data?.map((entry, index) => (
+            <Cell 
+              key={`cell-${index}`} 
+              fill={entry.color}
+              stroke="rgba(255, 255, 255, 0.2)"
+              strokeWidth={2}
+            />
+          ))}
+        </Pie>
+        <Tooltip content={<CustomPieTooltip />} />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+});
+
+// Optimized activity feed component with layout shift prevention
 const MemoizedActivityFeed = React.memo(() => (
-  <RecentActivityCard
-    whileHover={{ 
-      scale: 1.02,
-      boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
-    }}
-    transition={{ duration: 0.3, ease: "easeOut" }}
-  >
-    <ActivityHeader>
-      <ActivityTitle>
-        <ActivityIcon>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </ActivityIcon>
-        Recent Activity
-      </ActivityTitle>
-      <ActivityBadge>Live</ActivityBadge>
-    </ActivityHeader>
-    
-    <ActivityList>
-      <ActivityItem>
-        <ActivityDot color="#667eea" />
-        <ActivityContent>
-          <ActivityText>New order <strong>#1234</strong> received from <strong>Dr. Smith</strong></ActivityText>
-          <ActivityTime>2 minutes ago</ActivityTime>
-        </ActivityContent>
-        <ActivityIconSmall>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
-          </svg>
-        </ActivityIconSmall>
-      </ActivityItem>
+  <PreventLayoutShiftContainer>
+    <RecentActivityCard
+      whileHover={{ 
+        scale: 1.02,
+        boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
+      }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+    >
+      <ActivityHeader>
+        <ActivityTitle>
+          <ActivityIcon>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </ActivityIcon>
+          Recent Activity
+        </ActivityTitle>
+        <ActivityBadge>Live</ActivityBadge>
+      </ActivityHeader>
       
-      <ActivityItem>
-        <ActivityDot color="#764ba2" />
-        <ActivityContent>
-          <ActivityText>Test results completed for <strong>patient #5678</strong></ActivityText>
-          <ActivityTime>5 minutes ago</ActivityTime>
-        </ActivityContent>
-        <ActivityIconSmall>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
-          </svg>
-        </ActivityIconSmall>
-      </ActivityItem>
-      
-      <ActivityItem>
-        <ActivityDot color="#f093fb" />
-        <ActivityContent>
-          <ActivityText><strong>QC sample</strong> passed validation</ActivityText>
-          <ActivityTime>8 minutes ago</ActivityTime>
-        </ActivityContent>
-        <ActivityIconSmall>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
-          </svg>
-        </ActivityIconSmall>
-      </ActivityItem>
-      
-      <ActivityItem>
-        <ActivityDot color="#f5576c" />
-        <ActivityContent>
-          <ActivityText><strong>Inventory alert:</strong> Low stock for Test Tube A</ActivityText>
-          <ActivityTime>12 minutes ago</ActivityTime>
-        </ActivityContent>
-        <ActivityIconSmall>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.64 21H20.36A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M12 9V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M12 17H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </ActivityIconSmall>
-      </ActivityItem>
-      
-      <ActivityItem>
-        <ActivityDot color="#4facfe" />
-        <ActivityContent>
-          <ActivityText>New <strong>patient registration</strong> completed</ActivityText>
-          <ActivityTime>15 minutes ago</ActivityTime>
-        </ActivityContent>
-        <ActivityIconSmall>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </ActivityIconSmall>
-      </ActivityItem>
-    </ActivityList>
-  </RecentActivityCard>
+      <ActivityList>
+        <ActivityItem>
+          <ActivityDot color="#667eea" />
+          <ActivityContent>
+            <ActivityText>New order <strong>#1234</strong> received from <strong>Dr. Smith</strong></ActivityText>
+            <ActivityTime>2 minutes ago</ActivityTime>
+          </ActivityContent>
+          <ActivityIconSmall>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+          </ActivityIconSmall>
+        </ActivityItem>
+        
+        <ActivityItem>
+          <ActivityDot color="#764ba2" />
+          <ActivityContent>
+            <ActivityText>Test results completed for <strong>patient #5678</strong></ActivityText>
+            <ActivityTime>5 minutes ago</ActivityTime>
+          </ActivityContent>
+          <ActivityIconSmall>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+          </ActivityIconSmall>
+        </ActivityItem>
+        
+        <ActivityItem>
+          <ActivityDot color="#10b981" />
+          <ActivityContent>
+            <ActivityText>Quality control passed for <strong>batch #9012</strong></ActivityText>
+            <ActivityTime>8 minutes ago</ActivityTime>
+          </ActivityContent>
+          <ActivityIconSmall>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+          </ActivityIconSmall>
+        </ActivityItem>
+      </ActivityList>
+    </RecentActivityCard>
+  </PreventLayoutShiftContainer>
 ));
 
-const DashboardContainer = styled(motion.create('div'))`
+// Skeleton activity feed for loading state
+const SkeletonActivityFeed = React.memo(() => (
+  <PreventLayoutShiftContainer>
+    <RecentActivityCard>
+      <ActivityHeader>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <SkeletonBox $width="40px" $height="40px" $borderRadius="12px" />
+          <SkeletonBox $width="150px" $height="24px" $borderRadius="4px" />
+        </div>
+        <SkeletonBox $width="60px" $height="32px" $borderRadius="20px" />
+      </ActivityHeader>
+      
+      <ActivityList>
+        {[1, 2, 3].map((item) => (
+          <ActivityItem key={item}>
+            <SkeletonBox $width="8px" $height="8px" $borderRadius="50%" />
+            <div style={{ flex: 1 }}>
+              <SkeletonBox $width="80%" $height="16px" $borderRadius="4px" style={{ marginBottom: '0.5rem' }} />
+              <SkeletonBox $width="40%" $height="14px" $borderRadius="4px" />
+            </div>
+            <SkeletonBox $width="16px" $height="16px" $borderRadius="4px" />
+          </ActivityItem>
+        ))}
+      </ActivityList>
+    </RecentActivityCard>
+  </PreventLayoutShiftContainer>
+));
+
+const DashboardContainer = styled(motion.div)`
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
   min-height: 100vh;
   background: ${({ theme }) => theme.colors.background};
+  contain: layout style paint;
 `;
 
-const DashboardHeader = styled(motion.create('div'))`
+const DashboardHeader = styled(motion.div)`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  height: 80px;
+  min-height: 80px;
+  contain: layout style paint;
   
   h1 {
     font-size: 2rem;
     font-weight: 700;
     color: ${({ theme }) => theme.colors.text};
     margin: 0;
+    min-height: 2.5rem;
+    line-height: 1.2;
   }
   
   .header-actions {
     display: flex;
     gap: 1rem;
     align-items: center;
+    min-width: 200px;
+    height: 40px;
   }
 `;
 
@@ -286,9 +330,11 @@ const StatsGrid = styled.div`
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
+  contain: layout style paint;
+  min-height: 200px;
 `;
 
-const StatCard = styled(motion.create('div'))`
+const StatCard = styled(motion.div)`
   background: linear-gradient(145deg, 
     rgba(255, 255, 255, 0.1) 0%, 
     rgba(255, 255, 255, 0.05) 100%);
@@ -299,10 +345,12 @@ const StatCard = styled(motion.create('div'))`
     0 20px 40px rgba(0, 0, 0, 0.1),
     0 8px 16px rgba(0, 0, 0, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px); /* Reduced from 20px */
+  backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
-  transition: all 0.2s ease; /* Reduced from 0.3s */
+  transition: all 0.2s ease;
+  min-height: 160px;
+  contain: layout style paint;
   
   &::before {
     content: '';
@@ -327,12 +375,12 @@ const StatCard = styled(motion.create('div'))`
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.05) 0%, transparent 50%); /* Simplified gradient */
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.05) 0%, transparent 50%);
     pointer-events: none;
   }
   
   &:hover {
-    transform: translateY(-1px); /* Reduced from -2px */
+    transform: translateY(-1px);
     box-shadow: 
       0 20px 40px rgba(0, 0, 0, 0.12),
       0 8px 16px rgba(0, 0, 0, 0.08),
@@ -346,6 +394,8 @@ const StatCard = styled(motion.create('div'))`
     margin-bottom: 1rem;
     position: relative;
     z-index: 1;
+    height: 40px;
+    min-height: 40px;
   }
   
   .stat-title {
@@ -354,6 +404,8 @@ const StatCard = styled(motion.create('div'))`
     color: ${({ theme }) => theme.colors.textSecondary};
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    min-height: 1.2em;
+    line-height: 1.2;
   }
   
   .stat-icon {
@@ -365,6 +417,7 @@ const StatCard = styled(motion.create('div'))`
     justify-content: center;
     font-size: 1.25rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
   }
   
   .stat-value {
@@ -374,6 +427,8 @@ const StatCard = styled(motion.create('div'))`
     margin-bottom: 0.5rem;
     position: relative;
     z-index: 1;
+    min-height: 2.5rem;
+    line-height: 1.2;
   }
   
   .stat-change {
@@ -383,6 +438,8 @@ const StatCard = styled(motion.create('div'))`
     gap: 0.25rem;
     position: relative;
     z-index: 1;
+    min-height: 1.2em;
+    line-height: 1.2;
   }
   
   .stat-change.positive {
@@ -399,13 +456,16 @@ const ChartsGrid = styled.div`
   grid-template-columns: 2fr 1fr;
   gap: 2rem;
   margin-bottom: 2rem;
+  contain: layout style paint;
+  min-height: 400px;
   
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
+    min-height: 600px;
   }
 `;
 
-const ChartCard = styled(motion.create('div'))`
+const ChartCard = styled(motion.div)`
   background: linear-gradient(145deg, 
     rgba(255, 255, 255, 0.1) 0%, 
     rgba(255, 255, 255, 0.05) 100%);
@@ -416,9 +476,11 @@ const ChartCard = styled(motion.create('div'))`
     0 20px 40px rgba(0, 0, 0, 0.1),
     0 8px 16px rgba(0, 0, 0, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px); /* Reduced from 20px */
+  backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
+  min-height: 400px;
+  contain: layout style paint;
   
   &::before {
     content: '';
@@ -458,6 +520,8 @@ const ChartCard = styled(motion.create('div'))`
     gap: 1rem;
     position: relative;
     z-index: 1;
+    min-height: 2rem;
+    line-height: 1.2;
     
     &::before {
       content: '';
@@ -466,17 +530,20 @@ const ChartCard = styled(motion.create('div'))`
       background: linear-gradient(180deg, #667eea, #764ba2);
       border-radius: 3px;
       box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+      flex-shrink: 0;
     }
   }
   
   .chart-container {
     position: relative;
     height: 320px;
+    min-height: 320px;
     z-index: 1;
+    contain: layout style paint;
   }
 `;
 
-const LoadingSpinner = styled(motion.create('div'))`
+const LoadingSpinner = styled(motion.div)`
   width: 40px;
   height: 40px;
   border: 3px solid ${({ theme }) => theme.colors.border};
@@ -490,16 +557,7 @@ const LoadingSpinner = styled(motion.create('div'))`
   }
 `;
 
-const SkeletonCard = styled(motion.create('div'))`
-  background: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 12px;
-  padding: 1.5rem;
-  height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
+
 
 // Premium Recent Activity Components
 const RecentActivityCard = styled(motion.div)`
@@ -517,6 +575,8 @@ const RecentActivityCard = styled(motion.div)`
   backdrop-filter: blur(20px);
   position: relative;
   overflow: hidden;
+  min-height: 300px;
+  contain: layout style paint;
   
   &::before {
     content: '';
@@ -554,6 +614,9 @@ const ActivityHeader = styled.div`
   margin-bottom: 2rem;
   position: relative;
   z-index: 1;
+  height: 60px;
+  min-height: 60px;
+  contain: layout style paint;
 `;
 
 const ActivityTitle = styled.h3`
@@ -564,6 +627,8 @@ const ActivityTitle = styled.h3`
   display: flex;
   align-items: center;
   gap: 1rem;
+  min-height: 2rem;
+  line-height: 1.2;
 `;
 
 const ActivityIcon = styled.div`
@@ -576,6 +641,7 @@ const ActivityIcon = styled.div`
   justify-content: center;
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  flex-shrink: 0;
 `;
 
 const ActivityBadge = styled.span`
@@ -589,6 +655,9 @@ const ActivityBadge = styled.span`
   letter-spacing: 0.5px;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   animation: pulse 2s infinite;
+  min-width: 60px;
+  text-align: center;
+  flex-shrink: 0;
   
   @keyframes pulse {
     0%, 100% {
@@ -605,9 +674,11 @@ const ActivityBadge = styled.span`
 const ActivityList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
   position: relative;
   z-index: 1;
+  min-height: 200px;
+  contain: layout style paint;
 `;
 
 const ActivityItem = styled.div`
@@ -615,70 +686,61 @@ const ActivityItem = styled.div`
   align-items: flex-start;
   gap: 1rem;
   padding: 1rem;
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.05) 0%, 
-    rgba(255, 255, 255, 0.02) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+  min-height: 60px;
+  contain: layout style paint;
   
   &:hover {
-    background: linear-gradient(145deg, 
-      rgba(255, 255, 255, 0.1) 0%, 
-      rgba(255, 255, 255, 0.05) 100%);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.1);
     transform: translateX(4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 `;
 
 const ActivityDot = styled.div`
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: ${({ color }) => color};
-  box-shadow: 0 0 0 4px ${({ color }) => color}20;
   flex-shrink: 0;
-  margin-top: 0.25rem;
+  margin-top: 0.5rem;
 `;
 
 const ActivityContent = styled.div`
   flex: 1;
   min-width: 0;
+  contain: layout style paint;
 `;
 
 const ActivityText = styled.p`
   color: ${({ theme }) => theme.colors.text};
-  font-size: 0.95rem;
-  margin: 0 0 0.25rem 0;
+  font-size: 0.875rem;
+  margin: 0 0 0.5rem 0;
   line-height: 1.4;
+  min-height: 1.4em;
   
   strong {
-    color: ${({ theme }) => theme.colors.primary};
+    color: ${({ theme }) => theme.colors.text};
     font-weight: 600;
   }
 `;
 
 const ActivityTime = styled.span`
   color: ${({ theme }) => theme.colors.textSecondary};
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
+  min-height: 1em;
+  line-height: 1;
 `;
 
 const ActivityIconSmall = styled.div`
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.1) 0%, 
-    rgba(255, 255, 255, 0.05) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 16px;
+  height: 16px;
   color: ${({ theme }) => theme.colors.textSecondary};
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 0.25rem;
 `;
 
 // Custom tooltip component for premium look
@@ -842,14 +904,33 @@ const generateMockData = () => {
 };
 
 const ManagerDashboard = () => {
-  // Performance monitoring
+  // Performance monitoring with cleanup
   usePerformanceMonitor('ManagerDashboard');
   
   const { t } = useTranslation();
   const { user } = useAuth();
-  // const { unreadCount } = useNotifications(); // Unused variable, comment out or remove
   const [timeRange, setTimeRange] = useState('7d');
   const hasTrackedView = useRef(false);
+  
+  // Cleanup refs for chart components
+  const chartRefs = useRef(new Set());
+  
+  // Cleanup function for chart resources
+  const cleanupCharts = useCallback(() => {
+    chartRefs.current.forEach(ref => {
+      if (ref && ref.current) {
+        ref.current = null;
+      }
+    });
+    chartRefs.current.clear();
+  }, []);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanupCharts();
+    };
+  }, [cleanupCharts]);
 
   // Mock data query
   const { data: dashboardData, isLoading, error } = useQuery({
@@ -987,75 +1068,89 @@ const ManagerDashboard = () => {
         </div>
       </DashboardHeader>
 
-      <StatsGrid>
-        {stats.map((stat) => (
-          <StatCard
-            key={stat.title}
-            variants={itemVariants}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <div className="stat-header">
-              <span className="stat-title">{stat.title}</span>
-              <div 
-                className="stat-icon"
-                style={{ background: stat.color + '20', color: stat.color }}
-              >
-                {stat.icon}
+      <PreventLayoutShiftContainer>
+        <StatsGrid>
+          {stats.map((stat) => (
+            <StatCard
+              key={stat.title}
+              variants={itemVariants}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="stat-header">
+                <span className="stat-title">{stat.title}</span>
+                <div 
+                  className="stat-icon"
+                  style={{ background: stat.color + '20', color: stat.color }}
+                >
+                  {stat.icon}
+                </div>
               </div>
-            </div>
-            <div className="stat-value">{stat.value}</div>
-            <div className={`stat-change ${stat.changeType}`}>
-              {stat.change}
-              <span>
-                {stat.changeType === 'positive' ? '↗' : '↘'}
-              </span>
-            </div>
-          </StatCard>
-        ))}
-      </StatsGrid>
+              <div className="stat-value">{stat.value}</div>
+              <div className={`stat-change ${stat.changeType}`}>
+                {stat.change}
+                <span>
+                  {stat.changeType === 'positive' ? '↗' : '↘'}
+                </span>
+              </div>
+            </StatCard>
+          ))}
+        </StatsGrid>
+      </PreventLayoutShiftContainer>
 
       {isLoading ? (
-        <ChartsGrid>
-          {[...Array(2)].map((_, i) => (
-            <SkeletonCard key={i}>
-              <LoadingSpinner />
-            </SkeletonCard>
-          ))}
-        </ChartsGrid>
+        <PreventLayoutShiftContainer>
+          <ChartsGrid>
+            <ChartCard>
+              <h3>{t('dashboard.ordersTestsTrend')}</h3>
+              <FixedAspectRatioContainer $ratio={16/9}>
+                <SkeletonBox $width="100%" $height="100%" $borderRadius="8px" />
+              </FixedAspectRatioContainer>
+            </ChartCard>
+            
+            <ChartCard>
+              <h3>{t('dashboard.testTypesDistribution')}</h3>
+              <FixedAspectRatioContainer $ratio={1}>
+                <SkeletonBox $width="100%" $height="100%" $borderRadius="8px" />
+              </FixedAspectRatioContainer>
+            </ChartCard>
+          </ChartsGrid>
+        </PreventLayoutShiftContainer>
       ) : (
-        <ChartsGrid>
-          <ChartCard
-            variants={itemVariants}
-            whileHover={{ 
-              scale: 1.02,
-              boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
-            }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          >
-            <h3>{t('dashboard.ordersTestsTrend')}</h3>
-            <div className="chart-container">
-              <MemoizedLineChart data={dashboardData?.last7Days} />
-            </div>
-          </ChartCard>
+        <PreventLayoutShiftContainer>
+          <ChartsGrid>
+            <ChartCard
+              variants={itemVariants}
+              whileHover={{ 
+                scale: 1.02,
+                boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
+              }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <h3>{t('dashboard.ordersTestsTrend')}</h3>
+              <FixedAspectRatioContainer $ratio={16/9}>
+                <MemoizedLineChart data={dashboardData?.last7Days} />
+              </FixedAspectRatioContainer>
+            </ChartCard>
 
-          <ChartCard
-            variants={itemVariants}
-            whileHover={{ 
-              scale: 1.02,
-              boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
-            }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          >
-            <h3>{t('dashboard.testTypesDistribution')}</h3>
-            <div className="chart-container">
-              <MemoizedPieChart data={dashboardData?.testTypes} />
-            </div>
-          </ChartCard>
-        </ChartsGrid>
+            <ChartCard
+              variants={itemVariants}
+              whileHover={{ 
+                scale: 1.02,
+                boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
+              }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <h3>{t('dashboard.testTypesDistribution')}</h3>
+              <FixedAspectRatioContainer $ratio={1}>
+                <MemoizedPieChart data={dashboardData?.testTypes} />
+              </FixedAspectRatioContainer>
+            </ChartCard>
+          </ChartsGrid>
+        </PreventLayoutShiftContainer>
       )}
 
-      <MemoizedActivityFeed />
+      {isLoading ? <SkeletonActivityFeed /> : <MemoizedActivityFeed />}
     </DashboardContainer>
   );
 };

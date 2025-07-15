@@ -35,6 +35,7 @@ import {
 import { GlowCard, GlowButton, AnimatedModal } from '../../components/common';
 import { useSettings } from '../../contexts/SettingsContext';
 import { toast } from 'react-toastify';
+import { FaSave, FaUserPlus, FaMapMarkerAlt, FaCog } from 'react-icons/fa';
 
 const Container = styled.div`
   padding: 2rem;
@@ -546,6 +547,33 @@ const EmptyStateIcon = styled.div`
   opacity: 0.5;
 `;
 
+const DefaultLocationSection = styled.div`
+  background: ${({ theme }) => theme.colors.surface};
+  padding: 2rem;
+  border-radius: ${({ theme }) => theme.shapes.squircle};
+  box-shadow: ${({ theme }) => theme.shadows.main};
+  margin-bottom: 2rem;
+`;
+
+const DefaultLocationHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const DefaultLocationForm = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
 const PatientRegistrationSettings = () => {
   const { t } = useTranslation();
   const { settings, updateSettings } = useSettings();
@@ -555,6 +583,15 @@ const PatientRegistrationSettings = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingField, setEditingField] = useState(null);
   const [collapsedSections, setCollapsedSections] = useState({});
+  
+  // Default location form state
+  const [formState, setFormState] = useState({
+    defaultLocation: {
+      governorate: settings?.patientRegistrationFields?.defaultLocation?.governorate?.value || '',
+      district: settings?.patientRegistrationFields?.defaultLocation?.district?.value || '',
+      area: settings?.patientRegistrationFields?.defaultLocation?.area?.value || ''
+    }
+  });
   
   const [fieldFormState, setFieldFormState] = useState({
     section: 'personal',
@@ -568,7 +605,54 @@ const PatientRegistrationSettings = () => {
   // Update localSettings when settings change
   useEffect(() => {
     setLocalSettings(settings.patientRegistrationFields);
+    setFormState({
+      defaultLocation: {
+        governorate: settings?.patientRegistrationFields?.defaultLocation?.governorate?.value || '',
+        district: settings?.patientRegistrationFields?.defaultLocation?.district?.value || '',
+        area: settings?.patientRegistrationFields?.defaultLocation?.area?.value || ''
+      }
+    });
   }, [settings.patientRegistrationFields]);
+
+  // Handle input change for default location form
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name.startsWith('defaultLocation.')) {
+      const field = name.split('.')[1];
+      setFormState(prev => ({
+        ...prev,
+        defaultLocation: {
+          ...prev.defaultLocation,
+          [field]: value
+        }
+      }));
+    }
+  };
+
+  // Handle save for default location settings
+  const handleSaveDefaultLocation = async () => {
+    setIsSaving(true);
+    try {
+      const updatedSettings = {
+        ...settings,
+        patientRegistrationFields: {
+          ...settings.patientRegistrationFields,
+          defaultLocation: {
+            governorate: { value: formState.defaultLocation.governorate, enabled: true, label: 'المحافظة الافتراضية' },
+            district: { value: formState.defaultLocation.district, enabled: true, label: 'القضاء الافتراضي' },
+            area: { value: formState.defaultLocation.area, enabled: true, label: 'المنطقة الافتراضية' }
+          }
+        }
+      };
+      await updateSettings(updatedSettings);
+      toast.success(t('defaultLocationUpdated'));
+    } catch (error) {
+      console.error('Error updating default location:', error);
+      toast.error(t('failedToUpdateDefaultLocation'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Section configuration
   const sections = {
@@ -1133,87 +1217,166 @@ const PatientRegistrationSettings = () => {
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <SectionContent>
-                        {fields.map((field, idx) => (
-                          <FieldCard
-                            key={field.section + '-' + field.key}
-                            as={motion.div}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            $disabled={!field.enabled}
-                          >
-                            <FieldHeader>
-                              <FieldInfo>
-                                <FieldName>
-                                  {field.label}
-                                  {!field.enabled && <EyeOff size={16} color="#6b7280" />}
-                                </FieldName>
-                                <FieldKey>{field.key}</FieldKey>
-                              </FieldInfo>
-                              <FieldControls>
-                                <ActionButton
-                                  onClick={() => handleOpenModal(field)}
-                                  title="Edit Field"
-                                >
-                                  <Edit size={16} />
-                                </ActionButton>
-                                <ActionButton
-                                  onClick={() => handleDuplicateField(field)}
-                                  title="Duplicate Field"
-                                >
-                                  <Copy size={16} />
-                                </ActionButton>
-                                <ActionButton
-                                  onClick={() => handleDeleteField(field)}
-                                  title="Delete Field"
-                                  style={{ color: '#ef4444' }}
-                                >
-                                  <Trash2 size={16} />
-                                </ActionButton>
-                                <ToggleButton
-                                  type="button"
-                                  $active={field.enabled}
-                                  onClick={() => {
-                                    console.log('Field toggle clicked:', field);
-                                    handleFieldToggle(field.section, field.key, 'enabled');
-                                  }}
-                                  title={field.enabled ? 'Disable Field' : 'Enable Field'}
-                                >
-                                  {field.enabled ? <Eye size={16} /> : <EyeOff size={16} />}
-                                  <span style={{ fontSize: '0.75rem' }}>
-                                    {field.enabled ? 'ON' : 'OFF'}
-                                  </span>
-                                </ToggleButton>
-                                <RequiredToggle
-                                  type="button"
-                                  $active={field.required}
-                                  onClick={() => handleFieldToggle(field.section, field.key, 'required')}
-                                  title={field.required ? 'Make Optional' : 'Make Required'}
-                                >
-                                  {field.required ? <AlertCircle size={16} /> : <CheckCircle size={16} />}
-                                </RequiredToggle>
-                              </FieldControls>
-                            </FieldHeader>
-                            
-                            {field.description && (
-                              <FieldDescription>{field.description}</FieldDescription>
-                            )}
-                            
-                            <FieldStatus>
-                              <StatusBadge $type={field.required ? 'required' : 'optional'}>
-                                {field.required ? 'Required' : 'Optional'}
-                              </StatusBadge>
-                              <StatusBadge $type={field.enabled ? 'enabled' : 'disabled'}>
-                                {field.enabled ? 'Enabled' : 'Disabled'}
-                              </StatusBadge>
-                              <small style={{ color: '#6b7280', fontSize: '0.75rem' }}>
-                                Debug: {field.section}.{field.key} = {field.enabled ? 'true' : 'false'}
-                              </small>
-                            </FieldStatus>
-                          </FieldCard>
-                        ))}
-                      </SectionContent>
+                      {sectionKey === 'address' && (
+                        <SectionContent>
+                          {fields.map((field, idx) => (
+                            <FieldCard
+                              key={field.section + '-' + field.key}
+                              as={motion.div}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: idx * 0.05 }}
+                              $disabled={!field.enabled}
+                            >
+                              <FieldHeader>
+                                <FieldInfo>
+                                  <FieldName>
+                                    {t(field.label)}
+                                    {!field.enabled && <EyeOff size={16} color="#6b7280" />}
+                                  </FieldName>
+                                  <FieldKey>{field.key}</FieldKey>
+                                </FieldInfo>
+                                <FieldControls>
+                                  <ActionButton
+                                    onClick={() => handleOpenModal(field)}
+                                    title="Edit Field"
+                                  >
+                                    <Edit size={16} />
+                                  </ActionButton>
+                                  <ActionButton
+                                    onClick={() => handleDuplicateField(field)}
+                                    title="Duplicate Field"
+                                  >
+                                    <Copy size={16} />
+                                  </ActionButton>
+                                  <ActionButton
+                                    onClick={() => handleDeleteField(field)}
+                                    title="Delete Field"
+                                    style={{ color: '#ef4444' }}
+                                  >
+                                    <Trash2 size={16} />
+                                  </ActionButton>
+                                  <ToggleButton
+                                    type="button"
+                                    $active={field.enabled}
+                                    onClick={() => {
+                                      handleFieldToggle(field.section, field.key, 'enabled');
+                                    }}
+                                    title={field.enabled ? 'Disable Field' : 'Enable Field'}
+                                  >
+                                    {field.enabled ? <Eye size={16} /> : <EyeOff size={16} />}
+                                    <span style={{ fontSize: '0.75rem' }}>
+                                      {field.enabled ? 'ON' : 'OFF'}
+                                    </span>
+                                  </ToggleButton>
+                                  <RequiredToggle
+                                    type="button"
+                                    $active={field.required}
+                                    onClick={() => handleFieldToggle(field.section, field.key, 'required')}
+                                    title={field.required ? 'Make Optional' : 'Make Required'}
+                                  >
+                                    {field.required ? <AlertCircle size={16} /> : <CheckCircle size={16} />}
+                                  </RequiredToggle>
+                                </FieldControls>
+                              </FieldHeader>
+                              {field.description && (
+                                <FieldDescription>{field.description}</FieldDescription>
+                              )}
+                              <FieldStatus>
+                                <StatusBadge $type={field.required ? 'required' : 'optional'}>
+                                  {field.required ? 'Required' : 'Optional'}
+                                </StatusBadge>
+                                <StatusBadge $type={field.enabled ? 'enabled' : 'disabled'}>
+                                  {field.enabled ? 'Enabled' : 'Disabled'}
+                                </StatusBadge>
+                                <small style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                                  Debug: {field.section}.{field.key} = {field.enabled ? 'true' : 'false'}
+                                </small>
+                              </FieldStatus>
+                            </FieldCard>
+                          ))}
+                        </SectionContent>
+                      )}
+                      {sectionKey !== 'address' && (
+                        <SectionContent>
+                          {fields.map((field, idx) => (
+                            <FieldCard
+                              key={field.section + '-' + field.key}
+                              as={motion.div}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: idx * 0.05 }}
+                              $disabled={!field.enabled}
+                            >
+                              <FieldHeader>
+                                <FieldInfo>
+                                  <FieldName>
+                                    {t(field.label)}
+                                    {!field.enabled && <EyeOff size={16} color="#6b7280" />}
+                                  </FieldName>
+                                  <FieldKey>{field.key}</FieldKey>
+                                </FieldInfo>
+                                <FieldControls>
+                                  <ActionButton
+                                    onClick={() => handleOpenModal(field)}
+                                    title="Edit Field"
+                                  >
+                                    <Edit size={16} />
+                                  </ActionButton>
+                                  <ActionButton
+                                    onClick={() => handleDuplicateField(field)}
+                                    title="Duplicate Field"
+                                  >
+                                    <Copy size={16} />
+                                  </ActionButton>
+                                  <ActionButton
+                                    onClick={() => handleDeleteField(field)}
+                                    title="Delete Field"
+                                    style={{ color: '#ef4444' }}
+                                  >
+                                    <Trash2 size={16} />
+                                  </ActionButton>
+                                  <ToggleButton
+                                    type="button"
+                                    $active={field.enabled}
+                                    onClick={() => {
+                                      handleFieldToggle(field.section, field.key, 'enabled');
+                                    }}
+                                    title={field.enabled ? 'Disable Field' : 'Enable Field'}
+                                  >
+                                    {field.enabled ? <Eye size={16} /> : <EyeOff size={16} />}
+                                    <span style={{ fontSize: '0.75rem' }}>
+                                      {field.enabled ? 'ON' : 'OFF'}
+                                    </span>
+                                  </ToggleButton>
+                                  <RequiredToggle
+                                    type="button"
+                                    $active={field.required}
+                                    onClick={() => handleFieldToggle(field.section, field.key, 'required')}
+                                    title={field.required ? 'Make Optional' : 'Make Required'}
+                                  >
+                                    {field.required ? <AlertCircle size={16} /> : <CheckCircle size={16} />}
+                                  </RequiredToggle>
+                                </FieldControls>
+                              </FieldHeader>
+                              {field.description && (
+                                <FieldDescription>{field.description}</FieldDescription>
+                              )}
+                              <FieldStatus>
+                                <StatusBadge $type={field.required ? 'required' : 'optional'}>
+                                  {field.required ? 'Required' : 'Optional'}
+                                </StatusBadge>
+                                <StatusBadge $type={field.enabled ? 'enabled' : 'disabled'}>
+                                  {field.enabled ? 'Enabled' : 'Disabled'}
+                                </StatusBadge>
+                                <small style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                                  Debug: {field.section}.{field.key} = {field.enabled ? 'true' : 'false'}
+                                </small>
+                              </FieldStatus>
+                            </FieldCard>
+                          ))}
+                        </SectionContent>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -1328,6 +1491,78 @@ const PatientRegistrationSettings = () => {
           </ModalActions>
         </ModalForm>
       </AnimatedModal>
+
+      {/* Default Location Settings */}
+      <DefaultLocationSection>
+        <DefaultLocationHeader>
+          <h2>
+            <FaMapMarkerAlt />
+            {t('defaultLocationSettings')}
+          </h2>
+          <GlowButton onClick={handleSaveDefaultLocation} disabled={isSaving} variant="secondary">
+            <FaSave />
+            {isSaving ? t('saving') : t('saveChanges')}
+          </GlowButton>
+        </DefaultLocationHeader>
+
+        <form id="default-location-form" onSubmit={(e) => {
+          e.preventDefault();
+          const updatedSettings = {
+            ...settings,
+            patientRegistrationFields: {
+              ...settings.patientRegistrationFields,
+              defaultLocation: {
+                governorate: { value: formState.defaultLocation.governorate, enabled: true, label: 'المحافظة الافتراضية' },
+                district: { value: formState.defaultLocation.district, enabled: true, label: 'القضاء الافتراضي' },
+                area: { value: formState.defaultLocation.area, enabled: true, label: 'المنطقة الافتراضية' }
+              }
+            }
+          };
+          updateSettings(updatedSettings);
+          toast.success(t('defaultLocationUpdated'));
+        }}>
+          <DefaultLocationForm>
+            <InputGroup>
+              <Label>
+                <FaMapMarkerAlt />
+                {t('defaultGovernorate')}
+              </Label>
+              <Input
+                name="defaultLocation.governorate"
+                value={formState.defaultLocation.governorate}
+                onChange={handleInputChange}
+                placeholder="واسط"
+              />
+            </InputGroup>
+
+            <InputGroup>
+              <Label>
+                <FaMapMarkerAlt />
+                {t('defaultDistrict')}
+              </Label>
+              <Input
+                name="defaultLocation.district"
+                value={formState.defaultLocation.district}
+                onChange={handleInputChange}
+                placeholder="الكوت"
+              />
+            </InputGroup>
+
+            <InputGroup>
+              <Label>
+                <FaMapMarkerAlt />
+                {t('defaultArea')}
+              </Label>
+              <Input
+                name="defaultLocation.area"
+                value={formState.defaultLocation.area}
+                onChange={handleInputChange}
+                placeholder="الكوت"
+              />
+            </InputGroup>
+          </DefaultLocationForm>
+        </form>
+      </DefaultLocationSection>
     </Container>
   );
 };

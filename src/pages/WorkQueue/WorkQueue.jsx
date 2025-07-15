@@ -88,7 +88,7 @@ const HeaderTitle = styled.h1`
   }
 `;
 
-const HeaderSubtitle = styled.p`
+const HeaderSubtitle = styled('p')`
   font-size: 1.1rem;
   color: ${({ theme }) => theme.colors.textSecondary};
   margin-top: 0.5rem;
@@ -201,7 +201,7 @@ const SearchInput = styled.div`
   }
 `;
 
-const FilterSelect = styled.select`
+const FilterSelect = styled('select')`
   padding: 0.8rem 1rem;
   border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;

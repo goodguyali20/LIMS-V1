@@ -28,7 +28,7 @@ const ErrorTitle = styled.h1`
   color: ${({ theme }) => theme?.colors?.text || '#ffffff'};
 `;
 
-const ErrorMessage = styled.p`
+const ErrorMessage = styled('p')`
   font-size: 1.1rem;
   color: ${({ theme }) => theme?.colors?.textSecondary || '#a1a1aa'};
   margin-bottom: 2rem;

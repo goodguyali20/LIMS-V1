@@ -25,23 +25,59 @@ const PageContainer = styled(motion.div)`
   padding: 2rem;
   background: ${({ theme }) => theme.colors.background};
   min-height: 100vh;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(118, 75, 162, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+`;
+
+const GlassContainer = styled(motion.div)`
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 3rem 1rem 2rem 1rem;
+  background: ${({ theme }) =>
+    theme.isDarkMode
+      ? `linear-gradient(135deg, ${theme.colors.dark.background} 0%, #1a1a2e 50%, #16213e 100%)`
+      : `linear-gradient(120deg, ${theme.colors.background} 0%, #e0e7ff 100%)`};
 `;
 
 const Header = styled.div`
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 2rem;
-  padding: 2rem;
+  text-align: center;
+  margin-bottom: 3rem;
+  padding: 3rem 2rem;
+  width: 100%;
+  max-width: 100%;
   background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.1) 0%, 
-    rgba(255, 255, 255, 0.05) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
+    rgba(255, 255, 255, 0.15) 0%, 
+    rgba(255, 255, 255, 0.08) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
   box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.1),
-    0 8px 16px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 25px 50px rgba(0, 0, 0, 0.15),
+    0 12px 24px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(20px);
   position: relative;
   overflow: hidden;
@@ -178,18 +214,7 @@ const Input = styled.input`
   }
 `;
 
-const GlassContainer = styled(motion.div)`
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 3rem 1rem 2rem 1rem;
-  background: ${({ theme }) =>
-    theme.isDarkMode
-      ? `linear-gradient(135deg, ${theme.colors.dark.background} 0%, #1a1a2e 50%, #16213e 100%)`
-      : `linear-gradient(120deg, ${theme.colors.background} 0%, #e0e7ff 100%)`};
-`;
+
 
 const AnimatedHeader = styled(motion.header)`
   display: flex;
@@ -264,36 +289,38 @@ const PatientRegistration = () => {
 
   // Remove tab logic and always show registration form
   return (
-    <GlassContainer
+    <PageContainer
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.7 }}
     >
-      <AnimatedHeader>
-        <PageTitle
-          variants={fadeIn}
-          initial="hidden"
-          animate="visible"
-        >
-          <FaUserPlus /> {t('patientRegistration.title') || 'Register a New Patient'}
-        </PageTitle>
-        <Subtitle
-          variants={fadeIn}
-          initial="hidden"
-          animate="visible"
-          transition={{ delay: 0.2 }}
-        >
-          {t('patientRegistration.subtitle') || 'A seamless, joyful experience for every patient.'}
-        </Subtitle>
-        <JoyfulBar
-          variants={fadeIn}
-          initial="hidden"
-          animate="visible"
-          transition={{ delay: 0.4 }}
-        />
-      </AnimatedHeader>
-      <EnhancedPatientForm patients={patients} />
-    </GlassContainer>
+      <GlassContainer>
+        <Header>
+          <PageTitle
+            variants={fadeIn}
+            initial="hidden"
+            animate="visible"
+          >
+            <FaUserPlus /> {t('patientRegistration.title') || 'Register a New Patient'}
+          </PageTitle>
+          <Subtitle
+            variants={fadeIn}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.2 }}
+          >
+            {t('patientRegistration.subtitle') || 'A seamless, joyful experience for every patient.'}
+          </Subtitle>
+          <JoyfulBar
+            variants={fadeIn}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.4 }}
+          />
+        </Header>
+        <EnhancedPatientForm patients={patients} />
+      </GlassContainer>
+    </PageContainer>
   );
 };
 

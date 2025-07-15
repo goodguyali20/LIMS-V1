@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 
-const NotificationContainer = styled(motion.create('div'))`
+const NotificationContainer = styled(motion.div)`
   position: fixed;
   top: 20px;
   right: 20px;
@@ -15,7 +15,7 @@ const NotificationContainer = styled(motion.create('div'))`
   max-width: 400px;
 `;
 
-const NotificationCard = styled(motion.create('div'))`
+const NotificationCard = styled(motion.div)`
   background: ${({ theme, type }) => {
     switch (type) {
       case 'success': return '#10b981';
@@ -70,7 +70,7 @@ const Content = styled.div`
   min-width: 0;
 `;
 
-const Message = styled.p`
+const Message = styled('p')`
   margin: 0;
   color: ${({ theme }) => theme.colors.text};
   font-size: 0.875rem;

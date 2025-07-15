@@ -5,7 +5,7 @@ import LoginForm from './LoginForm';
 import { useTheme } from '../../contexts/ThemeContext';
 import { setupDemoUsers, testAllDemoUsers, DEMO_USERS } from '../../utils/authHelper';
 
-const LoginContainer = styled(motion.create('div'))`
+const LoginContainer = styled(motion.div)`
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -14,7 +14,7 @@ const LoginContainer = styled(motion.create('div'))`
   padding: 1rem;
 `;
 
-const LoginCard = styled(motion.create('div'))`
+const LoginCard = styled(motion.div)`
   background: ${({ theme }) => theme.colors.surface};
   border-radius: 20px;
   padding: 2rem;
@@ -25,7 +25,7 @@ const LoginCard = styled(motion.create('div'))`
   backdrop-filter: blur(10px);
 `;
 
-const Title = styled(motion.create('h1'))`
+const Title = styled(motion.h1)`
   text-align: center;
   color: ${({ theme }) => theme.colors.text};
   margin-bottom: 0.5rem;
@@ -37,14 +37,14 @@ const Title = styled(motion.create('h1'))`
   background-clip: text;
 `;
 
-const Subtitle = styled(motion.create('p'))`
+const Subtitle = styled(motion.p)`
   text-align: center;
   color: ${({ theme }) => theme.colors.textSecondary};
   margin-bottom: 2rem;
   font-size: 1rem;
 `;
 
-const ThemeToggle = styled(motion.create('button'))`
+const ThemeToggle = styled(motion.button)`
   position: absolute;
   top: 1rem;
   right: 1rem;
@@ -65,7 +65,7 @@ const ThemeToggle = styled(motion.create('button'))`
   }
 `;
 
-const SetupButton = styled(motion.create('button'))`
+const SetupButton = styled(motion.button)`
   position: absolute;
   top: 1rem;
   left: 1rem;
@@ -91,7 +91,7 @@ const SetupButton = styled(motion.create('button'))`
   }
 `;
 
-const TestButton = styled(motion.create('button'))`
+const TestButton = styled(motion.button)`
   position: absolute;
   top: 1rem;
   left: 12rem;
@@ -117,7 +117,7 @@ const TestButton = styled(motion.create('button'))`
   }
 `;
 
-const DemoCredentials = styled(motion.create('div'))`
+const DemoCredentials = styled(motion.div)`
   position: absolute;
   bottom: 1rem;
   left: 1rem;

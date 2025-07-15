@@ -54,13 +54,16 @@ const ContentArea = styled(motion.div)`
   padding: 0;
   padding-top: 80px; /* Account for fixed header height */
   position: relative;
-  /* Prevent layout shifts */
+  /* Enhanced layout shift prevention */
   contain: layout style paint;
   min-height: calc(100vh - 80px);
   box-sizing: border-box;
-  /* Additional layout shift prevention */
+  /* Fixed dimensions to prevent layout shifts */
   min-width: 0;
-  min-height: 0;
+  width: 100%;
+  /* Ensure stable layout */
+  display: flex;
+  flex-direction: column;
   
   /* Custom scrollbar for content area */
   &::-webkit-scrollbar {

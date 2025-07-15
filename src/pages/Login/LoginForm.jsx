@@ -5,13 +5,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import GlowButton from '../../components/common/GlowButton';
 
-const Form = styled(motion.create('form'))`
+const Form = styled(motion.form)`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 `;
 
-const InputGroup = styled(motion.create('div'))`
+const InputGroup = styled(motion.div)`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -43,7 +43,7 @@ const Label = styled.label`
   font-size: 0.875rem;
 `;
 
-const LoginButton = styled(motion.create('button'))`
+const LoginButton = styled(motion.button)`
   padding: 0.75rem 1.5rem;
   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: white;
@@ -69,7 +69,7 @@ const LoginButton = styled(motion.create('button'))`
   }
 `;
 
-const LoadingSpinner = styled(motion.create('div'))`
+const LoadingSpinner = styled(motion.div)`
   width: 16px;
   height: 16px;
   border: 2px solid rgba(255, 255, 255, 0.3);
@@ -83,7 +83,7 @@ const LoadingSpinner = styled(motion.create('div'))`
   }
 `;
 
-const ErrorMessage = styled(motion.create('div'))`
+const ErrorMessage = styled(motion.div)`
   color: #ef4444;
   font-size: 0.875rem;
   text-align: center;

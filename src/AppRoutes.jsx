@@ -30,6 +30,10 @@ import Scanner from './pages/Scanner/Scanner.jsx';
 import LibraryShowcase from './components/LibraryShowcase.jsx';
 
 import AdvancedLibraryShowcase from './components/AdvancedLibraryShowcase.jsx';
+import PdfGeneratorDemo from './components/Print/PdfGeneratorDemo.jsx';
+import PdfTestPage from './components/Print/PdfTestPage.jsx';
+import LayoutShiftDebug from './pages/LayoutShiftDebug.jsx';
+import PerformanceMonitor from './pages/PerformanceMonitor.jsx';
 
 // Wrapper component that uses theme context
 const AppContent = () => {
@@ -68,6 +72,10 @@ const AppContent = () => {
           <Route path="search" element={<SearchResults />} />
           <Route path="showcase" element={<LibraryShowcase />} />
           <Route path="advanced-showcase" element={<AdvancedLibraryShowcase />} />
+          <Route path="pdf-demo" element={<PdfGeneratorDemo />} />
+          <Route path="pdf-test" element={<PdfTestPage />} />
+          <Route path="layout-debug" element={<LayoutShiftDebug />} />
+          <Route path="performance" element={<PerformanceMonitor />} />
   
           <Route path="settings" element={<Settings />}>
             <Route index element={<Navigate to="general" replace />} />

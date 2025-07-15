@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 // import { useTheme } from '../../contexts/ThemeContext.jsx'; // Unused import
 
-const Container = styled(motion.create('div'))`
+const Container = styled(motion.div)`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -13,7 +13,7 @@ const Container = styled(motion.create('div'))`
   color: ${({ theme }) => theme.colors.textSecondary};
 `;
 
-const IconContainer = styled(motion.create('div'))`
+const IconContainer = styled(motion.div)`
   width: 80px;
   height: 80px;
   border-radius: 50%;
@@ -26,7 +26,7 @@ const IconContainer = styled(motion.create('div'))`
   font-size: 2rem;
 `;
 
-const Title = styled(motion.create('h3'))`
+const Title = styled(motion.h3)`
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 0.5rem;

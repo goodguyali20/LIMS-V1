@@ -284,7 +284,7 @@ export class PerformanceOptimizer {
     this.observers.set('first-input', observer);
   }
 
-  // Monitor memory usage
+  // Enhanced memory monitoring with optimization suggestions
   startMemoryMonitoring(): void {
     if (!('memory' in performance)) return;
 
@@ -305,6 +305,21 @@ export class PerformanceOptimizer {
         console.warn('  - Implement proper cleanup in useEffect hooks');
         console.warn('  - Consider using React.memo for expensive components');
         console.warn('  - Review large data structures');
+        console.warn('  - Implement virtual scrolling for large lists');
+        console.warn('  - Use lazy loading for images and components');
+      }
+      
+      // Track memory trends
+      if (this.metrics.has('memory_used_mb')) {
+        const recentMemory = this.metrics.get('memory_used_mb')!.slice(-10);
+        const memoryGrowth = recentMemory[recentMemory.length - 1] - recentMemory[0];
+        
+        if (memoryGrowth > 50) { // 50MB growth in last 10 measurements
+          console.warn(`⚠️ Memory growth detected: +${memoryGrowth.toFixed(1)}MB in recent measurements`);
+          console.warn('  - Potential memory leak detected');
+          console.warn('  - Check for uncleaned event listeners');
+          console.warn('  - Review component unmounting');
+        }
       }
     };
 
@@ -313,6 +328,313 @@ export class PerformanceOptimizer {
     
     // Store interval for cleanup
     this.observers.set('memory_interval', { disconnect: () => clearInterval(memoryInterval) } as any);
+  }
+
+  // Monitor slow operations
+  startSlowOperationMonitoring(): void {
+    const originalSetTimeout = window.setTimeout;
+    const originalSetInterval = window.setInterval;
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    
+    let operationCount = 0;
+    const slowOperations = new Map();
+    
+    // Monitor setTimeout
+    window.setTimeout = function(callback, delay, ...args) {
+      const startTime = performance.now();
+      const id = originalSetTimeout(() => {
+        const endTime = performance.now();
+        const duration = endTime - startTime;
+        
+        if (duration > 100) {
+          console.warn(`🐌 Slow setTimeout operation: ${duration.toFixed(2)}ms`, {
+            delay,
+            duration,
+            timestamp: new Date().toISOString()
+          });
+        }
+        
+        callback(...args);
+      }, delay, ...args);
+      
+      return id;
+    };
+    
+    // Monitor setInterval
+    window.setInterval = function(callback, delay, ...args) {
+      const startTime = performance.now();
+      const id = originalSetInterval(() => {
+        const endTime = performance.now();
+        const duration = endTime - startTime;
+        
+        if (duration > 100) {
+          console.warn(`🐌 Slow setInterval operation: ${duration.toFixed(2)}ms`, {
+            delay,
+            duration,
+            timestamp: new Date().toISOString()
+          });
+        }
+        
+        callback(...args);
+      }, delay, ...args);
+      
+      return id;
+    };
+    
+    // Monitor requestAnimationFrame
+    window.requestAnimationFrame = function(callback) {
+      const startTime = performance.now();
+      const id = originalRequestAnimationFrame(() => {
+        const endTime = performance.now();
+        const duration = endTime - startTime;
+        
+        if (duration > 16) { // Should be ~16ms for 60fps
+          console.warn(`🐌 Slow animation frame: ${duration.toFixed(2)}ms`, {
+            duration,
+            timestamp: new Date().toISOString()
+          });
+        }
+        
+        callback(endTime);
+      });
+      
+      return id;
+    };
+    
+    // Store original functions for cleanup
+    this.observers.set('slow_operation_monitoring', {
+      disconnect: () => {
+        window.setTimeout = originalSetTimeout;
+        window.setInterval = originalSetInterval;
+        window.requestAnimationFrame = originalRequestAnimationFrame;
+      }
+    } as any);
+  }
+
+  // Monitor component render performance
+  startComponentPerformanceMonitoring(): void {
+    if (typeof window !== 'undefined' && window.React) {
+      const originalCreateElement = window.React.createElement;
+      
+      window.React.createElement = function(type, props, ...children) {
+        const startTime = performance.now();
+        const element = originalCreateElement(type, props, ...children);
+        const endTime = performance.now();
+        const duration = endTime - startTime;
+        
+        if (duration > 10) {
+          console.warn(`🐌 Slow component creation: ${duration.toFixed(2)}ms`, {
+            type: typeof type === 'string' ? type : type?.displayName || type?.name || 'Unknown',
+            props: props ? Object.keys(props) : [],
+            duration,
+            timestamp: new Date().toISOString()
+          });
+        }
+        
+        return element;
+      };
+      
+      this.observers.set('component_monitoring', {
+        disconnect: () => {
+          window.React.createElement = originalCreateElement;
+        }
+      } as any);
+    }
+  }
+
+  // Optimize large data operations
+  optimizeDataOperations<T>(
+    data: T[],
+    operation: (item: T, index: number) => any,
+    options: {
+      chunkSize?: number;
+      delay?: number;
+      onProgress?: (progress: number) => void;
+    } = {}
+  ): Promise<any[]> {
+    const { chunkSize = 100, delay = 0, onProgress } = options;
+    const results: any[] = [];
+    const totalChunks = Math.ceil(data.length / chunkSize);
+    
+    return new Promise((resolve) => {
+      let currentChunk = 0;
+      
+      const processChunk = () => {
+        const startIndex = currentChunk * chunkSize;
+        const endIndex = Math.min(startIndex + chunkSize, data.length);
+        
+        for (let i = startIndex; i < endIndex; i++) {
+          results.push(operation(data[i], i));
+        }
+        
+        currentChunk++;
+        
+        if (onProgress) {
+          onProgress((currentChunk / totalChunks) * 100);
+        }
+        
+        if (currentChunk < totalChunks) {
+          setTimeout(processChunk, delay);
+        } else {
+          resolve(results);
+        }
+      };
+      
+      processChunk();
+    });
+  }
+
+  // Debounce expensive operations
+  debounceExpensive<T extends (...args: unknown[]) => unknown>(
+    func: T,
+    wait: number = 100,
+    options: {
+      leading?: boolean;
+      trailing?: boolean;
+      maxWait?: number;
+    } = {}
+  ): (...args: Parameters<T>) => void {
+    let timeout: NodeJS.Timeout | null = null;
+    let lastCallTime = 0;
+    const { leading = false, trailing = true, maxWait } = options;
+    
+    return (...args: Parameters<T>) => {
+      const now = Date.now();
+      const timeSinceLastCall = now - lastCallTime;
+      
+      if (leading && !timeout) {
+        func(...args);
+        lastCallTime = now;
+      }
+      
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      
+      if (maxWait && timeSinceLastCall >= maxWait) {
+        if (trailing) {
+          func(...args);
+        }
+        lastCallTime = now;
+      } else {
+        timeout = setTimeout(() => {
+          if (trailing) {
+            func(...args);
+          }
+          timeout = null;
+          lastCallTime = Date.now();
+        }, wait);
+      }
+    };
+  }
+
+  // Throttle frequent operations
+  throttleFrequent<T extends (...args: unknown[]) => unknown>(
+    func: T,
+    limit: number = 16
+  ): (...args: Parameters<T>) => void {
+    let inThrottle: boolean;
+    let lastFunc: NodeJS.Timeout;
+    let lastRan: number;
+    
+    return (...args: Parameters<T>) => {
+      if (!inThrottle) {
+        func(...args);
+        lastRan = Date.now();
+        inThrottle = true;
+      } else {
+        clearTimeout(lastFunc);
+        lastFunc = setTimeout(() => {
+          if (Date.now() - lastRan >= limit) {
+            func(...args);
+            lastRan = Date.now();
+          }
+        }, limit - (Date.now() - lastRan));
+      }
+    };
+  }
+
+  // Monitor network requests
+  startNetworkMonitoring(): void {
+    if (!('PerformanceObserver' in window)) return;
+
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const networkEntry = entry as any;
+        
+        if (networkEntry.duration > 5000) { // 5 seconds
+          console.warn(`🌐 Slow network request: ${networkEntry.duration.toFixed(2)}ms`, {
+            name: networkEntry.name,
+            duration: networkEntry.duration,
+            transferSize: networkEntry.transferSize,
+            decodedBodySize: networkEntry.decodedBodySize,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    });
+
+    observer.observe({ entryTypes: ['resource'] });
+    this.observers.set('network', observer);
+  }
+
+  // Get performance recommendations
+  getPerformanceRecommendations(): string[] {
+    const recommendations: string[] = [];
+    
+    // Check memory usage
+    if (this.metrics.has('memory_used_mb')) {
+      const recentMemory = this.metrics.get('memory_used_mb')!.slice(-5);
+      const avgMemory = recentMemory.reduce((a, b) => a + b, 0) / recentMemory.length;
+      
+      if (avgMemory > 100) {
+        recommendations.push('🔧 High memory usage detected - consider implementing virtual scrolling');
+        recommendations.push('🔧 Review component lifecycle and cleanup');
+        recommendations.push('🔧 Use React.memo for expensive components');
+      }
+    }
+    
+    // Check layout shifts
+    if (this.metrics.has('layout_shift')) {
+      const recentShifts = this.metrics.get('layout_shift')!.slice(-10);
+      const totalCLS = recentShifts.reduce((a, b) => a + b, 0);
+      
+      if (totalCLS > 0.1) {
+        recommendations.push('🔧 High layout shift detected - add explicit dimensions to elements');
+        recommendations.push('🔧 Use skeleton loaders for dynamic content');
+        recommendations.push('🔧 Implement CSS containment');
+      }
+    }
+    
+    // Check first input delay
+    if (this.metrics.has('first_input_delay')) {
+      const recentDelays = this.metrics.get('first_input_delay')!.slice(-5);
+      const avgDelay = recentDelays.reduce((a, b) => a + b, 0) / recentDelays.length;
+      
+      if (avgDelay > 100) {
+        recommendations.push('🔧 High first input delay - optimize JavaScript bundle');
+        recommendations.push('🔧 Implement code splitting');
+        recommendations.push('🔧 Use web workers for heavy computations');
+      }
+    }
+    
+    return recommendations;
+  }
+
+  // Generate performance report
+  generatePerformanceReport(): {
+    summary: Record<string, number>;
+    recommendations: string[];
+    details: Record<string, any>;
+  } {
+    const report = {
+      summary: this.getPerformanceReport(),
+      recommendations: this.getPerformanceRecommendations(),
+      details: this.getDetailedPerformanceReport()
+    };
+    
+    console.log('📊 Performance Report:', report);
+    return report;
   }
 
   // Cleanup all observers

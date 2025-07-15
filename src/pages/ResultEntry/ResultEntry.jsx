@@ -298,7 +298,7 @@ const Input = styled.input`
   }
 `;
 
-const Select = styled.select`
+const Select = styled('select')`
   width: 100%;
   padding: 0.8rem 1rem;
   border-radius: ${({ theme }) => theme.shapes.squircle};

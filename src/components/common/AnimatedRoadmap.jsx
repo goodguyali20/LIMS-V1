@@ -168,7 +168,7 @@ const StageCount = styled.div`
   margin-bottom: 0.5rem;
 `;
 
-const StageSubtitle = styled.p`
+const StageSubtitle = styled('p')`
   font-size: 0.875rem;
   color: ${({ theme }) => theme.colors.textSecondary};
   margin: 0;

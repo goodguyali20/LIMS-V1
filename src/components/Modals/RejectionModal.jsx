@@ -40,7 +40,7 @@ const Form = styled.form`
   gap: 1rem;
 `;
 
-const Select = styled.select`
+const Select = styled('select')`
   padding: 0.8rem;
   border-radius: 12px;
   border: 1px solid ${({ theme }) => theme.colors.border};

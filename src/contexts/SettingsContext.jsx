@@ -49,11 +49,17 @@ export const SettingsProvider = ({ children }) => {
       
       // Address Information
       address: {
-        street: { required: true, enabled: true, label: 'Street Address' },
-        city: { required: true, enabled: true, label: 'City' },
-        state: { required: true, enabled: true, label: 'State' },
-        zipCode: { required: true, enabled: true, label: 'ZIP Code' },
-        country: { required: false, enabled: true, label: 'Country' }
+        governorate: { required: true, enabled: true, label: 'المحافظة' },
+        district: { required: true, enabled: true, label: 'القضاء' },
+        area: { required: true, enabled: true, label: 'المنطقة' },
+        landmark: { required: false, enabled: true, label: 'اقرب نقطة دالة' }
+      },
+      
+      // Default Location Settings
+      defaultLocation: {
+        governorate: { value: 'واسط', enabled: true, label: 'المحافظة الافتراضية' },
+        district: { value: 'الكوت', enabled: true, label: 'القضاء الافتراضي' },
+        area: { value: 'الكوت', enabled: true, label: 'المنطقة الافتراضية' }
       },
       
       // Emergency Contact

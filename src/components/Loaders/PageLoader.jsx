@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
-const LoaderContainer = styled(motion.create('div'))`
+const LoaderContainer = styled(motion.div)`
   position: fixed;
   top: 0;
   left: 0;
@@ -17,14 +17,14 @@ const LoaderContainer = styled(motion.create('div'))`
   gap: 2rem;
 `;
 
-const LogoContainer = styled(motion.create('div'))`
+const LogoContainer = styled(motion.div)`
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
 `;
 
-const LogoIcon = styled(motion.create('div'))`
+const LogoIcon = styled(motion.div)`
   width: 80px;
   height: 80px;
   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
@@ -37,7 +37,7 @@ const LogoIcon = styled(motion.create('div'))`
   box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
 `;
 
-const LogoText = styled(motion.create('h1'))`
+const LogoText = styled(motion.h1)`
   font-size: 1.5rem;
   font-weight: 700;
   color: ${({ theme }) => theme.colors.text};
@@ -48,13 +48,13 @@ const LogoText = styled(motion.create('h1'))`
   background-clip: text;
 `;
 
-const LoadingText = styled(motion.create('p'))`
+const LoadingText = styled(motion.p)`
   font-size: 1rem;
   color: ${({ theme }) => theme.colors.textSecondary};
   margin: 0;
 `;
 
-const ProgressContainer = styled(motion.create('div'))`
+const ProgressContainer = styled(motion.div)`
   width: 200px;
   height: 4px;
   background: ${({ theme }) => theme.colors.border};
@@ -63,7 +63,7 @@ const ProgressContainer = styled(motion.create('div'))`
   position: relative;
 `;
 
-const ProgressBar = styled(motion.create('div'))`
+const ProgressBar = styled(motion.div)`
   height: 100%;
   background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
   border-radius: 2px;
@@ -72,13 +72,13 @@ const ProgressBar = styled(motion.create('div'))`
   left: 0;
 `;
 
-const SpinnerContainer = styled(motion.create('div'))`
+const SpinnerContainer = styled(motion.div)`
   position: relative;
   width: 40px;
   height: 40px;
 `;
 
-const SpinnerRing = styled(motion.create('div'))`
+const SpinnerRing = styled(motion.div)`
   position: absolute;
   width: 100%;
   height: 100%;
@@ -87,7 +87,7 @@ const SpinnerRing = styled(motion.create('div'))`
   border-radius: 50%;
 `;
 
-const Particle = styled(motion.create('div'))`
+const Particle = styled(motion.div)`
   position: absolute;
   width: 4px;
   height: 4px;
@@ -96,14 +96,14 @@ const Particle = styled(motion.create('div'))`
   pointer-events: none;
 `;
 
-const FloatingIcon = styled(motion.create('div'))`
+const FloatingIcon = styled(motion.div)`
   position: absolute;
   font-size: 1.5rem;
   opacity: 0.6;
   pointer-events: none;
 `;
 
-const StatusMessage = styled(motion.create('div'))`
+const StatusMessage = styled(motion.div)`
   font-size: 0.875rem;
   color: ${({ theme }) => theme.colors.textSecondary};
   text-align: center;

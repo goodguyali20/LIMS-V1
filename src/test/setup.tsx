@@ -30,6 +30,33 @@ vi.mock('react-i18next', () => ({
         'patientRegistration.saving': 'Saving...',
         'patientRegistration.saving': 'Saving...',
         'patientRegistration.saving': 'Saving...',
+        'dashboard.title': 'Dashboard',
+        'dashboard.exportReport': 'Export Report',
+        'dashboard.last7Days': 'Last 7 Days',
+        'dashboard.last30Days': 'Last 30 Days',
+        'dashboard.last90Days': 'Last 90 Days',
+        'dashboard.totalOrders': 'Total Orders',
+        'dashboard.testsCompleted': 'Tests Completed',
+        'dashboard.revenue': 'Revenue',
+        'dashboard.pendingResults': 'Pending Results',
+        'workQueue.title': 'Work Queue',
+        'workQueue.noOrders': 'No Orders',
+        'workQueue.subtitle': 'Manage and track all lab orders in real time.',
+        'workQueue.printAll': 'Print All',
+        'workQueue.clearFilters': 'Clear Filters',
+        'workQueue.searchPlaceholder': 'Search orders...',
+        'resultEntry.title': 'Result Entry',
+        'resultEntry.noOrder': 'No Order Found',
+        'resultEntry.save': 'Save Results',
+        'resultEntry.submit': 'Submit',
+        'resultEntry.cancel': 'Cancel',
+        'enterResults': 'Result Entry',
+        'orderIdLabel': 'Order ID:',
+        'saveResults': 'Save Results',
+        'saving': 'Saving...',
+        'orderInformation': 'Order Information',
+        'patientLabel': 'Patient',
+        'patientIdLabel': 'Patient ID',
         // Add more as needed for all fields/buttons/sections
       };
       return map[key] || key;
@@ -62,8 +89,8 @@ vi.mock('react-router-dom', () => ({
 }));
 
 // Mock framer-motion
-vi.mock('framer-motion', () => ({
-  motion: {
+vi.mock('framer-motion', () => {
+  const motion = {
     div: (props: any) => <div {...props} />,
     button: (props: any) => <button {...props} />,
     span: (props: any) => <span {...props} />,
@@ -92,17 +119,22 @@ vi.mock('framer-motion', () => ({
     aside: (props: any) => <aside {...props} />,
     main: (props: any) => <main {...props} />,
     label: (props: any) => <label {...props} />,
-    // Add more as needed
-  },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
-  useMotionValue: (initial: any) => ({
-    get: () => initial,
-    set: vi.fn(),
-    on: vi.fn(),
-  }),
-  useTransform: vi.fn(() => ({ get: () => 0, set: vi.fn() })),
-  useSpring: vi.fn(() => ({ get: () => 0, set: vi.fn() })),
-}));
+    select: (props: any) => <select {...props} />,
+  };
+  return {
+    motion,
+    AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
+    useMotionValue: (initial: any) => ({
+      get: () => initial,
+      set: vi.fn(),
+      on: vi.fn(),
+    }),
+    useTransform: vi.fn(() => ({ get: () => 0, set: vi.fn() })),
+    useSpring: vi.fn(() => ({ get: () => 0, set: vi.fn() })),
+    // Patch for global 'motion' usage
+    ...(typeof global !== 'undefined' ? { motion } : {}),
+  };
+});
 
 // Mock styled-components
 vi.mock('styled-components', () => {
@@ -121,7 +153,10 @@ vi.mock('styled-components', () => {
   const tags = [
     'div', 'button', 'input', 'textarea', 'span', 'form', 'label', 'section', 'header', 'main', 'aside', 'footer', 'nav', 'ul', 'li', 'a',
     'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'table', 'thead', 'tbody', 'tr', 'td', 'th'
+    'table', 'thead', 'tbody', 'tr', 'td', 'th',
+    'select',
+    'p',
+    'canvas'
   ];
   tags.forEach(tag => {
     styled[tag] = styled(tag);
@@ -132,12 +167,36 @@ vi.mock('styled-components', () => {
   };
 });
 
-// Mock Firebase
+// Mock Firebase Firestore
 vi.mock('../firebase/config', () => ({
   db: {},
-  auth: {},
-  storage: {},
 }));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    collection: vi.fn(() => ({})),
+    getDocs: vi.fn(async () => ({
+      forEach: (fn: any) => {}, // No docs by default
+      docs: [],
+    })),
+    onSnapshot: vi.fn((q, cb) => {
+      cb({
+        forEach: (fn: any) => {}, // No docs by default
+        docs: [],
+      });
+      return () => {};
+    }),
+    addDoc: vi.fn(async () => ({})),
+    updateDoc: vi.fn(async () => {}),
+    deleteDoc: vi.fn(async () => {}),
+    doc: vi.fn(() => ({})),
+    query: vi.fn(() => ({})),
+    orderBy: vi.fn(() => ({})),
+    limit: vi.fn(() => ({})),
+    where: (...args: any[]) => args, // Add this passthrough mock
+  };
+});
 
 // Mock context providers
 vi.mock('../contexts/ThemeContext', () => ({
@@ -169,14 +228,25 @@ vi.mock('../contexts/ThemeContext', () => ({
   }),
 }));
 
+// Mock AuthContext for Profile page
 vi.mock('../contexts/AuthContext', () => ({
-  AuthProvider: ({ children }: { children: React.ReactNode }) => children,
   useAuth: () => ({
-    user: null,
+    user: {
+      displayName: 'Test User',
+      email: 'test@example.com',
+      photoURL: '',
+      phoneNumber: '',
+      emailVerified: true,
+      uid: 'test-uid',
+      providerData: [],
+    },
     loading: false,
-    signIn: vi.fn(),
-    signOut: vi.fn(),
-    signUp: vi.fn(),
+    updateProfile: vi.fn(),
+    updateEmail: vi.fn(),
+    updatePassword: vi.fn(),
+    sendEmailVerification: vi.fn(),
+    sendPasswordResetEmail: vi.fn(),
+    logout: vi.fn(),
   }),
 }));
 
@@ -315,6 +385,13 @@ Object.defineProperty(global, 'departmentColors', {
   value: { General: '#667eea' },
   writable: true,
 });
+
+// Mock react-to-print
+vi.mock('react-to-print', () => ({
+  __esModule: true,
+  default: () => null,
+  useReactToPrint: () => () => {},
+}));
 
 // Setup global mocks
 global.localStorage = localStorageMock;

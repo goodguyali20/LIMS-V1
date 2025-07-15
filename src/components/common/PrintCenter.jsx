@@ -132,7 +132,7 @@ const Label = styled.label`
   color: ${({ theme }) => theme.colors.textSecondary};
 `;
 
-const Select = styled.select`
+const Select = styled('select')`
   padding: 0.5rem 1rem;
   border-radius: ${({ theme }) => theme.shapes.squircle};
   border: 1.5px solid ${({ theme }) => theme.colors.border};

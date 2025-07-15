@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
 import { X } from 'lucide-react';
 
-const ModalOverlay = styled(motion.create('div'))`
+const ModalOverlay = styled(motion.div)`
   position: fixed;
   top: 0;
   left: 0;
@@ -18,7 +18,18 @@ const ModalOverlay = styled(motion.create('div'))`
   backdrop-filter: blur(4px);
 `;
 
-const ModalContent = styled(motion.create('div'))`
+const ModalContainer = styled(motion.div)`
+  background: ${({ theme }) => theme.colors.surface};
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const ModalContent = styled(motion.div)`
   background: ${({ theme }) => theme.colors.surface};
   border-radius: 12px;
   padding: 2rem;
