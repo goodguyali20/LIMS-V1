@@ -9,10 +9,32 @@ import GlowCard from '../common/GlowCard';
 import GlowButton from '../common/GlowButton';
 
 const PanelContainer = styled(GlowCard)`
-  padding: 1.5rem;
+  min-height: 500px;
+  contain: layout;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(20px);
+  padding: 1.5rem 2rem;
   margin-bottom: 2rem;
   position: relative;
   overflow: hidden;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #f5576c 75%, 
+      #4facfe 100%);
+    border-radius: 20px 20px 0 0;
+  }
 `;
 
 const PanelHeader = styled.div`
@@ -105,6 +127,22 @@ const FilterInput = styled.input`
   }
 `;
 
+const FilterSelect = styled.select`
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: ${({ theme }) => theme?.colors?.text || '#333333'};
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+  &:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  }
+`;
+
 const SearchContainer = styled.div`
   position: relative;
   margin-bottom: 1rem;
@@ -160,7 +198,31 @@ const QuickActionButton = styled(GlowButton)`
   border-radius: 8px;
 `;
 
+const DepartmentQuickActionButton = styled(GlowButton)`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  background: ${({ color, $isActive }) =>
+    $isActive
+      ? `linear-gradient(135deg, ${color}, ${color}cc)`
+      : color};
+  color: #fff;
+  border: ${({ $isActive }) => ($isActive ? '2px solid #fff' : 'none')};
+  box-shadow: ${({ $isActive }) =>
+    $isActive ? '0 0 0 2px rgba(0,0,0,0.08)' : 'none'};
+  transition: all 0.2s;
+  &:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  }
+`;
+
 const TestPanels = styled.div`
+  min-height: 300px;
+  contain: layout;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1rem;
@@ -221,6 +283,8 @@ const TestTag = styled.span`
 `;
 
 const TestsGrid = styled.div`
+  min-height: 300px;
+  contain: layout;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 1rem;
@@ -477,28 +541,27 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
   // Filter and sort tests
   const filteredTests = useMemo(() => {
     let filtered = labTests.filter(test => {
-      const matchesSearch = test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           test.department.toLowerCase().includes(searchTerm.toLowerCase());
-        
-      const matchesDepartment = selectedDepartment === 'all' || test.department === selectedDepartment;
-        
-      const matchesPrice = test.price >= priceRange[0] && test.price <= priceRange[1];
-        
+      const name = test.name || '';
+      const department = test.department || 'General';
+      const price = typeof test.price === 'number' ? test.price : 0;
+      const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           department.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesDepartment = selectedDepartment === 'all' || department === selectedDepartment;
+      const matchesPrice = price >= priceRange[0] && price <= priceRange[1];
       return matchesSearch && matchesDepartment && matchesPrice;
     });
 
     // Sort tests
     filtered.sort((a, b) => {
       let aValue, bValue;
-        
       switch (sortBy) {
         case 'price':
-          aValue = a.price;
-          bValue = b.price;
+          aValue = typeof a.price === 'number' ? a.price : 0;
+          bValue = typeof b.price === 'number' ? b.price : 0;
           break;
         case 'department':
-          aValue = a.department;
-          bValue = b.department;
+          aValue = a.department || 'General';
+          bValue = b.department || 'General';
           break;
         case 'name':
         default:
@@ -506,14 +569,12 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
           bValue = b.name;
           break;
       }
-        
       if (sortOrder === 'asc') {
         return aValue > bValue ? 1 : -1;
       } else {
         return aValue < bValue ? 1 : -1;
       }
     });
-
     return filtered;
   }, [labTests, searchTerm, selectedDepartment, sortBy, sortOrder, priceRange]);
 
@@ -580,7 +641,7 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
     <PanelContainer>
       <PanelHeader>
         <PanelTitle>
-          <FaFlask /> Advanced Test Selection
+          <FaFlask /> Test Selection
         </PanelTitle>
         <HeaderActions>
           <ViewToggle>
@@ -621,31 +682,34 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
           onClick={() => setSelectedDepartment('all')}
           $variant={selectedDepartment === 'all' ? 'primary' : 'secondary'}
         >
-          <FaLayerGroup /> All Tests
+          <FaLayerGroup /> <span>All Tests</span>
         </QuickActionButton>
-        <QuickActionButton
+        <DepartmentQuickActionButton
           onClick={() => setSelectedDepartment('Hematology')}
-          $variant={selectedDepartment === 'Hematology' ? 'primary' : 'secondary'}
+          color={safeDepartmentColors['Hematology'] || '#dc3545'}
+          $isActive={selectedDepartment === 'Hematology'}
         >
-          <FaFlask /> Hematology
-        </QuickActionButton>
-        <QuickActionButton
+          <FaFlask /> <span>Hematology</span>
+        </DepartmentQuickActionButton>
+        <DepartmentQuickActionButton
           onClick={() => setSelectedDepartment('Chemistry')}
-          $variant={selectedDepartment === 'Chemistry' ? 'primary' : 'secondary'}
+          color={safeDepartmentColors['Chemistry'] || '#ffc107'}
+          $isActive={selectedDepartment === 'Chemistry'}
         >
-          <FaFlask /> Chemistry
-        </QuickActionButton>
-        <QuickActionButton
+          <FaFlask /> <span>Chemistry</span>
+        </DepartmentQuickActionButton>
+        <DepartmentQuickActionButton
           onClick={() => setSelectedDepartment('Immunology')}
-          $variant={selectedDepartment === 'Immunology' ? 'primary' : 'secondary'}
+          color={safeDepartmentColors['Immunology'] || '#007bff'}
+          $isActive={selectedDepartment === 'Immunology'}
         >
-          <FaFlask /> Immunology
-        </QuickActionButton>
+          <FaFlask /> <span>Immunology</span>
+        </DepartmentQuickActionButton>
         <QuickActionButton
           onClick={clearFilters}
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
         >
-          <FaTimes /> Clear Filters
+          <FaTimes /> <span>Clear Filters</span>
         </QuickActionButton>
       </QuickActions>
 
@@ -657,44 +721,41 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
             exit={{ opacity: 0, height: 0 }}
           >
             <AdvancedFilters>
-                              <FilterGrid>
-                  <FilterGroup>
-                    <FilterLabel>Department</FilterLabel>
-                    <FilterSelect
-                      value={selectedDepartment}
-                      onChange={(e) => setSelectedDepartment(e.target.value)}
-                    >
-                      <option value="all">All Departments</option>
-                      {departments.map(dept => (
-                        <option key={dept} value={dept}>{dept}</option>
-                      ))}
-                    </FilterSelect>
-                  </FilterGroup>
-                  
-                  <FilterGroup>
-                    <FilterLabel>Min Price</FilterLabel>
+              <FilterGrid>
+                <FilterGroup>
+                  <FilterLabel>Department</FilterLabel>
+                  <FilterSelect
+                    value={selectedDepartment ?? ''}
+                    onChange={(e) => setSelectedDepartment(e.target.value)}
+                  >
+                    <option value="all">All Departments</option>
+                    {departments.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </FilterSelect>
+                </FilterGroup>
+                <FilterGroup>
+                  <FilterLabel>Min Price</FilterLabel>
                   <FilterInput
                     type="number"
                     placeholder="Min price"
-                    value={priceRange[0]}
+                    value={priceRange[0] ?? 0}
                     onChange={(e) => setPriceRange(prev => [parseFloat(e.target.value) || 0, prev[1]])}
                   />
                 </FilterGroup>
-                
                 <FilterGroup>
                   <FilterLabel>Max Price</FilterLabel>
                   <FilterInput
                     type="number"
                     placeholder="Max price"
-                    value={priceRange[1]}
+                    value={priceRange[1] ?? 0}
                     onChange={(e) => setPriceRange(prev => [prev[0], parseFloat(e.target.value) || 1000])}
                   />
                 </FilterGroup>
-                
                 <FilterGroup>
                   <FilterLabel>Sort By</FilterLabel>
                   <FilterSelect
-                    value={sortBy}
+                    value={sortBy ?? ''}
                     onChange={(e) => setSortBy(e.target.value)}
                   >
                     <option value="name">Name</option>
@@ -702,11 +763,10 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
                     <option value="department">Department</option>
                   </FilterSelect>
                 </FilterGroup>
-                
                 <FilterGroup>
                   <FilterLabel>Sort Order</FilterLabel>
                   <FilterSelect
-                    value={sortOrder}
+                    value={sortOrder ?? ''}
                     onChange={(e) => setSortOrder(e.target.value)}
                   >
                     <option value="asc">Ascending</option>
@@ -719,12 +779,17 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
         )}
       </AnimatePresence>
 
-      {/* Test Panels Section */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h4 style={{ marginBottom: '1rem', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FaLayerGroup /> Popular Test Panels
+      {/* Unified Test & Panel List */}
+      <div>
+        <h4 style={{ margin: '0 0 1rem 0', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <FaLayerGroup /> Available Tests & Panels
         </h4>
+        {/* Debug: Show number of labTests loaded */}
+        <div style={{ color: '#10b981', fontSize: '0.95rem', marginBottom: '0.5rem' }}>
+          {`Loaded tests: ${labTests.length}`}
+        </div>
         <TestPanels>
+          {/* Show panels first */}
           {testPanels.map((panel) => (
             <TestPanel
               key={panel.id}
@@ -752,201 +817,37 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
               </PanelTests>
             </TestPanel>
           ))}
+          {/* Show all individual tests */}
+          {filteredTests.length === 0 ? (
+            <div style={{ gridColumn: '1/-1', color: '#ef4444', fontWeight: 600, fontSize: '1.1rem', textAlign: 'center', padding: '2rem 0' }}>
+              No individual tests found. Please check your test catalog or filters.
+            </div>
+          ) : (
+            filteredTests.map((test) => (
+              <TestPanel
+                key={test.name}
+                onClick={() => handleTestToggle(test.name)}
+                $isSelected={selectedTests.includes(test.name)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <PanelCardHeader>
+                  <PanelName>{test.name}</PanelName>
+                  <PanelPrice>
+                    <FaDollarSign />
+                    {test.price}
+                  </PanelPrice>
+                </PanelCardHeader>
+                <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: theme.colors.textSecondary }}>
+                  {test.description}
+                </p>
+                <PanelTests>
+                  <TestTag>{test.department}</TestTag>
+                </PanelTests>
+              </TestPanel>
+            ))
+          )}
         </TestPanels>
-      </div>
-
-      {/* Individual Tests Section */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h4 style={{ margin: 0, color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <FaFlask /> Individual Tests ({filteredTests.length})
-          </h4>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-              {sortBy} ({sortOrder === 'asc' ? 'A-Z' : 'Z-A'})
-            </span>
-            <ActionButton onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>
-              {sortOrder === 'asc' ? <FaSortAmountUp /> : <FaSortAmountDown />}
-            </ActionButton>
-          </div>
-        </div>
-
-        {viewMode === 'grid' ? (
-          <TestsGrid>
-            {Object.entries(groupedTests).map(([deptName, testsInDept]) => (
-              <div key={deptName}>
-                <motion.h5
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  style={{
-                    margin: '1rem 0 0.75rem 0',
-                    paddingBottom: '0.5rem',
-                    borderBottom: `2px solid ${safeDepartmentColors[deptName] || '#667eea'}`,
-                    color: safeDepartmentColors[deptName] || '#667eea',
-                    fontSize: '1rem',
-                    fontWeight: '600'
-                  }}
-                >
-                  {deptName} ({testsInDept.length})
-                </motion.h5>
-                <div style={{ display: 'grid', gap: '0.75rem' }}>
-                  {testsInDept.map((test, index) => (
-                    <TestCard
-                      key={test.id}
-                      $isSelected={selectedTests.includes(test.name)}
-                      onClick={() => handleTestToggle(test.name)}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <SelectionIndicator $isSelected={selectedTests.includes(test.name)}>
-                        {selectedTests.includes(test.name) ? <FaCheck /> : <FaPlus />}
-                      </SelectionIndicator>
-                      
-                      <TestHeader>
-                        <TestName>{test.name}</TestName>
-                        <TestPrice>
-                          <FaDollarSign />
-                          {test.price || 0}
-                        </TestPrice>
-                      </TestHeader>
-                      
-                      <TestDepartment>
-                        <DepartmentBadge color={safeDepartmentColors[test.department]}>
-                          {test.department}
-                        </DepartmentBadge>
-                        <span>•</span>
-                        <span>{test.code || 'N/A'}</span>
-                      </TestDepartment>
-                      
-                      <TestDetails>
-                        {test.description && (
-                          <DetailItem>
-                            <FaInfoCircle />
-                            {test.description}
-                          </DetailItem>
-                        )}
-                        {test.turnaroundTime && (
-                          <DetailItem>
-                            <FaClock />
-                            Turnaround: {test.turnaroundTime}
-                          </DetailItem>
-                        )}
-                      </TestDetails>
-                      
-                      <TestActions>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <ActionButton
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleFavoriteToggle(test.name);
-                            }}
-                            style={{ color: favorites.includes(test.name) ? '#fbbf24' : undefined }}
-                          >
-                            <FaStar />
-                          </ActionButton>
-                          <ActionButton onClick={(e) => e.stopPropagation()}>
-                            <FaEye />
-                          </ActionButton>
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <ActionButton onClick={(e) => e.stopPropagation()}>
-                            <FaBookmark />
-                          </ActionButton>
-                        </div>
-                      </TestActions>
-                    </TestCard>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </TestsGrid>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {Object.entries(groupedTests).map(([deptName, testsInDept]) => (
-              <div key={deptName}>
-                <motion.h5
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  style={{
-                    margin: '1rem 0 0.75rem 0',
-                    paddingBottom: '0.5rem',
-                    borderBottom: `2px solid ${safeDepartmentColors[deptName] || '#667eea'}`,
-                    color: safeDepartmentColors[deptName] || '#667eea',
-                    fontSize: '1rem',
-                    fontWeight: '600'
-                  }}
-                >
-                  {deptName} ({testsInDept.length})
-                </motion.h5>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {testsInDept.map((test, index) => (
-                    <motion.div
-                      key={test.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '0.75rem',
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: `2px solid ${selectedTests.includes(test.name) ? '#667eea' : 'rgba(255, 255, 255, 0.1)'}`,
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onClick={() => handleTestToggle(test.name)}
-                      whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ 
-                          width: '20px', 
-                          height: '20px', 
-                          borderRadius: '50%',
-                          border: `2px solid ${selectedTests.includes(test.name) ? '#667eea' : 'rgba(255, 255, 255, 0.3)'}`,
-                          background: selectedTests.includes(test.name) ? '#667eea' : 'transparent',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'white',
-                          fontSize: '0.75rem'
-                        }}>
-                          {selectedTests.includes(test.name) && <FaCheck />}
-                        </div>
-                        <div>
-                                                     <div style={{ fontWeight: '600', color: 'inherit' }}>
-                             {test.name}
-                           </div>
-                           <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-                             {test.department} • {test.code || 'N/A'}
-                           </div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ fontWeight: '600', color: '#10b981' }}>
-                          ${test.price || 0}
-                        </div>
-                        <ActionButton
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleFavoriteToggle(test.name);
-                          }}
-                          style={{ color: favorites.includes(test.name) ? '#fbbf24' : undefined }}
-                        >
-                          <FaStar />
-                        </ActionButton>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {selectedTests.length > 0 && (

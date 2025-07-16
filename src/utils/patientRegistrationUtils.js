@@ -15,11 +15,11 @@ export const generatePatientSchema = (fieldConfig) => {
       ? z.string()
           .min(2, 'First name must be at least 2 characters')
           .max(50, 'First name must be less than 50 characters')
-          .regex(/^[a-zA-Z\s]+$/, 'First name can only contain letters and spaces')
+          .regex(/^[a-zA-Z\u0600-\u06FF\s]+$/, 'First name can only contain Arabic or Latin letters and spaces')
       : z.string()
           .min(2, 'First name must be at least 2 characters')
           .max(50, 'First name must be less than 50 characters')
-          .regex(/^[a-zA-Z\s]+$/, 'First name can only contain letters and spaces')
+          .regex(/^[a-zA-Z\u0600-\u06FF\s]+$/, 'First name can only contain Arabic or Latin letters and spaces')
           .optional()
           .or(z.literal(''));
   }
@@ -29,24 +29,30 @@ export const generatePatientSchema = (fieldConfig) => {
       ? z.string()
           .min(2, 'Last name must be at least 2 characters')
           .max(50, 'Last name must be less than 50 characters')
-          .regex(/^[a-zA-Z\s]+$/, 'Last name can only contain letters and spaces')
+          .regex(/^[a-zA-Z\u0600-\u06FF\s]+$/, 'Last name can only contain Arabic or Latin letters and spaces')
       : z.string()
           .min(2, 'Last name must be at least 2 characters')
           .max(50, 'Last name must be less than 50 characters')
-          .regex(/^[a-zA-Z\s]+$/, 'Last name can only contain letters and spaces')
+          .regex(/^[a-zA-Z\u0600-\u06FF\s]+$/, 'Last name can only contain Arabic or Latin letters and spaces')
           .optional()
           .or(z.literal(''));
   }
 
   if (fieldConfig.age?.enabled) {
     schemaFields.age = fieldConfig.age.required
-      ? z.number()
-          .min(0, 'Age must be 0 or greater')
-          .max(120, 'Age must be 120 or less')
-      : z.number()
-          .min(0, 'Age must be 0 or greater')
-          .max(120, 'Age must be 120 or less')
-          .optional();
+      ? z.object({
+          value: z.number().min(0, 'Age must be 0 or greater').max(120, 'Age must be 120 or less'),
+          unit: z.enum(['years', 'months', 'days'])
+        }).refine(obj => {
+          if (obj.unit === 'years') return obj.value <= 120;
+          if (obj.unit === 'months') return obj.value <= 24;
+          if (obj.unit === 'days') return obj.value <= 60;
+          return false;
+        }, { message: 'Invalid age for selected unit' })
+      : z.object({
+          value: z.number().min(0, 'Age must be 0 or greater').max(120, 'Age must be 120 or less').optional(),
+          unit: z.enum(['years', 'months', 'days']).optional()
+        });
   }
 
   if (fieldConfig.gender?.enabled) {

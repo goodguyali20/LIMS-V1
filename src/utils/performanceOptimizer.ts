@@ -217,15 +217,13 @@ export class PerformanceOptimizer {
           if (layoutShift.sources && layoutShift.sources.length > 0) {
             console.warn('Layout shift sources:');
             layoutShift.sources.forEach((source: any, index: number) => {
-              console.warn(`  Source ${index + 1}:`, {
-                node: source.node,
-                currentRect: source.currentRect,
-                previousRect: source.previousRect,
-                nodeType: source.node?.nodeType,
-                tagName: source.node?.tagName,
-                className: source.node?.className,
-                id: source.node?.id
-              });
+              if (source && source.nodeType === 1) {
+                // DOM element
+                const rect = source.getBoundingClientRect ? source.getBoundingClientRect() : {};
+                console.warn(`  Source ${index + 1}: <${source.tagName.toLowerCase()} id='${source.id}' class='${source.className}'>`, rect);
+              } else {
+                console.warn(`  Source ${index + 1}:`, source);
+              }
             });
           }
           

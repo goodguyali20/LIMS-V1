@@ -72,8 +72,8 @@ const FormContainer = styled(GlowCard)`
     content: '';
     position: absolute;
     top: 0;
-    left: 0;
-    right: 0;
+    left: 5px;
+    right: 5px;
     bottom: 0;
     background: 
       radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.10) 0%, transparent 50%),
@@ -163,46 +163,47 @@ const FormSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  background: linear-gradient(120deg, rgba(102,126,234,0.13) 0%, rgba(118,75,162,0.09) 50%, rgba(16,185,129,0.08) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
-  padding: 1.75rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(20px);
+  padding: 1.5rem 2rem;
   margin-bottom: 1.5rem;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
   position: relative;
-  z-index: 1;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-    border-color: rgba(255, 255, 255, 0.25);
-  }
-  
+  overflow: hidden;
+
   &::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, 
-      transparent 30%, 
-      rgba(102,126,234,0.07) 50%, 
-      transparent 70%);
-    animation: shimmer 4s ease-in-out infinite, hue-rotate 12s linear infinite;
-    border-radius: 16px;
-    pointer-events: none;
-    z-index: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #f5576c 75%, 
+      #4facfe 100%);
+    border-radius: 20px 20px 0 0;
   }
 
-  @keyframes shimmer {
-    0%, 100% { transform: translateX(-100%); }
-    50% { transform: translateX(100%); }
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    border-color: rgba(255, 255, 255, 0.25);
   }
-  @keyframes hue-rotate {
-    0% { filter: hue-rotate(0deg); }
-    100% { filter: hue-rotate(360deg); }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
+    pointer-events: none;
   }
 `;
 
@@ -754,6 +755,38 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
   } = useForm({
     resolver: zodResolver(generatePatientSchema(settings.patientRegistrationFields)),
     mode: 'onChange',
+    defaultValues: {
+      patientId: '',
+      firstName: '',
+      lastName: '',
+      age: { value: '', unit: 'years' },
+      gender: '',
+      phoneNumber: '',
+      email: '',
+      address: {
+        governorate: '',
+        district: '',
+        area: '',
+        landmark: ''
+      },
+      emergencyContact: {
+        name: '',
+        relationship: '',
+        phoneNumber: ''
+      },
+      medicalHistory: {
+        allergies: '',
+        medications: '',
+        conditions: '',
+        notes: ''
+      },
+      insurance: {
+        provider: '',
+        policyNumber: '',
+        groupNumber: ''
+      },
+      // Add any other fields you use in the form here
+    }
   });
 
   // Gender options
@@ -1147,6 +1180,83 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     if (fieldName === 'email') tip = t('patientRegistration.emailTip');
     if (fieldName === 'phoneNumber') tip = t('patientRegistration.phoneNumberTip');
     if (fieldName === 'age') tip = t('patientRegistration.ageTip');
+    if (fieldName === 'age') {
+      // Composite input for age value and unit, styled as a single field
+      return (
+        <InputGroup key={fieldPath}>
+          <Label htmlFor={fieldPath}>
+            {t(fieldLabel)} {isRequired && '*'}
+          </Label>
+          <Controller
+            name={fieldPath}
+            control={control}
+            render={({ field }) => (
+              <div style={{
+                display: 'flex',
+                width: '100%',
+                maxWidth: 220,
+                border: '1px solid #ccc',
+                borderRadius: '8px',
+                background: '#fff',
+                overflow: 'hidden',
+                alignItems: 'center',
+                height: '48px',
+              }}>
+                <Input
+                  type="number"
+                  min="0"
+                  id={`${fieldPath}.value`}
+                  name={`${fieldPath}.value`}
+                  value={field.value?.value ?? ''}
+                  onChange={e => field.onChange({ ...field.value, value: e.target.value === '' ? '' : Number(e.target.value) })}
+                  $hasError={!!errorPath}
+                  autoComplete="off"
+                  placeholder={t('patientRegistration.ageValuePlaceholder')}
+                  style={{
+                    border: 'none',
+                    borderRadius: '0',
+                    background: 'transparent',
+                    width: '60%',
+                    height: '100%',
+                    fontSize: '1rem',
+                    color: '#23263a',
+                    padding: '0 0.75rem',
+                    outline: 'none',
+                  }}
+                />
+                <div style={{ width: 1, height: '70%', background: '#e0e0e0' }} />
+                <select
+                  id={`${fieldPath}.unit`}
+                  name={`${fieldPath}.unit`}
+                  value={field.value?.unit || 'years'}
+                  onChange={e => field.onChange({ ...field.value, unit: e.target.value })}
+                  style={{
+                    border: 'none',
+                    borderRadius: '0',
+                    background: 'transparent',
+                    width: '40%',
+                    height: '100%',
+                    fontSize: '1rem',
+                    color: '#23263a',
+                    padding: '0 0.75rem',
+                    outline: 'none',
+                    appearance: 'none',
+                  }}
+                >
+                  <option value="years">{t('patientRegistration.years')}</option>
+                  <option value="months">{t('patientRegistration.months')}</option>
+                  <option value="days">{t('patientRegistration.days')}</option>
+                </select>
+              </div>
+            )}
+          />
+          {errorPath && (
+            <ErrorMessage>{errorPath.message}</ErrorMessage>
+          )}
+          {tip && <FieldTip>{tip}</FieldTip>}
+        </InputGroup>
+      );
+    }
     return (
       <InputGroup key={fieldPath}>
         <Label htmlFor={fieldPath}>
@@ -1451,16 +1561,11 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
               )}
 
               {/* Test Selection Section */}
-              <FormSection>
-                <SectionTitle>
-                  <FaFlask /> {t('patientRegistration.testSelection')}
-                </SectionTitle>
-                <TestSelectionPanel
-                  selectedTests={selectedTests}
-                  onTestSelection={handleTestSelection}
-                  onTestRemoval={handleTestRemoval}
-                />
-              </FormSection>
+              <TestSelectionPanel
+                selectedTests={selectedTests}
+                onTestSelection={handleTestSelection}
+                onTestRemoval={handleTestRemoval}
+              />
 
               {/* Form Actions */}
               <FormActions>
