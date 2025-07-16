@@ -52,22 +52,21 @@ const isFieldRequired = (fields, section, fieldName) => {
 };
 
 const FormContainer = styled(GlowCard)`
-  padding: 2rem;
-  margin-bottom: 2rem;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
   position: relative;
   overflow: hidden;
   width: 100%;
   max-width: 100%;
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.12) 0%, 
-    rgba(255, 255, 255, 0.06) 100%);
+  background: linear-gradient(120deg, rgba(102,126,234,0.18) 0%, rgba(118,75,162,0.14) 50%, rgba(16,185,129,0.13) 100%);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: 
-    0 25px 50px rgba(0, 0, 0, 0.15),
-    0 12px 24px rgba(0, 0, 0, 0.1),
+    0 15px 30px rgba(0, 0, 0, 0.15),
+    0 8px 16px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(20px);
+  z-index: 1;
   
   &::before {
     content: '';
@@ -77,10 +76,17 @@ const FormContainer = styled(GlowCard)`
     right: 0;
     bottom: 0;
     background: 
-      radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.05) 0%, transparent 50%),
-      radial-gradient(circle at 80% 20%, rgba(118, 75, 162, 0.05) 0%, transparent 50%);
+      radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.10) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(118, 75, 162, 0.09) 0%, transparent 50%),
+      linear-gradient(120deg, rgba(16,185,129,0.08) 0%, rgba(102,126,234,0.07) 100%);
     pointer-events: none;
     z-index: 0;
+    animation: hue-rotate 12s linear infinite;
+  }
+
+  @keyframes hue-rotate {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
   }
 `;
 
@@ -149,22 +155,19 @@ const StepConnector = styled.div`
 
 const FormGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
 `;
 
 const FormSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.08) 0%, 
-    rgba(255, 255, 255, 0.04) 100%);
+  background: linear-gradient(120deg, rgba(102,126,234,0.13) 0%, rgba(118,75,162,0.09) 50%, rgba(16,185,129,0.08) 100%);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 2rem;
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
   position: relative;
@@ -185,16 +188,21 @@ const FormSection = styled.div`
     bottom: 0;
     background: linear-gradient(45deg, 
       transparent 30%, 
-      rgba(255, 255, 255, 0.02) 50%, 
+      rgba(102,126,234,0.07) 50%, 
       transparent 70%);
-    animation: shimmer 4s ease-in-out infinite;
+    animation: shimmer 4s ease-in-out infinite, hue-rotate 12s linear infinite;
     border-radius: 16px;
     pointer-events: none;
+    z-index: 0;
   }
-  
+
   @keyframes shimmer {
     0%, 100% { transform: translateX(-100%); }
     50% { transform: translateX(100%); }
+  }
+  @keyframes hue-rotate {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
   }
 `;
 
@@ -227,19 +235,20 @@ const Input = styled.input`
   border: 2px solid ${({ theme, $hasError }) => 
     $hasError ? theme.colors.error : 'rgba(255, 255, 255, 0.1)'};
   border-radius: 12px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  color: ${({ theme }) => theme.colors.text};
+  background: #fff;
+  color: #23263a;
   font-size: 1rem;
   outline: none;
   transition: all 0.3s ease;
   backdrop-filter: blur(20px);
+  z-index: 1;
   
   &:hover {
     border-color: rgba(102, 126, 234, 0.5);
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%);
+    background: #fff;
     box-shadow: 
-      0 8px 32px rgba(102, 126, 234, 0.3),
-      0 4px 16px rgba(255, 255, 255, 0.1);
+      0 8px 32px rgba(102, 126, 234, 0.15),
+      0 4px 16px rgba(255, 255, 255, 0.08);
     transform: translateY(-2px);
   }
   
@@ -249,12 +258,12 @@ const Input = styled.input`
     box-shadow: ${({ theme, $hasError }) => 
       $hasError ? theme.shadows.glow.error : '0 0 0 3px rgba(102, 126, 234, 0.2)'};
     transform: scale(1.02);
-    background: rgba(255, 255, 255, 0.95);
-    color: #333;
+    background: #fff;
+    color: #23263a;
   }
   
   &::placeholder {
-    color: ${({ theme }) => theme.colors.textSecondary};
+    color: #6b7280;
   }
 `;
 
@@ -263,8 +272,8 @@ const TextArea = styled.textarea`
   border: 2px solid ${({ theme, $hasError }) => 
     $hasError ? theme.colors.error : 'rgba(255, 255, 255, 0.1)'};
   border-radius: 12px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  color: ${({ theme }) => theme.colors.text};
+  background: #fff;
+  color: #23263a;
   font-size: 1rem;
   outline: none;
   transition: all 0.3s ease;
@@ -274,7 +283,7 @@ const TextArea = styled.textarea`
   
   &:hover {
     border-color: rgba(102, 126, 234, 0.5);
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%);
+    background: #fff;
     box-shadow: 
       0 8px 32px rgba(102, 126, 234, 0.3),
       0 4px 16px rgba(255, 255, 255, 0.1);
@@ -287,30 +296,32 @@ const TextArea = styled.textarea`
     box-shadow: ${({ theme, $hasError }) => 
       $hasError ? theme.shadows.glow.error : '0 0 0 3px rgba(102, 126, 234, 0.2)'};
     transform: scale(1.02);
-    background: rgba(255, 255, 255, 0.95);
-    color: #333;
+    background: #fff;
+    color: #23263a;
   }
   
   &::placeholder {
-    color: ${({ theme }) => theme.colors.textSecondary};
+    color: #6b7280;
   }
 `;
 
 const SelectContainer = styled.div`
   .react-select__control {
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    background: #fff;
+    color: #23263a;
     border: 2px solid ${({ $hasError, theme }) => 
       $hasError ? theme.colors.error : 'rgba(255, 255, 255, 0.1)'};
     border-radius: 12px;
     box-shadow: none;
     backdrop-filter: blur(20px);
+    z-index: 1;
     
     &:hover {
       border-color: rgba(102, 126, 234, 0.5);
-      background: linear-gradient(145deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%);
+      background: #fff;
       box-shadow: 
-        0 8px 32px rgba(102, 126, 234, 0.3),
-        0 4px 16px rgba(255, 255, 255, 0.1);
+        0 8px 32px rgba(102, 126, 234, 0.15),
+        0 4px 16px rgba(255, 255, 255, 0.08);
       transform: translateY(-2px);
     }
     
@@ -320,12 +331,12 @@ const SelectContainer = styled.div`
       box-shadow: ${({ $hasError, theme }) => 
         $hasError ? theme.shadows.glow.error : '0 0 0 3px rgba(102, 126, 234, 0.2)'};
       transform: scale(1.02);
-      background: rgba(255, 255, 255, 0.95);
+      background: #fff;
     }
   }
   
   .react-select__menu {
-    background: ${({ theme }) => theme.colors.surface};
+    background: #fff;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -334,7 +345,7 @@ const SelectContainer = styled.div`
   
   .react-select__option {
     background: transparent;
-    color: ${({ theme }) => theme.colors.text};
+    color: #23263a;
     
     &:hover {
       background: rgba(102, 126, 234, 0.1);
@@ -347,15 +358,15 @@ const SelectContainer = styled.div`
   }
   
   .react-select__single-value {
-    color: ${({ theme }) => theme.colors.text};
+    color: #23263a;
   }
   
   .react-select__input-container {
-    color: ${({ theme }) => theme.colors.text};
+    color: #23263a;
   }
   
   .react-select__placeholder {
-    color: ${({ theme }) => theme.colors.textSecondary};
+    color: #6b7280;
   }
 `;
 
@@ -798,18 +809,20 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     maxLength: 32,
   });
 
-  // Address state
+  // Address state with defaults from address management
   const [selectedGovernorate, setSelectedGovernorate] = useState(() => {
-    const defaultValue = settings?.patientRegistrationFields?.defaultLocation?.governorate?.value || '';
-    // Fix: If the value is a translation key, use empty string instead
+    const defaultValue = settings?.addressData?.defaults?.governorate || 
+                        settings?.patientRegistrationFields?.defaultLocation?.governorate?.value || '';
     return defaultValue.startsWith('patientRegistration.') ? '' : defaultValue;
   });
   const [selectedDistrict, setSelectedDistrict] = useState(() => {
-    const defaultValue = settings?.patientRegistrationFields?.defaultLocation?.district?.value || '';
+    const defaultValue = settings?.addressData?.defaults?.district || 
+                        settings?.patientRegistrationFields?.defaultLocation?.district?.value || '';
     return defaultValue.startsWith('patientRegistration.') ? '' : defaultValue;
   });
   const [selectedArea, setSelectedArea] = useState(() => {
-    const defaultValue = settings?.patientRegistrationFields?.defaultLocation?.area?.value || '';
+    const defaultValue = settings?.addressData?.defaults?.area || 
+                        settings?.patientRegistrationFields?.defaultLocation?.area?.value || '';
     return defaultValue.startsWith('patientRegistration.') ? '' : defaultValue;
   });
 
@@ -860,17 +873,34 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     }
   }, []);
 
-  // Fix value matching for dropdowns (always use string values, trimmed)
-  const governorateOptions = IRAQ_ADDRESS_DATA.map(g => ({ value: String(g.name).trim(), label: String(g.name).trim() }));
-  const selectedGovObj = IRAQ_ADDRESS_DATA.find(g => String(g.name).trim() === String(selectedGovernorate).trim());
-  const districtOptions = selectedGovObj && Array.isArray(selectedGovObj.districts)
-    ? selectedGovObj.districts.map(d => ({ value: String(d.name).trim(), label: String(d.name).trim() }))
+  // Use custom address data from settings
+  const addressData = settings.addressData || { governorates: [], districts: {}, areas: {} };
+  
+  const governorateOptions = addressData.governorates.map(g => ({ 
+    value: g.id, 
+    label: g.nameAr || g.name 
+  }));
+  
+  const selectedGovObj = addressData.governorates.find(g => g.id === selectedGovernorate);
+  
+  // Get districts for selected governorate
+  const districtOptions = selectedGovObj && addressData.districts?.[selectedGovObj.id]
+    ? addressData.districts[selectedGovObj.id].map(d => ({ 
+        value: d.id, 
+        label: d.nameAr || d.name 
+      }))
     : [];
-  const selectedDistObj = selectedGovObj && Array.isArray(selectedGovObj.districts)
-    ? selectedGovObj.districts.find(d => String(d.name).trim() === String(selectedDistrict).trim())
+  
+  const selectedDistObj = selectedGovObj && addressData.districts?.[selectedGovObj.id]
+    ? addressData.districts[selectedGovObj.id].find(d => d.id === selectedDistrict)
     : null;
-  const areaOptions = selectedDistObj && Array.isArray(selectedDistObj.areas)
-    ? selectedDistObj.areas.map(a => ({ value: String(a).trim(), label: String(a).trim() }))
+  
+  // Get areas for selected district
+  const areaOptions = selectedDistObj && addressData.areas?.[selectedDistObj.id]
+    ? addressData.areas[selectedDistObj.id].map(a => ({ 
+        value: a.id, 
+        label: a.nameAr || a.name 
+      }))
     : [];
 
   // Mutation for adding new patient
@@ -1023,26 +1053,27 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
   const watchedLastName = watch('lastName');
   const watchedPhone = watch('phoneNumber');
   const watchedEmail = watch('email');
+  const watchedArea = watch('area');
 
   useEffect(() => {
-    if (!watchedFirstName && !watchedLastName && !watchedPhone && !watchedEmail) {
+    if (!watchedFirstName && !watchedLastName && !watchedPhone && !watchedArea) {
       setDuplicateWarning('');
       return;
     }
     const match = patients.find(
       p =>
-        (watchedFirstName && watchedLastName &&
-          p.firstName?.toLowerCase() === watchedFirstName.toLowerCase() &&
-          p.lastName?.toLowerCase() === watchedLastName.toLowerCase()) ||
-        (watchedPhone && p.phoneNumber === watchedPhone) ||
-        (watchedEmail && p.email?.toLowerCase() === watchedEmail.toLowerCase())
+        watchedFirstName && watchedLastName && watchedPhone && watchedArea &&
+        p.firstName?.toLowerCase() === watchedFirstName.toLowerCase() &&
+        p.lastName?.toLowerCase() === watchedLastName.toLowerCase() &&
+        p.phoneNumber === watchedPhone &&
+        p.area === watchedArea
     );
     if (match) {
       setDuplicateWarning('A patient with similar details already exists. Please review before submitting.');
     } else {
       setDuplicateWarning('');
     }
-  }, [watchedFirstName, watchedLastName, watchedPhone, watchedEmail, patients]);
+  }, [watchedFirstName, watchedLastName, watchedPhone, watchedArea, patients]);
 
   const handleTestSelection = (testName) => {
     if (!selectedTests.includes(testName)) {
@@ -1176,7 +1207,9 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                 isClearable
                 onChange={(option) => field.onChange(option?.value || '')}
                 value={options.find(option => option.value === (field.value ?? '')) || null}
-                styles={selectStyles(isDarkMode)}
+                menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
+                menuPosition="fixed"
+                styles={{ ...selectStyles(isDarkMode), menuPortal: base => ({ ...base, zIndex: 9999 }) }}
               />
             </SelectContainer>
           )}
@@ -1279,7 +1312,9 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                         }}
                         placeholder={t('patientRegistration.selectGovernorate')}
                         isClearable
-                        styles={selectStyles(isDarkMode)}
+                        menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
+                        menuPosition="fixed"
+                        styles={{ ...selectStyles(isDarkMode), menuPortal: base => ({ ...base, zIndex: 9999 }) }}
                       />
                     </InputGroup>
                     {/* District */}
@@ -1298,7 +1333,6 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                         placeholder={t('patientRegistration.selectOrTypeDistrict')}
                         isClearable
                         isDisabled={!selectedGovernorate}
-                        styles={selectStyles(isDarkMode)}
                         filterOption={(option, inputValue) => {
                           if (!inputValue) return true;
                           return option.label.toLowerCase().includes(inputValue.toLowerCase());
@@ -1316,6 +1350,9 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                           setSelectedDistrict(inputValue);
                           setValue('address.district', inputValue);
                         }}
+                        menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
+                        menuPosition="fixed"
+                        styles={{ ...selectStyles(isDarkMode), menuPortal: base => ({ ...base, zIndex: 9999 }) }}
                       />
                     </InputGroup>
                     {/* Area */}
@@ -1333,7 +1370,6 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                         placeholder={t('patientRegistration.selectOrTypeArea')}
                         isClearable
                         isDisabled={!selectedDistrict}
-                        styles={selectStyles(isDarkMode)}
                         filterOption={(option, inputValue) => {
                           if (!inputValue) return true;
                           return option.label.toLowerCase().includes(inputValue.toLowerCase());
@@ -1351,6 +1387,9 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                           setSelectedArea(inputValue);
                           setValue('address.area', inputValue);
                         }}
+                        menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
+                        menuPosition="fixed"
+                        styles={{ ...selectStyles(isDarkMode), menuPortal: base => ({ ...base, zIndex: 9999 }) }}
                       />
                     </InputGroup>
                     {/* Nearest Landmark */}

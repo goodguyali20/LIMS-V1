@@ -53,7 +53,7 @@ const GlassContainer = styled(motion.div)`
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 3rem 1rem 2rem 1rem;
+  padding: 1.5rem 1rem 1rem 1rem;
   background: ${({ theme }) =>
     theme.isDarkMode
       ? `linear-gradient(135deg, ${theme.colors.dark.background} 0%, #1a1a2e 50%, #16213e 100%)`
@@ -65,18 +65,18 @@ const Header = styled.div`
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin-bottom: 3rem;
-  padding: 3rem 2rem;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem 2rem;
   width: 100%;
   max-width: 100%;
   background: linear-gradient(145deg, 
     rgba(255, 255, 255, 0.15) 0%, 
     rgba(255, 255, 255, 0.08) 100%);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: 
-    0 25px 50px rgba(0, 0, 0, 0.15),
-    0 12px 24px rgba(0, 0, 0, 0.1),
+    0 15px 30px rgba(0, 0, 0, 0.15),
+    0 8px 16px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(20px);
   position: relative;
@@ -224,32 +224,32 @@ const AnimatedHeader = styled(motion.header)`
 `;
 
 const PageTitle = styled(motion.h1)`
-  font-size: 2.8rem;
+  font-size: 2.2rem;
   font-weight: 800;
   color: ${({ theme }) => theme.isDarkMode ? theme.colors.dark.text : '#667eea'};
   letter-spacing: -1px;
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 `;
 
 const Subtitle = styled(motion.p)`
-  font-size: 1.25rem;
+  font-size: 1rem;
   color: ${({ theme }) => theme.isDarkMode ? theme.colors.dark.textSecondary : '#6b7280'};
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   text-align: center;
 `;
 
 const JoyfulBar = styled(motion.div)`
-  width: 120px;
-  height: 6px;
-  border-radius: 3px;
+  width: 100px;
+  height: 4px;
+  border-radius: 2px;
   background: ${({ theme }) =>
     theme.isDarkMode
       ? 'linear-gradient(90deg, #4f8cff, #a084e8, #10b981, #f5576c)'
       : 'linear-gradient(90deg, #667eea, #f093fb, #10b981, #f5576c)'};
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
 `;
 
 const fadeIn = {

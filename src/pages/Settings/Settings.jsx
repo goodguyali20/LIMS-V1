@@ -83,6 +83,7 @@ import UsersManagement from './Users';
 import Print from './Print';
 import PatientRegistrationSettings from './PatientRegistration';
 import TestCatalog from './TestCatalog';
+import AddressManagement from './AddressManagement';
 
 // Styled Components
 const SettingsContainer = styled(motion.div)`
@@ -483,6 +484,14 @@ const Settings = () => {
       icon: User,
       color: '#06b6d4',
       badge: 'Forms'
+    },
+    {
+      id: 'addressManagement',
+      title: 'Address Management',
+      description: 'Manage governorates, districts, and areas with default settings',
+      icon: MapPin,
+      color: '#f59e0b',
+      badge: 'Location'
     },
     {
       id: 'users',
@@ -926,6 +935,7 @@ const Settings = () => {
           {activeTab === 'general' && renderGeneralSettings()}
           {activeTab === 'tests' && <TestCatalog />}
           {activeTab === 'patientRegistration' && <PatientRegistrationSettings />}
+          {activeTab === 'addressManagement' && <AddressManagement />}
           {activeTab === 'system' && renderSystemSettings()}
           {activeTab === 'security' && renderSecuritySettings()}
           {activeTab === 'backup' && renderBackupSettings()}
