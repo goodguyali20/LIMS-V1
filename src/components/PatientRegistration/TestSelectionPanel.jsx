@@ -286,9 +286,9 @@ const TestsGrid = styled.div`
   min-height: 300px;
   contain: layout;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 `;
 
 const TestCard = styled(motion.div)`
@@ -296,7 +296,7 @@ const TestCard = styled(motion.div)`
   border: 2px solid ${({ $isSelected, theme }) => 
     $isSelected ? '#667eea' : 'rgba(255, 255, 255, 0.1)'};
   border-radius: 16px;
-  padding: 1.25rem;
+  padding: 0.75rem 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
@@ -331,7 +331,7 @@ const TestHeader = styled.div`
 `;
 
 const TestName = styled.h4`
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: ${({ theme }) => theme.colors.text};
   margin: 0;
@@ -344,16 +344,16 @@ const TestPrice = styled.div`
   gap: 0.25rem;
   font-weight: 600;
   color: #10b981;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 `;
 
 const TestDepartment = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: ${({ theme }) => theme.colors.textSecondary};
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 `;
 
 const DepartmentBadge = styled.span`
@@ -368,15 +368,15 @@ const DepartmentBadge = styled.span`
 const TestDetails = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
 `;
 
 const DetailItem = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: ${({ theme }) => theme.colors.textSecondary};
 `;
 
@@ -404,18 +404,19 @@ const ActionButton = styled.button`
 
 const SelectionIndicator = styled.div`
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 24px;
-  height: 24px;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: ${({ $isSelected }) => $isSelected ? '#667eea' : 'rgba(255, 255, 255, 0.1)'};
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 0.75rem;
+  font-size: 1rem;
   transition: all 0.3s ease;
+  box-shadow: ${({ $isSelected }) => $isSelected ? '0 0 0 2px #667eea55' : 'none'};
 `;
 
 const SummarySection = styled.div`
@@ -642,6 +643,21 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) =
       <PanelHeader>
         <PanelTitle>
           <FaFlask /> Test Selection
+          {selectedTests.length > 0 && (
+            <span style={{
+              background: '#667eea',
+              color: 'white',
+              borderRadius: '12px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              padding: '0.15em 0.7em',
+              marginLeft: '0.75em',
+              display: 'inline-block',
+              verticalAlign: 'middle',
+            }}>
+              {selectedTests.length} selected
+            </span>
+          )}
         </PanelTitle>
         <HeaderActions>
           <ViewToggle>
