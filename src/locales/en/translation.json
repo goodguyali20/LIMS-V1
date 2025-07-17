@@ -16,6 +16,7 @@
     "dashboard": "Dashboard",
     "orders": "Orders",
     "patientRegistration": "Patient Registration",
+    "patientHistory": "Patient History",
     "workQueue": "Work Queue",
     "phlebotomist": "Phlebotomist",
     "qualityControl": "Quality Control",
@@ -103,9 +104,9 @@
     "edit": "Edit",
     "print": "Print",
     "confirmRegistration": "Confirm Registration",
-    "testDetails": "Test Details"
+    "testDetails": "Test Details",
+    "reviewAndRegister": "Review & Register"
   },
-  "patientHistory": "Patient History",
   "phlebotomist": "Phlebotomist",
   "qualityControl": "Quality Control",
   "inventory": {
@@ -729,15 +730,64 @@
   "noTestsFound": "No tests found",
   "noTestsForThisOrder": "There are no tests for this order.",
   "patient": {
+    "history": "Patient History",
+    "historyDescription": "View and manage the history of all registered patients.",
     "filters": {
       "allStatus": "All Statuses",
       "active": "Active",
-      "inactive": "Inactive"
+      "inactive": "Inactive",
+      "allDates": "All Dates",
+      "last7Days": "Last 7 Days",
+      "last30Days": "Last 30 Days",
+      "last90Days": "Last 90 Days"
     },
     "stats": {
       "totalPatients": "Total Patients",
       "activePatients": "Active Patients",
-      "newThisMonth": "New This Month"
+      "totalVisits": "Total Visits",
+      "criticalValues": "Critical Values"
+    },
+    "search": {
+      "placeholder": "Search by patient name or ID..."
+    },
+    "sort": {
+      "recent": "Most Recent",
+      "name": "Name",
+      "visits": "Visits",
+      "critical": "Critical Values"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "personalInfo": "Personal Information",
+    "name": "Name",
+    "patientId": "Patient ID",
+    "age": "Age",
+    "years": "years",
+    "gender": "Gender",
+    "phone": "Phone",
+    "email": "Email",
+    "medicalInfo": "Medical Information",
+    "primaryDiagnosis": "Primary Diagnosis",
+    "totalVisits": "Total Visits",
+    "lastVisit": "Last Visit",
+    "criticalValues": "Critical Values",
+    "testHistory": "Test History",
+    "recentTests": "Recent Tests",
+    "upcomingTests": "Upcoming Tests",
+    "testStatus": {
+      "completed": "Completed",
+      "scheduled": "Scheduled",
+      "pending": "Pending"
+    },
+    "viewHistory": "View History",
+    "noPatients": "No Patients Found",
+    "noPatientsDescription": "Try adjusting your search or filter criteria.",
+    "notes": "Notes",
+    "gender": {
+      "male": "Male",
+      "female": "Female"
     }
   },
   "labwork": "Lab Work",

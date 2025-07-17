@@ -4,311 +4,337 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTestCatalog } from '../../contexts/TestContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { FaSearch, FaFilter, FaTimes, FaCheck, FaPlus, FaMinus, FaFlask, FaThermometerHalf, FaVial, FaMicroscope, FaDollarSign, FaClock, FaInfoCircle, FaEye, FaStar, FaBookmark, FaSortAmountUp, FaSortAmountDown, FaTh, FaList, FaLayerGroup } from 'react-icons/fa';
+import { 
+  FaSearch, FaTimes, FaCheck, FaPlus, FaMinus, FaFlask, 
+  FaThermometerHalf, FaVial, FaMicroscope, FaDollarSign, 
+  FaClock, FaInfoCircle, FaEye, FaStar, FaBookmark, 
+  FaSortAmountUp, FaSortAmountDown, FaTh, FaList, 
+  FaLayerGroup, FaCheckSquare, FaRegSquare, FaShoppingCart,
+  FaFilter, FaChevronDown, FaChevronUp, FaHeart, FaBrain,
+  FaLungs, FaBone, FaTooth, FaBaby, FaUserMd, FaSyringe,
+  FaDna, FaVirus, FaBacteria, FaAllergies, FaPills,
+  FaShieldAlt, FaTint, FaStethoscope, FaHospital, FaNotesMedical
+} from 'react-icons/fa';
+import { create } from 'zustand';
 import GlowCard from '../common/GlowCard';
 import GlowButton from '../common/GlowButton';
 
-const PanelContainer = styled(GlowCard)`
-  min-height: 500px;
-  contain: layout;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(20px);
-  padding: 1.5rem 2rem;
-  margin-bottom: 2rem;
-  position: relative;
-  overflow: hidden;
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, 
-      #667eea 0%, 
-      #764ba2 25%, 
-      #f093fb 50%, 
-      #f5576c 75%, 
-      #4facfe 100%);
-    border-radius: 20px 20px 0 0;
-  }
-`;
+// Zustand store for test selection
+export const useTestSelectionStore = create((set) => ({
+  selectedTestIds: [],
+  toggleTestSelection: (testId) => set((state) => {
+    const exists = state.selectedTestIds.includes(testId);
+    return {
+      selectedTestIds: exists
+        ? state.selectedTestIds.filter((id) => id !== testId)
+        : [...state.selectedTestIds, testId],
+    };
+  }),
+  clearSelection: () => set({ selectedTestIds: [] }),
+}));
 
-const PanelHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-`;
+// Department icon mapping
+const getDepartmentIcon = (department) => {
+  const iconMap = {
+    'Hematology': FaTint,
+    'Chemistry': FaFlask,
+    'Immunology': FaShieldAlt,
+    'Microbiology': FaBacteria,
+    'Molecular': FaDna,
+    'Endocrinology': FaBrain,
+    'Cardiology': FaHeart,
+    'Pulmonology': FaLungs,
+    'Rheumatology': FaBone,
+    'Dental': FaTooth,
+    'Pediatrics': FaBaby,
+    'Oncology': FaUserMd,
+    'Infectious Disease': FaVirus,
+    'Allergy': FaAllergies,
+    'Toxicology': FaPills,
+    'General': FaStethoscope
+  };
+  return iconMap[department] || FaNotesMedical;
+};
 
-const PanelTitle = styled.h3`
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: ${({ theme }) => theme.colors.text};
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin: 0;
-`;
+// Department color mapping
+const getDepartmentColor = (department) => {
+  const colorMap = {
+    'Hematology': '#dc3545',
+    'Chemistry': '#ffc107',
+    'Immunology': '#007bff',
+    'Microbiology': '#6f42c1',
+    'Molecular': '#20c997',
+    'Endocrinology': '#fd7e14',
+    'Cardiology': '#e83e8c',
+    'Pulmonology': '#17a2b8',
+    'Rheumatology': '#6c757d',
+    'Dental': '#28a745',
+    'Pediatrics': '#ff69b4',
+    'Oncology': '#8b4513',
+    'Infectious Disease': '#dc143c',
+    'Allergy': '#ff8c00',
+    'Toxicology': '#9932cc',
+    'General': '#3b82f6'
+  };
+  return colorMap[department] || '#3b82f6';
+};
 
-const HeaderActions = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-`;
+// Test type indicators
+const getTestTypeIcon = (testName) => {
+  const name = testName.toLowerCase();
+  if (name.includes('panel') || name.includes('profile')) return FaLayerGroup;
+  if (name.includes('culture') || name.includes('sensitivity')) return FaBacteria;
+  if (name.includes('antibody') || name.includes('antigen')) return FaShieldAlt;
+  if (name.includes('hormone') || name.includes('thyroid')) return FaBrain;
+  if (name.includes('cardiac') || name.includes('troponin')) return FaHeart;
+  if (name.includes('glucose') || name.includes('sugar')) return FaThermometerHalf;
+  if (name.includes('urine') || name.includes('urinalysis')) return FaTint;
+  if (name.includes('blood') || name.includes('cbc')) return FaTint;
+  if (name.includes('pcr') || name.includes('molecular')) return FaDna;
+  return FaVial;
+};
 
-const ViewToggle = styled.div`
-  display: flex;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 0.25rem;
-`;
-
-const ViewButton = styled.button`
-  padding: 0.5rem;
-  border: none;
-  border-radius: 6px;
-  background: ${({ $isActive }) => $isActive ? 'rgba(255, 255, 255, 0.2)' : 'transparent'};
-  color: ${({ theme, $isActive }) => $isActive ? theme.colors.text : theme.colors.textSecondary};
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: ${({ theme }) => theme.colors.text};
-  }
-`;
-
-const AdvancedFilters = styled.div`
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-`;
-
-const FilterGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
-`;
-
-const FilterGroup = styled.div`
+// New Modern Container
+const ModernContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  height: 100%;
+  gap: 1rem;
+  padding: 1rem;
 `;
 
-const FilterLabel = styled.label`
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: inherit;
+// Search Section
+const SearchSection = styled.div`
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+  backdrop-filter: blur(20px);
 `;
 
-const FilterInput = styled.input`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: ${({ theme }) => theme?.colors?.text || '#333333'};
-  font-size: 0.9rem;
-  outline: none;
-  transition: all 0.2s ease;
-  
-  &:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-  }
-`;
-
-const FilterSelect = styled.select`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: ${({ theme }) => theme?.colors?.text || '#333333'};
-  font-size: 0.9rem;
-  outline: none;
-  transition: all 0.2s ease;
-  width: 100%;
-  &:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-  }
-`;
-
-const SearchContainer = styled.div`
+const SearchBar = styled.div`
   position: relative;
   margin-bottom: 1rem;
 `;
 
 const SearchInput = styled.input`
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.5rem;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 1rem 1rem 3rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
-  color: ${({ theme }) => theme?.colors?.text || '#333333'};
-  font-size: 1rem;
+  color: ${({ theme }) => theme?.colors?.text || '#ffffff'};
+  font-size: 1.1rem;
   outline: none;
   transition: all 0.3s ease;
-  backdrop-filter: blur(20px);
   
   &:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-    background: rgba(255, 255, 255, 0.95);
-    color: #333;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    background: rgba(255, 255, 255, 0.15);
   }
   
   &::placeholder {
-    color: ${({ theme }) => theme?.colors?.textSecondary || 'rgba(255, 255, 255, 0.6)'};
+    color: rgba(255, 255, 255, 0.6);
   }
 `;
 
 const SearchIcon = styled(FaSearch)`
   position: absolute;
-  left: 0.75rem;
+  left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: ${({ theme }) => theme?.colors?.textSecondary || 'rgba(255, 255, 255, 0.6)'};
-  width: 1rem;
-  height: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.2rem;
 `;
 
-const QuickActions = styled.div`
+// Category Tabs
+const CategoryTabs = styled.div`
   display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 `;
 
-const QuickActionButton = styled(GlowButton)`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+const CategoryTab = styled.button.attrs({ type: 'button' })`
   padding: 0.5rem 1rem;
-  font-size: 0.9rem;
+  background: ${({ $isActive }) => $isActive ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.1)'};
+  border: 1px solid ${({ $isActive }) => $isActive ? '#3b82f6' : 'rgba(255, 255, 255, 0.2)'};
   border-radius: 8px;
-`;
-
-const DepartmentQuickActionButton = styled(GlowButton)`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  border-radius: 8px;
-  background: ${({ color, $isActive }) =>
-    $isActive
-      ? `linear-gradient(135deg, ${color}, ${color}cc)`
-      : color};
-  color: #fff;
-  border: ${({ $isActive }) => ($isActive ? '2px solid #fff' : 'none')};
-  box-shadow: ${({ $isActive }) =>
-    $isActive ? '0 0 0 2px rgba(0,0,0,0.08)' : 'none'};
-  transition: all 0.2s;
-  &:hover {
-    filter: brightness(1.08);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-  }
-`;
-
-const TestPanels = styled.div`
-  min-height: 300px;
-  contain: layout;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-`;
-
-const TestPanel = styled(GlowCard)`
-  padding: 1rem;
+  color: ${({ $isActive }) => $isActive ? '#3b82f6' : 'rgba(255, 255, 255, 0.8)'};
   cursor: pointer;
-  transition: all 0.3s ease;
-  border: 2px solid ${({ $isSelected }) => $isSelected ? '#667eea' : 'rgba(255, 255, 255, 0.1)'};
+  transition: all 0.2s ease;
+  font-weight: 500;
   
   &:hover {
-    transform: translateY(-2px);
-    border-color: #667eea;
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    background: rgba(59, 130, 246, 0.15);
+    border-color: #3b82f6;
   }
 `;
 
-
-
-const PanelCardHeader = styled.div`
+// Main Content Area
+const ContentArea = styled.div`
   display: flex;
+  gap: 1rem;
+  flex: 1;
+  min-height: 0;
+`;
+
+// Tests List
+const TestsList = styled.div`
+  flex: 1;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1rem;
+  overflow-y: auto;
+  backdrop-filter: blur(20px);
+`;
+
+const DepartmentSection = styled.div`
+  margin-bottom: 2rem;
+`;
+
+const DepartmentHeader = styled.div`
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
 `;
 
-const PanelName = styled.h4`
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: ${({ theme }) => theme.colors.text};
-  margin: 0;
-`;
-
-const PanelPrice = styled.div`
+const DepartmentInfo = styled.div`
   display: flex;
   align-items: center;
+  gap: 1rem;
+`;
+
+const DepartmentIcon = styled.div.withConfig({ shouldForwardProp: (prop) => prop !== '$color' })`
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ $color }) => `linear-gradient(135deg, ${$color}20, ${$color}10)`};
+  border: 2px solid ${({ $color }) => `${$color}40`};
+  color: ${({ $color }) => $color};
+  font-size: 1.1rem;
+`;
+
+const DepartmentDetails = styled.div`
+  display: flex;
+  flex-direction: column;
   gap: 0.25rem;
-  font-weight: 600;
-  color: #10b981;
+`;
+
+const DepartmentName = styled.h3`
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: ${({ theme }) => theme?.colors?.text || '#ffffff'};
+`;
+
+const DepartmentStats = styled.div`
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  gap: 1rem;
+`;
+
+const DepartmentToggle = styled.div`
+  color: rgba(255, 255, 255, 0.6);
+  transition: transform 0.3s ease;
+  transform: ${({ $isExpanded }) => $isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'};
+`;
+
+const SubsectionGroup = styled.div`
+  margin-bottom: 1.5rem;
+  padding-left: 1rem;
+`;
+
+const SubsectionHeader = styled.div.withConfig({ shouldForwardProp: (prop) => prop !== '$color' })`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: ${({ $color }) => `linear-gradient(180deg, ${$color}, ${$color}80)`};
+    border-radius: 0 2px 2px 0;
+  }
+`;
+
+const SubsectionIcon = styled.div.withConfig({ shouldForwardProp: (prop) => prop !== '$color' })`
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ $color }) => `${$color}15`};
+  color: ${({ $color }) => $color};
   font-size: 0.9rem;
 `;
 
-const PanelTests = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-bottom: 0.75rem;
+const SubsectionInfo = styled.div`
+  flex: 1;
 `;
 
-const TestTag = styled.span`
+const SubsectionName = styled.h4`
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme?.colors?.text || '#ffffff'};
+`;
+
+const SubsectionCount = styled.span`
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
   background: rgba(255, 255, 255, 0.1);
-  color: ${({ theme }) => theme.colors.textSecondary};
-  padding: 0.25rem 0.5rem;
+  padding: 0.2rem 0.5rem;
   border-radius: 4px;
-  font-size: 0.75rem;
+  margin-left: 0.5rem;
 `;
 
 const TestsGrid = styled.div`
-  min-height: 300px;
-  contain: layout;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 0.75rem;
-  margin-bottom: 1rem;
 `;
 
-const TestCard = styled(motion.div)`
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  border: 2px solid ${({ $isSelected, theme }) => 
-    $isSelected ? '#667eea' : 'rgba(255, 255, 255, 0.1)'};
-  border-radius: 16px;
-  padding: 0.75rem 1rem;
+const TestItem = styled(motion.div)`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-  
-  &:hover {
-    transform: translateY(-4px);
-    border-color: #667eea;
-    box-shadow: 
-      0 12px 32px rgba(102, 126, 234, 0.3),
-      0 8px 16px rgba(255, 255, 255, 0.1);
-  }
   
   &::before {
     content: '';
@@ -316,159 +342,178 @@ const TestCard = styled(motion.div)`
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
-    background: ${({ $isSelected }) => 
-      $isSelected ? 'linear-gradient(90deg, #667eea, #764ba2)' : 'transparent'};
-    border-radius: 16px 16px 0 0;
+    height: 3px;
+    background: ${({ $deptColor }) => `linear-gradient(90deg, ${$deptColor}, ${$deptColor}80)`};
+    opacity: ${({ $isSelected }) => $isSelected ? 1 : 0.3};
+    transition: opacity 0.3s ease;
+  }
+  
+  &:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
+    border-color: rgba(59, 130, 246, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+  
+  ${({ $isSelected }) => $isSelected && `
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.08) 100%);
+    border-color: #3b82f6;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+  `}
+`;
+
+const TestCheckbox = styled.div`
+  width: 24px;
+  height: 24px;
+  border: 2px solid ${({ $isSelected }) => $isSelected ? '#3b82f6' : 'rgba(255, 255, 255, 0.3)'};
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ $isSelected }) => $isSelected ? '#3b82f6' : 'transparent'};
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  
+  &:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
   }
 `;
 
-const TestHeader = styled.div`
+const TestIcon = styled.div.withConfig({ shouldForwardProp: (prop) => prop !== '$deptColor' })`
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  background: ${({ $deptColor }) => `linear-gradient(135deg, ${$deptColor}20, ${$deptColor}10)`};
+  border: 2px solid ${({ $deptColor }) => `${$deptColor}40`};
+  color: ${({ $deptColor }) => $deptColor};
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px ${({ $deptColor }) => `${$deptColor}30`};
+  }
 `;
 
-const TestName = styled.h4`
-  font-size: 1rem;
-  font-weight: 600;
-  color: ${({ theme }) => theme.colors.text};
-  margin: 0;
+const TestInfo = styled.div`
   flex: 1;
+  min-width: 0;
+`;
+
+const TestName = styled.div`
+  font-weight: 600;
+  color: ${({ theme }) => theme?.colors?.text || '#ffffff'};
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.3;
+`;
+
+const TestDetails = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.5rem;
+`;
+
+const TestBadge = styled.span.withConfig({ shouldForwardProp: (prop) => prop !== '$color' })`
+  background: ${({ $color }) => `${$color}20`};
+  color: ${({ $color }) => $color};
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid ${({ $color }) => `${$color}40`};
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+`;
+
+const TestDescription = styled.div`
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.4;
+  font-style: italic;
 `;
 
 const TestPrice = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  font-weight: 600;
-  color: #10b981;
-  font-size: 0.85rem;
-`;
-
-const TestDepartment = styled.div`
-  display: flex;
-  align-items: center;
   gap: 0.5rem;
-  font-size: 0.8rem;
-  color: ${({ theme }) => theme.colors.textSecondary};
-  margin-bottom: 0.5rem;
+  color: #10b981;
+  font-weight: 700;
+  font-size: 1.1rem;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  flex-shrink: 0;
 `;
 
-const DepartmentBadge = styled.span`
-  background: ${({ color }) => color || '#667eea'};
-  color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 500;
-`;
 
-const TestDetails = styled.div`
+
+// Selection Cart
+const SelectionCart = styled.div`
+  width: 320px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1rem;
+  backdrop-filter: blur(20px);
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  margin-bottom: 0.5rem;
 `;
 
-const DetailItem = styled.div`
+const CartHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const CartTitle = styled.h3`
+  margin: 0;
+  color: ${({ theme }) => theme?.colors?.text || '#ffffff'};
+  font-size: 1.1rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.8rem;
-  color: ${({ theme }) => theme.colors.textSecondary};
 `;
 
-const TestActions = styled.div`
+const CartItems = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+`;
+
+const CartItem = styled.div`
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-top: 1rem;
-`;
-
-const ActionButton = styled.button`
-  background: none;
-  border: none;
-  color: ${({ theme }) => theme.colors.textSecondary};
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 6px;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.2s ease;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: ${({ theme }) => theme.colors.text};
+    background: rgba(255, 255, 255, 0.08);
   }
 `;
 
-const SelectionIndicator = styled.div`
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: ${({ $isSelected }) => $isSelected ? '#667eea' : 'rgba(255, 255, 255, 0.1)'};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  box-shadow: ${({ $isSelected }) => $isSelected ? '0 0 0 2px #667eea55' : 'none'};
-`;
-
-const SummarySection = styled.div`
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin-top: 1.5rem;
-`;
-
-const SummaryHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-`;
-
-const SummaryTitle = styled.h4`
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: ${({ theme }) => theme.colors.text};
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const SummaryStats = styled.div`
-  display: flex;
-  gap: 1.5rem;
+const CartItemName = styled.div`
   font-size: 0.9rem;
-  color: ${({ theme }) => theme.colors.textSecondary};
-`;
-
-const SelectedTestsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-height: 200px;
-  overflow-y: auto;
-`;
-
-const SelectedTestItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0.75rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  font-size: 0.9rem;
+  color: ${({ theme }) => theme?.colors?.text || '#ffffff'};
+  font-weight: 500;
 `;
 
 const RemoveButton = styled.button`
@@ -485,426 +530,428 @@ const RemoveButton = styled.button`
   }
 `;
 
-const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval }) => {
+const CartFooter = styled.div`
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 1rem;
+`;
+
+const CartSummary = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme?.colors?.text || '#ffffff'};
+`;
+
+const ConfirmationModalBackdrop = styled(motion.div)`
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(20, 20, 30, 0.65);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const ConfirmationModalContainer = styled(motion.div)`
+  background: ${({ theme }) => theme.colors.surface || '#222'};
+  color: ${({ theme }) => theme.colors.text || '#fff'};
+  border-radius: 18px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+  min-width: 350px;
+  max-width: 95vw;
+  max-height: 90vh;
+  padding: 2rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+`;
+
+const ModalList = styled.div`
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 1.5rem;
+`;
+
+const ModalListItem = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-size: 1rem;
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+`;
+
+const ModalButton = styled(GlowButton)`
+  min-width: 120px;
+  font-weight: 600;
+`;
+
+const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, children }) => {
   const { labTests, departmentColors } = useTestCatalog();
   const { settings } = useSettings();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDepartment, setSelectedDepartment] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
-  const [sortOrder, setSortOrder] = useState('asc');
-  const [viewMode, setViewMode] = useState('grid');
-  const [showFavorites, setShowFavorites] = useState(false);
-  const [priceRange, setPriceRange] = useState([0, 1000]);
-  const [favorites, setFavorites] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [expandedDepartments, setExpandedDepartments] = useState(new Set());
   const { theme } = useTheme();
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
 
-  // Add fallback for departmentColors
-  const safeDepartmentColors = typeof departmentColors !== 'undefined' ? departmentColors : { General: '#667eea' };
+  // Zustand selection state
+  const selectedTestIds = useTestSelectionStore((s) => s.selectedTestIds);
+  const toggleTestSelection = useTestSelectionStore((s) => s.toggleTestSelection);
+  const clearSelection = useTestSelectionStore((s) => s.clearSelection);
 
-  // Get unique departments
+  // Get unique departments for tabs
   const departments = useMemo(() => {
     const deptSet = new Set(labTests.map(test => test.department));
     return Array.from(deptSet).sort();
   }, [labTests]);
 
-  // Predefined test panels
-  const testPanels = useMemo(() => [
-    {
-      id: 'basic-panel',
-      name: 'Basic Health Panel',
-      tests: ['Complete Blood Count', 'Comprehensive Metabolic Panel', 'Lipid Panel'],
-      price: 150,
-      description: 'Essential health screening tests'
-    },
-    {
-      id: 'diabetes-panel',
-      name: 'Diabetes Management Panel',
-      tests: ['HbA1c', 'Glucose', 'Insulin', 'C-Peptide'],
-      price: 120,
-      description: 'Comprehensive diabetes monitoring'
-    },
-    {
-      id: 'cardiac-panel',
-      name: 'Cardiac Risk Panel',
-      tests: ['Troponin', 'BNP', 'CRP', 'Homocysteine'],
-      price: 180,
-      description: 'Cardiovascular risk assessment'
-    },
-    {
-      id: 'thyroid-panel',
-      name: 'Thyroid Function Panel',
-      tests: ['TSH', 'T3', 'T4', 'Thyroid Antibodies'],
-      price: 140,
-      description: 'Complete thyroid evaluation'
-    }
-  ], []);
-
-  // Filter and sort tests
+  // Filter tests based on search and category
   const filteredTests = useMemo(() => {
-    let filtered = labTests.filter(test => {
-      const name = test.name || '';
-      const department = test.department || 'General';
-      const price = typeof test.price === 'number' ? test.price : 0;
-      const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           department.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesDepartment = selectedDepartment === 'all' || department === selectedDepartment;
-      const matchesPrice = price >= priceRange[0] && price <= priceRange[1];
-      return matchesSearch && matchesDepartment && matchesPrice;
+    return labTests.filter(test => {
+      const matchesSearch = test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           test.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (test.subsection && test.subsection.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesCategory = selectedCategory === 'all' || test.department === selectedCategory;
+      return matchesSearch && matchesCategory;
     });
+  }, [labTests, searchTerm, selectedCategory]);
 
-    // Sort tests
-    filtered.sort((a, b) => {
-      let aValue, bValue;
-      switch (sortBy) {
-        case 'price':
-          aValue = typeof a.price === 'number' ? a.price : 0;
-          bValue = typeof b.price === 'number' ? b.price : 0;
-          break;
-        case 'department':
-          aValue = a.department || 'General';
-          bValue = b.department || 'General';
-          break;
-        case 'name':
-        default:
-          aValue = a.name;
-          bValue = b.name;
-          break;
-      }
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-    return filtered;
-  }, [labTests, searchTerm, selectedDepartment, sortBy, sortOrder, priceRange]);
-
-  // Group tests by department
+  // Group tests by department and subsection
   const groupedTests = useMemo(() => {
     return filteredTests.reduce((acc, test) => {
       const dept = test.department || 'General';
-      if (!acc[dept]) acc[dept] = [];
-      acc[dept].push(test);
+      if (!acc[dept]) acc[dept] = {};
+      
+      const subsection = test.subsection || 'General Tests';
+      if (!acc[dept][subsection]) acc[dept][subsection] = [];
+      
+      acc[dept][subsection].push(test);
       return acc;
     }, {});
   }, [filteredTests]);
 
-  // Calculate summary
-  const summary = useMemo(() => {
-    const selectedTestObjects = labTests.filter(test => selectedTests.includes(test.name));
+  // Calculate cart summary
+  const cartSummary = useMemo(() => {
+    const selectedTests = labTests.filter(test => selectedTestIds.includes(test.name));
     return {
       count: selectedTests.length,
-      totalPrice: selectedTestObjects.reduce((sum, test) => sum + (test.price || 0), 0),
-      departments: [...new Set(selectedTestObjects.map(test => test.department))]
+      totalPrice: selectedTests.reduce((sum, test) => sum + (test.price || 0), 0),
+      departments: [...new Set(selectedTests.map(test => test.department))]
     };
-  }, [selectedTests, labTests]);
+  }, [selectedTestIds, labTests]);
 
-  const handleTestToggle = (testName) => {
-    if (selectedTests.includes(testName)) {
-      onTestRemoval(testName);
-    } else {
-      onTestSelection(testName);
-      // Add to recent tests
-      // setRecentTests(prev => { // This line was removed from the new_code, so it's removed here.
-      //   const newRecent = [testName, ...prev.filter(t => t !== testName)].slice(0, 10);
-      //   return newRecent;
-      // });
-    }
-  };
-
-  const handlePanelSelection = (panel) => {
-    panel.tests.forEach(testName => {
-      if (!selectedTests.includes(testName)) {
-        onTestSelection(testName);
-      }
-    });
-  };
-
-  const handleFavoriteToggle = (testName) => {
-    setFavorites(prev => {
-      if (prev.includes(testName)) {
-        return prev.filter(t => t !== testName);
+  const toggleDepartment = (department) => {
+    setExpandedDepartments(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(department)) {
+        newSet.delete(department);
       } else {
-        return [...prev, testName];
+        newSet.add(department);
       }
+      return newSet;
     });
   };
 
-  const clearFilters = () => {
-    setSearchTerm('');
-    setSelectedDepartment('all');
-    setPriceRange([0, 1000]);
-    setSortBy('name');
-    setSortOrder('asc');
+  const getSubsectionIcon = (subsection) => {
+    const name = subsection.toLowerCase();
+    if (name.includes('blood') || name.includes('cbc')) return FaTint;
+    if (name.includes('sugar') || name.includes('glucose')) return FaThermometerHalf;
+    if (name.includes('hormone') || name.includes('thyroid')) return FaBrain;
+    if (name.includes('cardiac') || name.includes('heart')) return FaHeart;
+    if (name.includes('urine') || name.includes('urinalysis')) return FaTint;
+    if (name.includes('culture') || name.includes('sensitivity')) return FaBacteria;
+    if (name.includes('antibody') || name.includes('antigen')) return FaShieldAlt;
+    if (name.includes('panel') || name.includes('profile')) return FaLayerGroup;
+    if (name.includes('molecular') || name.includes('pcr')) return FaDna;
+    if (name.includes('allergy') || name.includes('sensitivity')) return FaAllergies;
+    return FaVial;
   };
 
   return (
-    <PanelContainer>
-      <PanelHeader>
-        <PanelTitle>
-          <FaFlask /> Test Selection
-          {selectedTests.length > 0 && (
-            <span style={{
-              background: '#667eea',
-              color: 'white',
-              borderRadius: '12px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              padding: '0.15em 0.7em',
-              marginLeft: '0.75em',
-              display: 'inline-block',
-              verticalAlign: 'middle',
-            }}>
-              {selectedTests.length} selected
-            </span>
+    <ModernContainer>
+      <SearchSection>
+        <SearchBar>
+          <SearchIcon />
+          <SearchInput
+            type="text"
+            placeholder="Search tests by name, department, or subsection..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </SearchBar>
+        
+        <CategoryTabs>
+          <CategoryTab
+            $isActive={selectedCategory === 'all'}
+            onClick={() => setSelectedCategory('all')}
+          >
+            All Tests ({labTests.length})
+          </CategoryTab>
+          {departments.map(dept => (
+            <CategoryTab
+              key={dept}
+              $isActive={selectedCategory === dept}
+              onClick={() => setSelectedCategory(dept)}
+            >
+              {dept} ({labTests.filter(t => t.department === dept).length})
+            </CategoryTab>
+          ))}
+        </CategoryTabs>
+      </SearchSection>
+
+      <ContentArea>
+        <TestsList>
+          {Object.entries(groupedTests).map(([department, subsections]) => {
+            const DeptIcon = getDepartmentIcon(department);
+            const deptColor = getDepartmentColor(department);
+            const isExpanded = expandedDepartments.has(department);
+            const totalTests = Object.values(subsections).flat().length;
+            const totalSubsections = Object.keys(subsections).length;
+            
+            return (
+              <DepartmentSection key={department}>
+                <DepartmentHeader onClick={() => toggleDepartment(department)}>
+                  <DepartmentInfo>
+                    <DepartmentIcon $color={deptColor}>
+                      {(() => { const { $color, ...iconProps } = { color: deptColor }; return <DeptIcon {...iconProps} />; })()}
+                    </DepartmentIcon>
+                    <DepartmentDetails>
+                      <DepartmentName>{department}</DepartmentName>
+                      <DepartmentStats>
+                        <span>{totalTests} tests</span>
+                        <span>•</span>
+                        <span>{totalSubsections} subsections</span>
+                      </DepartmentStats>
+                    </DepartmentDetails>
+                  </DepartmentInfo>
+                  <DepartmentToggle $isExpanded={isExpanded}>
+                    <FaChevronDown />
+                  </DepartmentToggle>
+                </DepartmentHeader>
+                
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    >
+                      {Object.entries(subsections).map(([subsection, tests]) => {
+                        const SubsectionIcon = getSubsectionIcon(subsection);
+                        const subsectionColor = subsection === 'General Tests' ? deptColor : '#8b5cf6';
+                        
+                        return (
+                          <SubsectionGroup key={subsection}>
+                            <SubsectionHeader $color={subsectionColor}>
+                              <SubsectionIcon $color={subsectionColor}>
+                                {(() => { const { $color, ...iconProps } = { color: subsectionColor }; return <SubsectionIcon {...iconProps} />; })()}
+                              </SubsectionIcon>
+                              <SubsectionInfo>
+                                <SubsectionName>
+                                  {subsection}
+                                  <SubsectionCount>{tests.length} tests</SubsectionCount>
+                                </SubsectionName>
+                              </SubsectionInfo>
+                            </SubsectionHeader>
+                            
+                            <TestsGrid>
+                              {tests.map(test => {
+                                const TestTypeIcon = getTestTypeIcon(test.name);
+                                const isSelected = selectedTestIds.includes(test.name);
+                                
+                                return (
+                                  <TestItem
+                                    key={test.name}
+                                    $isSelected={isSelected}
+                                    $deptColor={deptColor}
+                                    onClick={() => toggleTestSelection(test.name)}
+                                    whileHover={{ scale: 1.01 }}
+                                    whileTap={{ scale: 0.99 }}
+                                  >
+                                    <TestCheckbox $isSelected={isSelected}>
+                                      {isSelected && <FaCheck size={14} color="white" />}
+                                    </TestCheckbox>
+                                    
+                                    <TestIcon $deptColor={deptColor}>
+                                      {(() => { const { $deptColor, ...iconProps } = { color: deptColor }; return <DeptIcon {...iconProps} />; })()}
+                                    </TestIcon>
+                                    
+                                    <TestInfo>
+                                      <TestName>{test.name}</TestName>
+                                      <TestDetails>
+                                        <TestBadge $color={deptColor}>
+                                          {(() => { const { $color, ...iconProps } = { size: 10, color: deptColor }; return <DeptIcon {...iconProps} />; })()}
+                                          {test.department}
+                                        </TestBadge>
+                                        {test.unit && (
+                                          <TestBadge $color="#06b6d4">
+                                            {test.unit}
+                                          </TestBadge>
+                                        )}
+                                      </TestDetails>
+                                      {test.description && (
+                                        <TestDescription>{test.description}</TestDescription>
+                                      )}
+                                    </TestInfo>
+                                    
+                                    <TestPrice>
+                                      <FaDollarSign />
+                                      {test.price || 0}
+                                    </TestPrice>
+                                  </TestItem>
+                                );
+                              })}
+                            </TestsGrid>
+                          </SubsectionGroup>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </DepartmentSection>
+            );
+          })}
+        </TestsList>
+
+        <SelectionCart>
+          <CartHeader>
+            <CartTitle>
+              <FaShoppingCart />
+              Selected Tests
+            </CartTitle>
+            {selectedTestIds.length > 0 && (
+              <button
+                onClick={clearSelection}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#ef4444',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem'
+                }}
+              >
+                Clear All
+              </button>
+            )}
+          </CartHeader>
+
+          <CartItems>
+            {selectedTestIds.length === 0 ? (
+              <div style={{ 
+                textAlign: 'center', 
+                color: 'rgba(255, 255, 255, 0.6)', 
+                padding: '2rem 0' 
+              }}>
+                <FaShoppingCart size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+                <div>No tests selected</div>
+                <div style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
+                  Search and select tests to get started
+                </div>
+              </div>
+            ) : (
+              selectedTestIds.map(testName => {
+                const test = labTests.find(t => t.name === testName);
+                const deptColor = test ? getDepartmentColor(test.department) : '#3b82f6';
+                return (
+                  <CartItem key={testName}>
+                    <CartItemName>{testName}</CartItemName>
+                    <RemoveButton onClick={() => toggleTestSelection(testName)}>
+                      <FaTimes size={12} />
+                    </RemoveButton>
+                  </CartItem>
+                );
+              })
+            )}
+          </CartItems>
+
+          <CartFooter>
+            <CartSummary>
+              <span>{cartSummary.count} tests</span>
+              <span>${cartSummary.totalPrice.toFixed(2)}</span>
+            </CartSummary>
+            {/* Removed Proceed to Confirmation button */}
+          </CartFooter>
+          {/* Render custom action button below the cart summary */}
+          {children && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
+              {children}
+            </div>
           )}
-        </PanelTitle>
-        <HeaderActions>
-          <ViewToggle>
-            <ViewButton
-              $isActive={viewMode === 'grid'}
-              onClick={() => setViewMode('grid')}
-            >
-              <FaTh />
-            </ViewButton>
-            <ViewButton
-              $isActive={viewMode === 'list'}
-              onClick={() => setViewMode('list')}
-            >
-              <FaList />
-            </ViewButton>
-          </ViewToggle>
-          <GlowButton
-            onClick={() => setShowFavorites(!showFavorites)}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            <FaFilter /> {showFavorites ? 'Hide' : 'Show'} Filters
-          </GlowButton>
-        </HeaderActions>
-      </PanelHeader>
-
-      <SearchContainer>
-        <SearchIcon />
-        <SearchInput
-          type="text"
-          placeholder="Search tests by name, department, or code..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </SearchContainer>
-
-      <QuickActions>
-        <QuickActionButton
-          onClick={() => setSelectedDepartment('all')}
-          $variant={selectedDepartment === 'all' ? 'primary' : 'secondary'}
-        >
-          <FaLayerGroup /> <span>All Tests</span>
-        </QuickActionButton>
-        <DepartmentQuickActionButton
-          onClick={() => setSelectedDepartment('Hematology')}
-          color={safeDepartmentColors['Hematology'] || '#dc3545'}
-          $isActive={selectedDepartment === 'Hematology'}
-        >
-          <FaFlask /> <span>Hematology</span>
-        </DepartmentQuickActionButton>
-        <DepartmentQuickActionButton
-          onClick={() => setSelectedDepartment('Chemistry')}
-          color={safeDepartmentColors['Chemistry'] || '#ffc107'}
-          $isActive={selectedDepartment === 'Chemistry'}
-        >
-          <FaFlask /> <span>Chemistry</span>
-        </DepartmentQuickActionButton>
-        <DepartmentQuickActionButton
-          onClick={() => setSelectedDepartment('Immunology')}
-          color={safeDepartmentColors['Immunology'] || '#007bff'}
-          $isActive={selectedDepartment === 'Immunology'}
-        >
-          <FaFlask /> <span>Immunology</span>
-        </DepartmentQuickActionButton>
-        <QuickActionButton
-          onClick={clearFilters}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-        >
-          <FaTimes /> <span>Clear Filters</span>
-        </QuickActionButton>
-      </QuickActions>
-
+        </SelectionCart>
+      </ContentArea>
       <AnimatePresence>
-        {showFavorites && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
+        {showConfirmation && (
+          <ConfirmationModalBackdrop
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowConfirmation(false)}
           >
-            <AdvancedFilters>
-              <FilterGrid>
-                <FilterGroup>
-                  <FilterLabel>Department</FilterLabel>
-                  <FilterSelect
-                    value={selectedDepartment ?? ''}
-                    onChange={(e) => setSelectedDepartment(e.target.value)}
-                  >
-                    <option value="all">All Departments</option>
-                    {departments.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </FilterSelect>
-                </FilterGroup>
-                <FilterGroup>
-                  <FilterLabel>Min Price</FilterLabel>
-                  <FilterInput
-                    type="number"
-                    placeholder="Min price"
-                    value={priceRange[0] ?? 0}
-                    onChange={(e) => setPriceRange(prev => [parseFloat(e.target.value) || 0, prev[1]])}
-                  />
-                </FilterGroup>
-                <FilterGroup>
-                  <FilterLabel>Max Price</FilterLabel>
-                  <FilterInput
-                    type="number"
-                    placeholder="Max price"
-                    value={priceRange[1] ?? 0}
-                    onChange={(e) => setPriceRange(prev => [prev[0], parseFloat(e.target.value) || 1000])}
-                  />
-                </FilterGroup>
-                <FilterGroup>
-                  <FilterLabel>Sort By</FilterLabel>
-                  <FilterSelect
-                    value={sortBy ?? ''}
-                    onChange={(e) => setSortBy(e.target.value)}
-                  >
-                    <option value="name">Name</option>
-                    <option value="price">Price</option>
-                    <option value="department">Department</option>
-                  </FilterSelect>
-                </FilterGroup>
-                <FilterGroup>
-                  <FilterLabel>Sort Order</FilterLabel>
-                  <FilterSelect
-                    value={sortOrder ?? ''}
-                    onChange={(e) => setSortOrder(e.target.value)}
-                  >
-                    <option value="asc">Ascending</option>
-                    <option value="desc">Descending</option>
-                  </FilterSelect>
-                </FilterGroup>
-              </FilterGrid>
-            </AdvancedFilters>
-          </motion.div>
+            <ConfirmationModalContainer
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <ModalTitle>Confirm Test Selection</ModalTitle>
+              <ModalList>
+                {selectedTestIds.map(testName => {
+                  const test = labTests.find(t => t.name === testName);
+                  return (
+                    <ModalListItem key={testName}>
+                      <span>{testName}</span>
+                      <span style={{ color: '#10b981', fontWeight: 600 }}>${test?.price || 0}</span>
+                    </ModalListItem>
+                  );
+                })}
+              </ModalList>
+              <ModalActions>
+                <ModalButton onClick={() => {
+                  setShowConfirmation(false);
+                  setConfirmed(true);
+                  setTimeout(() => setConfirmed(false), 2000);
+                }}>
+                  Confirm
+                </ModalButton>
+                <ModalButton onClick={() => setShowConfirmation(false)} $variant="secondary">
+                  Cancel
+                </ModalButton>
+              </ModalActions>
+            </ConfirmationModalContainer>
+          </ConfirmationModalBackdrop>
         )}
       </AnimatePresence>
-
-      {/* Unified Test & Panel List */}
-      <div>
-        <h4 style={{ margin: '0 0 1rem 0', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FaLayerGroup /> Available Tests & Panels
-        </h4>
-        {/* Debug: Show number of labTests loaded */}
-        <div style={{ color: '#10b981', fontSize: '0.95rem', marginBottom: '0.5rem' }}>
-          {`Loaded tests: ${labTests.length}`}
+      {confirmed && (
+        <div style={{ position: 'fixed', top: 30, left: 0, right: 0, zIndex: 2000, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            style={{ background: '#10b981', color: 'white', padding: '1rem 2rem', borderRadius: 12, fontWeight: 700, fontSize: '1.1rem', boxShadow: '0 4px 24px #10b98155' }}
+          >
+            Selection Confirmed!
+          </motion.div>
         </div>
-        <TestPanels>
-          {/* Show panels first */}
-          {testPanels.map((panel) => (
-            <TestPanel
-              key={panel.id}
-              onClick={() => handlePanelSelection(panel)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <PanelCardHeader>
-                <PanelName>{panel.name}</PanelName>
-                <PanelPrice>
-                  <FaDollarSign />
-                  {panel.price}
-                </PanelPrice>
-              </PanelCardHeader>
-              <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: theme.colors.textSecondary }}>
-                {panel.description}
-              </p>
-              <PanelTests>
-                {panel.tests.slice(0, 3).map(test => (
-                  <TestTag key={test}>{test}</TestTag>
-                ))}
-                {panel.tests.length > 3 && (
-                  <TestTag>+{panel.tests.length - 3} more</TestTag>
-                )}
-              </PanelTests>
-            </TestPanel>
-          ))}
-          {/* Show all individual tests */}
-          {filteredTests.length === 0 ? (
-            <div style={{ gridColumn: '1/-1', color: '#ef4444', fontWeight: 600, fontSize: '1.1rem', textAlign: 'center', padding: '2rem 0' }}>
-              No individual tests found. Please check your test catalog or filters.
-            </div>
-          ) : (
-            filteredTests.map((test) => (
-              <TestPanel
-                key={test.name}
-                onClick={() => handleTestToggle(test.name)}
-                $isSelected={selectedTests.includes(test.name)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <PanelCardHeader>
-                  <PanelName>{test.name}</PanelName>
-                  <PanelPrice>
-                    <FaDollarSign />
-                    {test.price}
-                  </PanelPrice>
-                </PanelCardHeader>
-                <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: theme.colors.textSecondary }}>
-                  {test.description}
-                </p>
-                <PanelTests>
-                  <TestTag>{test.department}</TestTag>
-                </PanelTests>
-              </TestPanel>
-            ))
-          )}
-        </TestPanels>
-      </div>
-
-      {selectedTests.length > 0 && (
-        <SummarySection>
-          <SummaryHeader>
-            <SummaryTitle>
-              <FaEye /> Selected Tests Summary
-            </SummaryTitle>
-            <SummaryStats>
-              <span>{summary.count} tests selected</span>
-              <span>${summary.totalPrice.toFixed(2)} total</span>
-              <span>{summary.departments.length} departments</span>
-            </SummaryStats>
-          </SummaryHeader>
-          
-          <SelectedTestsList>
-            {selectedTests.map(testName => {
-              const test = labTests.find(t => t.name === testName);
-              return (
-                <SelectedTestItem key={testName}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <DepartmentBadge color={safeDepartmentColors[test?.department]}>
-                      {test?.department}
-                    </DepartmentBadge>
-                    <span>{testName}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ color: '#10b981', fontWeight: '600' }}>
-                      ${test?.price || 0}
-                    </span>
-                    <RemoveButton onClick={() => onTestRemoval(testName)}>
-                      <FaTimes />
-                    </RemoveButton>
-                  </div>
-                </SelectedTestItem>
-              );
-            })}
-          </SelectedTestsList>
-        </SummarySection>
       )}
-    </PanelContainer>
+    </ModernContainer>
   );
 };
 

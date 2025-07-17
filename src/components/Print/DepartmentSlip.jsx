@@ -142,22 +142,6 @@ const Footer = styled.div`
   }
 `;
 
-const SignatureRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-top: 2rem;
-  gap: 1.5rem;
-`;
-
-const SignatureBox = styled.div`
-  flex: 1;
-  border-top: 2px solid #e5e7eb;
-  padding-top: 0.6rem;
-  text-align: center;
-  font-size: 0.95rem;
-  color: #666;
-`;
-
 const BarcodeBox = styled.div`
   margin-top: 1.2rem;
   display: flex;
@@ -206,7 +190,7 @@ const DepartmentSlip = ({ order, department, tests, user, settings }) => {
           <tbody>
             {tests?.map((test, idx) => (
               <tr key={idx}>
-                <td>{test}</td>
+                <td>{typeof test === 'object' ? test.name : test}</td>
                 <td style={{color: '#10b981', fontWeight: 700}}>PENDING</td>
                 <td>—</td>
               </tr>
@@ -218,10 +202,6 @@ const DepartmentSlip = ({ order, department, tests, user, settings }) => {
         <SectionTitle>Notes</SectionTitle>
         <div style={{minHeight: '2rem'}}>{order?.notes || '—'}</div>
       </Section>
-      <SignatureRow>
-        <SignatureBox>Technician Signature</SignatureBox>
-        <SignatureBox>Supervisor Signature</SignatureBox>
-      </SignatureRow>
       <BarcodeBox>
         {/* <QRCode value={order?.id || ''} size={40} /> */}
         <div style={{fontSize:'0.9rem',color:'#888'}}>Order QR/Barcode (Coming Soon)</div>

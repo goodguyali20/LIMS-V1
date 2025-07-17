@@ -189,7 +189,7 @@ const MasterSlip = ({ order, user, settings }) => {
         <InfoGrid>
           <InfoItem><strong>{t('nameLabel')}</strong> {order?.patientName || 'N/A'}</InfoItem>
           <InfoItem><strong>{t('patientIdLabel')}</strong> {order?.patientId || 'N/A'}</InfoItem>
-          <InfoItem><strong>{t('ageGenderLabel')}</strong> {order?.age || 'N/A'} / {order?.gender || 'N/A'}</InfoItem>
+          <InfoItem><strong>{t('ageGenderLabel')}</strong> {typeof order?.age === 'object' ? `${order?.age?.value || ''} ${order?.age?.unit || ''}` : order?.age || 'N/A'} / {order?.gender || 'N/A'}</InfoItem>
           <InfoItem><strong>{t('phoneLabel')}</strong> {order?.phone || 'N/A'}</InfoItem>
           <InfoItem><strong>{t('referringDoctorLabel')}</strong> {order?.referringDoctor || 'N/A'}</InfoItem>
           <InfoItem><strong>{t('priorityLabel')}</strong> {order?.priority || 'NORMAL'}</InfoItem>
@@ -209,8 +209,8 @@ const MasterSlip = ({ order, user, settings }) => {
           <tbody>
             {order?.tests?.map((test, idx) => (
               <tr key={idx}>
-                <td>{test}</td>
-                <td>General</td>
+                <td>{typeof test === 'object' ? test.name : test}</td>
+                <td>{typeof test === 'object' ? test.department || 'General' : 'General'}</td>
                 <td style={{color: '#10b981', fontWeight: 700}}>{t('pendingStatus')}</td>
                 <td>{t('emptyDash')}</td>
               </tr>
@@ -222,12 +222,14 @@ const MasterSlip = ({ order, user, settings }) => {
         <SectionTitle>{t('notes')}</SectionTitle>
         <div style={{minHeight: '2rem'}}>{order?.notes || '—'}</div>
       </Section>
-      <SignatureRow>
+      {/* Remove SignatureRow */}
+      {/* <SignatureRow>
         <SignatureBox>{t('doctorSignature')}</SignatureBox>
         <SignatureBox>{t('patientSignature')}</SignatureBox>
-      </SignatureRow>
+      </SignatureRow> */}
       <BarcodeBox>
-        {/* <QRCode value={order?.id || ''} size={40} /> */}
+        {/* Uncomment and use QRCode for barcode if available */}
+        {/* {order?.id && <QRCode value={order.id} size={40} />} */}
         <div style={{fontSize:'0.9rem',color:'#888'}}>{t('orderQrBarcodeComingSoon')}</div>
       </BarcodeBox>
       <Footer>

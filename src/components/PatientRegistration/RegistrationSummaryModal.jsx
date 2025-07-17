@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +6,7 @@ import { useTheme } from '../../contexts/ThemeContext.jsx';
 import { 
   FaClipboardList, FaUser, FaPhone, FaEnvelope, FaCalendar, 
   FaVenusMars, FaFlask, FaCheckCircle, FaTimes, FaPrint,
-  FaEye, FaEdit, FaArrowRight, FaSmileBeam
+  FaEye, FaEdit, FaArrowRight, FaSmileBeam, FaMapMarkerAlt
 } from 'react-icons/fa';
 import GlowButton from '../common/GlowButton.jsx';
 
@@ -282,6 +282,21 @@ const RegistrationSummaryModal = ({
   const { t } = useTranslation();
   const { theme } = useTheme();
 
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && modalRef.current) {
+      // Focus for accessibility
+      modalRef.current.focus();
+      // Scroll window to center modal
+      const rect = modalRef.current.getBoundingClientRect();
+      const modalCenter = rect.top + rect.height / 2;
+      const viewportCenter = window.innerHeight / 2;
+      const scrollY = window.scrollY + (modalCenter - viewportCenter);
+      window.scrollTo({ top: scrollY, behavior: 'smooth' });
+    }
+  }, [isOpen]);
+
   const modalVariants = {
     hidden: { 
       opacity: 0, 
@@ -335,6 +350,8 @@ const RegistrationSummaryModal = ({
         onClick={onClose}
       >
         <ModalContainer
+          ref={modalRef}
+          tabIndex={-1}
           variants={modalVariants}
           initial="hidden"
           animate="visible"
@@ -355,107 +372,61 @@ const RegistrationSummaryModal = ({
           </ModalHeader>
 
           <ModalContent>
-            <SummaryGrid>
+            <SummaryGrid style={{ gridTemplateColumns: '1fr', gap: '1rem', marginBottom: '2rem' }}>
+              {/* Name, Gender, and Age Card */}
               <SummaryCard
                 variants={cardVariants}
                 initial="hidden"
                 animate="visible"
                 transition={{ delay: 0.1 }}
+                style={{ minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '2rem 1.5rem' }}
               >
-                <SummaryItem>
+                <SummaryItem style={{ alignItems: 'flex-start', gap: 0 }}>
                   <SummaryIcon>
                     <FaUser />
                   </SummaryIcon>
                   <SummaryContent>
-                    <SummaryLabel>{t('patientRegistration.patientName') || 'Patient Name'}</SummaryLabel>
-                    <SummaryValue>
+                    <SummaryLabel style={{ marginBottom: 8 }}>{t('patientRegistration.patientName') || 'Patient Name'}</SummaryLabel>
+                    <SummaryValue style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: 12 }}>
                       {patientData.firstName} {patientData.lastName}
                     </SummaryValue>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', borderTop: '1px solid #e5e7eb22', paddingTop: 10, width: '100%' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '1rem', color: '#6b7280' }}>
+                        <FaVenusMars style={{ opacity: 0.7 }} /> {patientData.gender?.label || patientData.gender || '-'}
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '1rem', color: '#6b7280' }}>
+                        <FaCalendar style={{ opacity: 0.7 }} /> {patientData.age?.value} {t('patientRegistration.' + (patientData.age?.unit || 'years')) || patientData.age?.unit || 'years'}
+                      </span>
+                    </div>
                   </SummaryContent>
                 </SummaryItem>
               </SummaryCard>
 
+              {/* Address and Phone Number Card */}
               <SummaryCard
                 variants={cardVariants}
                 initial="hidden"
                 animate="visible"
                 transition={{ delay: 0.2 }}
+                style={{ minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '2rem 1.5rem' }}
               >
-                <SummaryItem>
+                <SummaryItem style={{ alignItems: 'flex-start', gap: 0, width: '100%' }}>
                   <SummaryIcon>
-                    <FaPhone />
+                    <FaMapMarkerAlt />
                   </SummaryIcon>
-                  <SummaryContent>
-                    <SummaryLabel>{t('patientRegistration.phoneNumber') || 'Phone Number'}</SummaryLabel>
-                    <SummaryValue>{patientData.phoneNumber}</SummaryValue>
-                  </SummaryContent>
-                </SummaryItem>
-              </SummaryCard>
-
-              <SummaryCard
-                variants={cardVariants}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: 0.3 }}
-              >
-                <SummaryItem>
-                  <SummaryIcon>
-                    <FaEnvelope />
-                  </SummaryIcon>
-                  <SummaryContent>
-                    <SummaryLabel>{t('patientRegistration.email') || 'Email'}</SummaryLabel>
-                    <SummaryValue>{patientData.email || 'N/A'}</SummaryValue>
-                  </SummaryContent>
-                </SummaryItem>
-              </SummaryCard>
-
-              <SummaryCard
-                variants={cardVariants}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: 0.4 }}
-              >
-                <SummaryItem>
-                  <SummaryIcon>
-                    <FaCalendar />
-                  </SummaryIcon>
-                  <SummaryContent>
-                    <SummaryLabel>{t('patientRegistration.age') || 'Age'}</SummaryLabel>
-                    <SummaryValue>{patientData.age} {t('patientRegistration.years') || 'years'}</SummaryValue>
-                  </SummaryContent>
-                </SummaryItem>
-              </SummaryCard>
-
-              <SummaryCard
-                variants={cardVariants}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: 0.5 }}
-              >
-                <SummaryItem>
-                  <SummaryIcon>
-                    <FaVenusMars />
-                  </SummaryIcon>
-                  <SummaryContent>
-                    <SummaryLabel>{t('patientRegistration.gender') || 'Gender'}</SummaryLabel>
-                    <SummaryValue>{patientData.gender}</SummaryValue>
-                  </SummaryContent>
-                </SummaryItem>
-              </SummaryCard>
-
-              <SummaryCard
-                variants={cardVariants}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: 0.6 }}
-              >
-                <SummaryItem>
-                  <SummaryIcon>
-                    <FaFlask />
-                  </SummaryIcon>
-                  <SummaryContent>
-                    <SummaryLabel>{t('patientRegistration.selectedTests') || 'Selected Tests'}</SummaryLabel>
-                    <SummaryValue>{selectedTests.length} {t('patientRegistration.tests') || 'tests'}</SummaryValue>
+                  <SummaryContent style={{ width: '100%' }}>
+                    <SummaryLabel style={{ marginBottom: 8 }}>{t('patientRegistration.addressInfo') || 'Address & Phone'}</SummaryLabel>
+                    <SummaryValue style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 10, lineHeight: 1.6 }}>
+                       Country: العراق<br />
+                      {t('patientRegistration.governorate')}: {patientData.address?.governorate?.en || patientData.address?.governorate?.label || patientData.address?.governorate || '-'}<br />
+                      {t('patientRegistration.district')}: {patientData.address?.district?.en || patientData.address?.district?.label || patientData.address?.district || '-'}<br />
+                      {t('patientRegistration.area')}: {patientData.address?.area?.en || patientData.address?.area?.label || patientData.address?.area || '-'}<br />
+                      {t('patientRegistration.landmark')}: {patientData.address?.landmark || '-'}
+                    </SummaryValue>
+                    <div style={{ borderTop: '1px solid #e5e7eb22', marginTop: 10, paddingTop: 10, width: '100%', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <FaPhone style={{ opacity: 0.7 }} />
+                      <span style={{ fontSize: '1rem', color: '#6b7280' }}>{patientData.phoneNumber}</span>
+                    </div>
                   </SummaryContent>
                 </SummaryItem>
               </SummaryCard>
@@ -471,6 +442,9 @@ const RegistrationSummaryModal = ({
                 <TestsTitle>
                   <FaFlask />
                   {t('patientRegistration.testDetails') || 'Test Details'}
+                  <span style={{ fontWeight: 400, fontSize: '1rem', color: '#059669', marginLeft: 8 }}>
+                    ({selectedTests.length})
+                  </span>
                 </TestsTitle>
                 <TestsList>
                   {selectedTests.map((test, index) => (
@@ -485,30 +459,13 @@ const RegistrationSummaryModal = ({
 
           <ModalFooter>
             <GlowButton
-              onClick={onEdit}
-              variant="secondary"
-              size="medium"
-            >
-              <FaEdit />
-              {t('patientRegistration.edit') || 'Edit'}
-            </GlowButton>
-            
-            <GlowButton
-              onClick={onPrint}
-              variant="secondary"
-              size="medium"
-            >
-              <FaPrint />
-              {t('patientRegistration.print') || 'Print'}
-            </GlowButton>
-            
-            <GlowButton
               onClick={onConfirm}
               variant="primary"
-              size="medium"
+              size="large"
+              style={{ minWidth: 180 }}
             >
               <FaCheckCircle />
-              {t('patientRegistration.confirmRegistration') || 'Confirm Registration'}
+              {t('patientRegistration.registerAndPrint', 'Register & Print')}
             </GlowButton>
           </ModalFooter>
         </ModalContainer>

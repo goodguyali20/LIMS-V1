@@ -20,7 +20,7 @@ i18n
   .use(initReactI18next) // Passes i18n down to react-i18next
   .init({
     resources,
-    fallbackLng: 'ar', // Default language is Arabic
+    fallbackLng: 'en', // Default language is now English
     interpolation: {
       escapeValue: false, // React already safes from xss
     },

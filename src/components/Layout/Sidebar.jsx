@@ -434,6 +434,7 @@ const Sidebar = () => {
     { path: '/app/dashboard', icon: Home, label: t('sidebar.dashboard'), badge: null },
     { path: '/app/orders', icon: FileText, label: t('sidebar.orders'), badge: null },
     { path: '/app/register', icon: Users, label: t('sidebar.patientRegistration'), badge: null },
+    { path: '/app/patient-history', icon: User, label: t('sidebar.patientHistory'), badge: null },
     { path: '/app/work-queue', icon: ClipboardList, label: t('sidebar.workQueue'), badge: unreadCount > 0 ? unreadCount : null },
     { path: '/app/phlebotomist', icon: FlaskConical, label: t('sidebar.phlebotomist'), badge: null },
     { path: '/app/quality-control', icon: Shield, label: t('sidebar.qualityControl'), badge: null },

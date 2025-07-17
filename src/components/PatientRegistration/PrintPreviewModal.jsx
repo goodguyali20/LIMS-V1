@@ -210,6 +210,7 @@ const PrintPreviewModal = ({
 
   // Group tests by department
   const testsByDepartment = useMemo(() => {
+    if (!Array.isArray(selectedTests) || selectedTests.length === 0) return {};
     const selectedTestObjects = labTests.filter(test => selectedTests.includes(test.name));
     return selectedTestObjects.reduce((acc, test) => {
       const dept = test.department || 'General';
@@ -223,7 +224,7 @@ const PrintPreviewModal = ({
   const orderSummary = useMemo(() => {
     const selectedTestObjects = labTests.filter(test => selectedTests.includes(test.name));
     return {
-      totalTests: selectedTests.length,
+      totalTests: selectedTestObjects.length,
       totalPrice: selectedTestObjects.reduce((sum, test) => sum + (test.price || 0), 0),
       departments: Object.keys(testsByDepartment),
       orderId: orderData?.id || `ORD-${Date.now()}`,
@@ -244,15 +245,8 @@ const PrintPreviewModal = ({
     phone: orderSummary.phone,
     referringDoctor: orderData?.referringDoctor || 'N/A',
     priority: orderData?.priority || 'Normal',
-    tests: selectedTests.map(testName => {
-      const test = labTests.find(t => t.name === testName);
-      return {
-        name: testName,
-        department: test?.department || 'General',
-        price: test?.price || 0,
-        status: 'Pending'
-      };
-    })
+    tests: labTests.filter(test => selectedTests.includes(test.name)),
+    notes: orderData?.notes || '',
   }), [orderSummary, patientData, orderData, selectedTests, labTests]);
 
   const handlePrint = (type) => {
@@ -399,47 +393,31 @@ const PrintPreviewModal = ({
 
         <ContentArea>
           <PreviewContainer>
-            <AnimatePresence mode="wait">
-              {activeTab === 'master' && (
-                <motion.div
-                  key="master"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <PrintPreview id="print-master">
-                    <MasterSlip
-                      order={mockOrder}
-                      user={user}
-                      settings={settings}
-                    />
-                  </PrintPreview>
-                </motion.div>
-              )}
-              
+            {/* Always render all print previews, hide inactive ones */}
+            <div>
+              <PrintPreview id="print-master" style={{ display: activeTab === 'master' ? undefined : 'none' }}>
+                <MasterSlip
+                  order={mockOrder}
+                  user={user}
+                  settings={settings}
+                />
+              </PrintPreview>
               {Object.keys(testsByDepartment).map(dept => (
-                activeTab === `dept-${dept}` && (
-                  <motion.div
-                    key={`dept-${dept}`}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <PrintPreview id={`print-dept-${dept}`}>
-                      <DepartmentSlip
-                        order={mockOrder}
-                        department={dept}
-                        tests={testsByDepartment[dept]}
-                        user={user}
-                        settings={settings}
-                      />
-                    </PrintPreview>
-                  </motion.div>
-                )
+                <PrintPreview
+                  key={dept}
+                  id={`print-dept-${dept}`}
+                  style={{ display: activeTab === `dept-${dept}` ? undefined : 'none' }}
+                >
+                  <DepartmentSlip
+                    order={mockOrder}
+                    department={dept}
+                    tests={testsByDepartment[dept]}
+                    user={user}
+                    settings={settings}
+                  />
+                </PrintPreview>
               ))}
-            </AnimatePresence>
+            </div>
           </PreviewContainer>
         </ContentArea>
       </ModalContent>

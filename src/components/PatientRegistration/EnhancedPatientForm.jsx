@@ -23,6 +23,8 @@ import useBarcodeScanner from '../../hooks/useBarcodeScanner';
 import { useRef } from 'react';
 import Confetti from 'react-confetti';
 import { useTheme } from 'styled-components';
+import { useTestCatalog } from '../../contexts/TestContext';
+import { useTestSelectionStore } from './TestSelectionPanel';
 
 // Utility functions for field rendering
 const shouldRenderField = (fields, section, fieldName) => {
@@ -742,6 +744,8 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
   const autosaveSubscription = useRef(null);
   const { theme } = useTheme();
   const isDarkMode = theme?.isDarkMode;
+  const { labTests } = useTestCatalog();
+  const selectedTestIds = useTestSelectionStore((s) => s.selectedTestIds);
 
   // React Hook Form setup
   const {
@@ -759,7 +763,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
       patientId: '',
       firstName: '',
       lastName: '',
-      age: { value: '', unit: 'years' },
+      age: { value: '', unit: 'years' }, // Ensure unit is always set to 'years' by default
       gender: '',
       phoneNumber: '',
       email: '',
@@ -767,7 +771,8 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         governorate: '',
         district: '',
         area: '',
-        landmark: ''
+        landmark: '',
+        city: '' // Add this line to ensure city is always present
       },
       emergencyContact: {
         name: '',
@@ -1032,8 +1037,16 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     );
   }, [selectedTests]);
 
+  useEffect(() => {
+    setSelectedTests(selectedTestIds);
+  }, [selectedTestIds]);
+
   // Show summary modal instead of direct submission
   const onSubmit = (data) => {
+    // Ensure address fields are synced to form state before showing summary
+    setValue('address.governorate', governorateOptions.find(opt => opt.value === selectedGovernorate) || '');
+    setValue('address.district', districtOptions.find(opt => opt.value === selectedDistrict) || '');
+    setValue('address.area', areaOptions.find(opt => opt.value === selectedArea) || '');
     setShowSummaryModal(true);
   };
 
@@ -1065,6 +1078,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         );
       });
       setShowSummaryModal(false);
+      setShowPrintPreview(true); // Automatically open print preview after registration
     } catch (error) {
       console.error('Form submission error:', error);
     } finally {
@@ -1315,8 +1329,8 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                 placeholder={`Select ${t(fieldLabel.toLowerCase())}`}
                 classNamePrefix="react-select"
                 isClearable
-                onChange={(option) => field.onChange(option?.value || '')}
-                value={options.find(option => option.value === (field.value ?? '')) || null}
+                onChange={(option) => field.onChange(option || '')}
+                value={typeof field.value === 'object' && field.value !== null ? field.value : (options.find(option => option.value === (field.value ?? '')) || null)}
                 menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
                 menuPosition="fixed"
                 styles={{ ...selectStyles(isDarkMode), menuPortal: base => ({ ...base, zIndex: 9999 }) }}
@@ -1368,6 +1382,53 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     );
   };
 
+  useEffect(() => {
+    // Ensure age.unit is always set to a valid value
+    const currentAge = getValues('age');
+    if (!currentAge || !['years', 'months', 'days'].includes(currentAge.unit)) {
+      setValue('age.unit', 'years');
+    }
+    // Ensure address.city is always a string and valid if required
+    const currentCity = getValues('address.city');
+    const currentDistrict = getValues('address.district');
+    const cityRequired = isFieldRequired(settings.patientRegistrationFields, 'address', 'city');
+    if (cityRequired) {
+      if (typeof currentDistrict === 'string' && currentDistrict.length >= 2) {
+        setValue('address.city', currentDistrict);
+      } else {
+        setValue('address.city', 'N/A');
+      }
+    } else if (typeof currentCity !== 'string') {
+      setValue('address.city', '');
+    }
+  }, [reset, setValue, getValues, settings]);
+
+  // Always sync city to district
+  useEffect(() => {
+    const district = getValues('address.district');
+    const city = getValues('address.city');
+    if (district !== city) {
+      setValue('address.city', district || '');
+    }
+  }, [watch('address.district')]);
+
+  // Always ensure city is valid if required
+  useEffect(() => {
+    const cityRequired = isFieldRequired(settings.patientRegistrationFields, 'address', 'city');
+    const currentCity = getValues('address.city');
+    const currentDistrict = getValues('address.district');
+    if (cityRequired && (typeof currentCity !== 'string' || currentCity.length < 2)) {
+      if (typeof currentDistrict === 'string' && currentDistrict.length >= 2) {
+        setValue('address.city', currentDistrict, { shouldValidate: true });
+      } else {
+        setValue('address.city', 'N/A', { shouldValidate: true });
+      }
+    }
+  }, [getValues('address.city'), getValues('address.district'), settings, setValue]);
+
+  // Map selectedTests (names) to test objects
+  const selectedTestObjects = selectedTests.map(testName => labTests.find(t => t.name === testName)).filter(Boolean);
+
   return (
     <>
       {showConfetti && <Confetti width={window.innerWidth} height={window.innerHeight} numberOfPieces={250} recycle={false} />} 
@@ -1404,21 +1465,19 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                     {/* Country (fixed to Iraq) */}
                     <InputGroup>
                       <Label>{t('patientRegistration.country')}</Label>
-                      <Input value={t('patientRegistration.iraq')} disabled readOnly />
+                      <Input value="العراق" disabled readOnly />
                     </InputGroup>
                     {/* Governorate */}
                     <InputGroup>
                       <Label>{t('patientRegistration.governorate')}</Label>
                       <Select
                         options={governorateOptions}
-                        value={selectedGovernorate && !selectedGovernorate.startsWith('patientRegistration.') 
-                          ? governorateOptions.find(opt => opt.value === String(selectedGovernorate).trim()) || null
-                          : null}
+                        value={governorateOptions.find(opt => opt.value === String(selectedGovernorate).trim()) || null}
                         onChange={opt => {
                           setSelectedGovernorate(opt?.value || '');
                           setSelectedDistrict('');
                           setSelectedArea('');
-                          setValue('address.governorate', opt?.value || '');
+                          setValue('address.governorate', opt || '');
                         }}
                         placeholder={t('patientRegistration.selectGovernorate')}
                         isClearable
@@ -1432,13 +1491,12 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                       <Label>{t('patientRegistration.district')}</Label>
                       <Select
                         options={districtOptions}
-                        value={districtOptions.find(opt => opt.value === String(selectedDistrict).trim()) || 
-                               (selectedDistrict && !districtOptions.find(opt => opt.value === String(selectedDistrict).trim()) 
-                                ? { value: selectedDistrict, label: selectedDistrict } : null)}
+                        value={districtOptions.find(opt => opt.value === String(selectedDistrict).trim()) || (selectedDistrict && !districtOptions.find(opt => opt.value === String(selectedDistrict).trim()) ? { value: selectedDistrict, label: selectedDistrict } : null)}
                         onChange={opt => {
                           setSelectedDistrict(opt?.value || '');
                           setSelectedArea('');
-                          setValue('address.district', opt?.value || '');
+                          setValue('address.district', opt || '');
+                          setValue('address.city', opt?.value || ''); // Sync city to district
                         }}
                         placeholder={t('patientRegistration.selectOrTypeDistrict')}
                         isClearable
@@ -1450,7 +1508,8 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                         onInputChange={(inputValue) => {
                           if (inputValue && !districtOptions.find(opt => opt.value === inputValue)) {
                             setSelectedDistrict(inputValue);
-                            setValue('address.district', inputValue);
+                            setValue('address.district', { value: inputValue, label: inputValue });
+                            setValue('address.city', inputValue); // Sync city to district
                           }
                         }}
                         createOptionPosition="first"
@@ -1458,7 +1517,8 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                         isValidNewOption={(inputValue) => inputValue.length > 0}
                         onCreateOption={(inputValue) => {
                           setSelectedDistrict(inputValue);
-                          setValue('address.district', inputValue);
+                          setValue('address.district', { value: inputValue, label: inputValue });
+                          setValue('address.city', inputValue); // Sync city to district
                         }}
                         menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
                         menuPosition="fixed"
@@ -1470,12 +1530,10 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                       <Label>{t('patientRegistration.area')}</Label>
                       <Select
                         options={areaOptions}
-                        value={areaOptions.find(opt => opt.value === String(selectedArea).trim()) || 
-                               (selectedArea && !areaOptions.find(opt => opt.value === String(selectedArea).trim()) 
-                                ? { value: selectedArea, label: selectedArea } : null)}
+                        value={areaOptions.find(opt => opt.value === String(selectedArea).trim()) || (selectedArea && !areaOptions.find(opt => opt.value === String(selectedArea).trim()) ? { value: selectedArea, label: selectedArea } : null)}
                         onChange={opt => {
                           setSelectedArea(opt?.value || '');
-                          setValue('address.area', opt?.value || '');
+                          setValue('address.area', opt || '');
                         }}
                         placeholder={t('patientRegistration.selectOrTypeArea')}
                         isClearable
@@ -1487,7 +1545,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                         onInputChange={(inputValue) => {
                           if (inputValue && !areaOptions.find(opt => opt.value === inputValue)) {
                             setSelectedArea(inputValue);
-                            setValue('address.area', inputValue);
+                            setValue('address.area', { value: inputValue, label: inputValue });
                           }
                         }}
                         createOptionPosition="first"
@@ -1495,7 +1553,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                         isValidNewOption={(inputValue) => inputValue.length > 0}
                         onCreateOption={(inputValue) => {
                           setSelectedArea(inputValue);
-                          setValue('address.area', inputValue);
+                          setValue('address.area', { value: inputValue, label: inputValue });
                         }}
                         menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
                         menuPosition="fixed"
@@ -1565,31 +1623,34 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                 selectedTests={selectedTests}
                 onTestSelection={handleTestSelection}
                 onTestRemoval={handleTestRemoval}
-              />
-
-              {/* Form Actions */}
-              <FormActions>
-                <GlowButton
-                  type="button"
-                  onClick={() => setShowPrintPreview(true)}
-                  disabled={selectedTests.length === 0}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                  <FaPrint /> {t('patientRegistration.previewPrint')}
-                </GlowButton>
+              >
                 <GlowButton
                   type="submit"
                   disabled={!isValid || isSubmitting}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontWeight: 'bold',
+                    fontSize: '1rem',
+                    padding: '1.25rem 2.5rem',
+                    background: 'linear-gradient(90deg, #667eea 0%, #f093fb 100%)',
+                    border: '3px solid #764ba2',
+                    boxShadow: '0 6px 32px 0 #667eea55',
+                    borderRadius: '16px',
+                    color: '#fff',
+                    fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
+                    letterSpacing: '0.5px',
+                  }}
                 >
                   {isSubmitting ? (
                     <FaSpinner style={{ animation: 'spin 1s linear infinite' }} />
                   ) : (
                     <FaSave />
                   )}
-                  {isSubmitting ? t('patientRegistration.saving') : t('patientRegistration.register')}
+                  {isSubmitting ? t('patientRegistration.saving') : t('patientRegistration.reviewAndRegister') || 'Review & Register'}
                 </GlowButton>
-              </FormActions>
+              </TestSelectionPanel>
             </form>
           </MainFormColumn>
         </RegistrationLayout>
@@ -1598,7 +1659,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         isOpen={showSummaryModal}
         onClose={() => setShowSummaryModal(false)}
         patientData={getValues()}
-        selectedTests={selectedTests}
+        selectedTests={selectedTestObjects}
         onConfirm={handleConfirmRegistration}
         onEdit={handleEditForm}
         onPrint={handlePrintSummary}
@@ -1607,7 +1668,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         isOpen={showPrintPreview}
         onClose={() => setShowPrintPreview(false)}
         patientData={getValues()}
-        selectedTests={selectedTests}
+        selectedTests={selectedTestObjects}
         orderData={{
           referringDoctor: getValues('referringDoctor') || 'N/A',
           priority: getValues('priority') || 'Normal',

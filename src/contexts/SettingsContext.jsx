@@ -52,7 +52,8 @@ export const SettingsProvider = ({ children }) => {
         governorate: { required: true, enabled: true, label: 'المحافظة' },
         district: { required: true, enabled: true, label: 'القضاء' },
         area: { required: true, enabled: true, label: 'المنطقة' },
-        landmark: { required: false, enabled: true, label: 'اقرب نقطة دالة' }
+        landmark: { required: false, enabled: true, label: 'اقرب نقطة دالة' },
+        city: { required: false, enabled: false, label: 'City' }
       },
       
       // Default Location Settings
