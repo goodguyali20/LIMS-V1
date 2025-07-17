@@ -1,0 +1,202 @@
+body {
+  background: #F9F9F9;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+.report-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 0;
+}
+
+.card {
+  background: #FFF;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  margin-bottom: 24px;
+  padding: 16px;
+}
+
+.patient-header-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  justify-content: space-between;
+}
+
+.header-col {
+  min-width: 180px;
+}
+
+.major-heading {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  color: #222222;
+  font-size: 1.25rem;
+  margin-bottom: 8px;
+}
+
+.primary-text {
+  font-family: 'Source Serif Pro', serif;
+  font-weight: 400;
+  color: #222222;
+  font-size: 1.1rem;
+}
+
+.secondary-text {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  color: #666666;
+  font-size: 1rem;
+}
+
+.department-card {
+  margin-top: 24px;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 12px;
+  background: #FFF;
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 1rem;
+}
+
+.results-table th {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  color: #666666;
+  background: #F9F9F9;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.results-table td {
+  font-family: 'Source Serif Pro', serif;
+  font-weight: 400;
+  color: #222222;
+  padding: 10px 12px;
+  border-bottom: 1px solid #F0F0F0;
+  vertical-align: middle;
+}
+
+.results-table tr:last-child td {
+  border-bottom: none;
+}
+
+.result-value {
+  font-family: 'Source Serif Pro', serif;
+  font-weight: 400;
+  color: #222222;
+}
+
+tr.high .result-value,
+tr.low .result-value {
+  font-weight: 700;
+}
+
+tr.critical_high,
+tr.critical_low {
+  border: 2px solid #222222 !important;
+  box-shadow: 0 0 0 2px #222222;
+}
+
+tr.critical_high .result-value,
+tr.critical_low .result-value {
+  font-weight: 700;
+}
+
+.flag-cell {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 1.1em;
+  text-align: center;
+}
+
+tr.high .flag-cell::after {
+  content: "\2191";
+  color: #222222;
+  margin-left: 4px;
+}
+tr.low .flag-cell::after {
+  content: "\2193";
+  color: #222222;
+  margin-left: 4px;
+}
+tr.critical_high .flag-cell::before,
+tr.critical_low .flag-cell::before {
+  content: "\26A0 ";
+  color: #D32F2F;
+  font-weight: 700;
+}
+tr.critical_high .flag-cell,
+tr.critical_low .flag-cell {
+  color: #D32F2F;
+  font-weight: 700;
+}
+tr.critical_high .flag-cell::after,
+tr.critical_low .flag-cell::after {
+  content: " CRITICAL";
+  color: #D32F2F;
+  font-weight: 700;
+}
+
+/* History graph cell */
+.history-graph-cell {
+  min-width: 120px;
+  text-align: center;
+}
+
+/* Patient summary card */
+.patient-summary-card {
+  background: #FFF;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  margin-bottom: 24px;
+  padding: 16px;
+}
+.summary-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  color: #007AFF;
+  margin-bottom: 8px;
+}
+.summary-content {
+  font-family: 'Source Serif Pro', serif;
+  font-size: 1.1rem;
+  color: #222222;
+}
+
+/* Preliminary report footer */
+.preliminary-footer {
+  background: #FFF;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  margin-top: 32px;
+  padding: 16px;
+  border-left: 6px solid #D32F2F;
+}
+.preliminary-text {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: #D32F2F;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+/* Brand accent rule */
+.brand-accent {
+  border-top: 3px solid #007AFF;
+  margin: 24px 0;
+} 

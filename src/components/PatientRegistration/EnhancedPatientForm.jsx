@@ -1324,13 +1324,12 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
           render={({ field }) => (
             <SelectContainer $hasError={!!errorPath}>
               <Select
-                {...field}
                 options={options}
                 placeholder={`Select ${t(fieldLabel.toLowerCase())}`}
                 classNamePrefix="react-select"
                 isClearable
-                onChange={(option) => field.onChange(option || '')}
-                value={typeof field.value === 'object' && field.value !== null ? field.value : (options.find(option => option.value === (field.value ?? '')) || null)}
+                onChange={option => field.onChange(option ? option.value : '')}
+                value={options.find(option => option.value === field.value) || null}
                 menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
                 menuPosition="fixed"
                 styles={{ ...selectStyles(isDarkMode), menuPortal: base => ({ ...base, zIndex: 9999 }) }}

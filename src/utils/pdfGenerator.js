@@ -1,5 +1,31 @@
 import { PDFDocument, rgb, StandardFonts, degrees } from 'pdf-lib';
-import QRCode from 'qrcode-generator';
+import QRCode from 'qrcode'; // Add this import for QR code generation
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import puppeteer from 'puppeteer';
+import Handlebars from 'handlebars';
+import { createCanvas } from 'canvas';
+import Chart from 'chart.js/auto';
+
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Register Handlebars helpers
+Handlebars.registerHelper('flagIcon', function(flag) {
+  switch(flag) {
+    case 'high':
+      return '↑';
+    case 'low':
+      return '↓';
+    case 'critical_high':
+    case 'critical_low':
+      return '⚠';
+    default:
+      return '';
+  }
+});
 
 // Color constants for professional medical documents
 const COLORS = {
@@ -74,6 +100,59 @@ function generateQRCode(text, size = 50) {
 function generateBarcode(text) {
   // Simple text representation - in production use proper barcode library
   return `*${text}*`;
+}
+
+/**
+ * Generate a line graph for test history using Chart.js and canvas
+ * Returns a PNG data URL
+ */
+async function generateHistoryGraph(history, units = '', color = '#007AFF') {
+  if (!Array.isArray(history) || history.length < 2) return null;
+  const width = 180, height = 60;
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext('2d');
+  // Prepare data
+  const labels = history.map(h => h.date);
+  const dataPoints = history.map(h => h.value);
+  // Chart.js config
+  const config = {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '',
+        data: dataPoints,
+        borderColor: color,
+        backgroundColor: 'rgba(0,122,255,0.08)',
+        pointRadius: 2,
+        pointBackgroundColor: color,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+      }],
+    },
+    options: {
+      responsive: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: {
+        x: {
+          display: false,
+        },
+        y: {
+          display: false,
+        },
+      },
+      elements: {
+        line: { borderJoinStyle: 'round' },
+      },
+    },
+    plugins: [],
+  };
+  // Render chart
+  // Chart.js 4.x requires global window, so patch if needed
+  if (typeof global.window === 'undefined') global.window = {};
+  new Chart(ctx, config);
+  return canvas.toDataURL('image/png');
 }
 
 /**
@@ -583,40 +662,127 @@ async function createResultsReport(pdfDoc, data) {
 }
 
 /**
- * Main PDF generation function
+ * New: Generate PDF using Puppeteer and HTML/CSS templates
  */
-export async function generatePdf(documentType, data) {
-  const pdfDoc = await PDFDocument.create();
-  
-  try {
-    switch (documentType) {
-      case 'masterSlip':
-        await createWorkSlipGrid(pdfDoc, data, 'master');
-        break;
-        
-      case 'labSlip':
-        // Generate slips for each department
-        const departments = [...new Set(data.tests.map(test => test.department))];
-        for (const department of departments) {
-          await createWorkSlipGrid(pdfDoc, data, 'lab', department);
-        }
-        break;
-        
-      case 'resultsReport':
-        await createResultsReport(pdfDoc, data);
-        break;
-        
-      default:
-        throw new Error(`Unknown document type: ${documentType}`);
-    }
-    
-    const pdfBytes = await pdfDoc.save();
-    return pdfBytes;
-    
-  } catch (error) {
-    console.error('PDF generation error:', error);
-    throw error;
+export async function generatePdfWithPuppeteer(documentType, data, lang = {}) {
+  let templateFile;
+  if (documentType === 'resultsReport') {
+    templateFile = path.join(__dirname, '../pdf/templates/report-template.html');
+  } else if (documentType === 'auditSheet') {
+    templateFile = path.join(__dirname, '../pdf/templates/audit-sheet.html');
+  } else {
+    throw new Error('Unsupported document type for Puppeteer PDF generation');
   }
+
+  // Read HTML template
+  let templateHtml = await fs.readFile(templateFile, 'utf8');
+  // Read CSS
+  const cssFile = path.join(__dirname, '../pdf/templates/style.css');
+  const styleCss = await fs.readFile(cssFile, 'utf8');
+
+  // Prepare data for template
+  const templateData = { ...data, lang };
+
+  // If enabled, inject historyGraph for each test
+  if (data.documentOptions?.includeHistoryGraph && Array.isArray(data.tests)) {
+    // Group tests by department for template
+    const departments = {};
+    for (const test of data.tests) {
+      if (!departments[test.department]) departments[test.department] = [];
+      // Only generate graph if history exists
+      let historyGraph = null;
+      if (Array.isArray(test.history) && test.history.length > 1) {
+        historyGraph = await generateHistoryGraph(test.history, test.units);
+      }
+      departments[test.department].push({ ...test, historyGraph });
+    }
+    templateData.departments = Object.entries(departments).map(([departmentName, tests]) => ({ departmentName, tests }));
+  } else if (Array.isArray(data.tests)) {
+    // Fallback: group tests by department without graphs
+    const departments = {};
+    for (const test of data.tests) {
+      if (!departments[test.department]) departments[test.department] = [];
+      departments[test.department].push({ ...test });
+    }
+    templateData.departments = Object.entries(departments).map(([departmentName, tests]) => ({ departmentName, tests }));
+  }
+
+  // Compile with Handlebars
+  const template = Handlebars.compile(templateHtml);
+  let html = template(templateData);
+  // Inject CSS into <head>
+  html = html.replace('</head>', `<style>${styleCss}</style></head>`);
+
+  // Launch Puppeteer
+  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+  const page = await browser.newPage();
+  await page.setContent(html, { waitUntil: 'networkidle0' });
+  const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+  await browser.close();
+  return pdfBuffer;
+}
+
+/**
+ * (Scaffold) Generate lab slip PDF using Puppeteer and HTML/CSS template
+ * TODO: Implement slip-template.html and CSS for slips (70x99mm)
+ */
+export async function generateSlipWithPuppeteer(data, lang = {}) {
+  const fs = await import('fs/promises');
+  const path = await import('path');
+  const puppeteer = await import('puppeteer');
+  const Handlebars = (await import('handlebars')).default;
+  // Prepare barcode (as text)
+  const barcode = `*${data.visitInfo.visitId}*`;
+  // Prepare QR code as data URL
+  const qrData = JSON.stringify({
+    patientId: data.patientInfo.patientId,
+    visitId: data.visitInfo.visitId,
+    name: data.patientInfo.name,
+  });
+  const qrcode = await new Promise((resolve, reject) => {
+    QRCode.toDataURL(qrData, { width: 48, margin: 0 }, (err, url) => {
+      if (err) reject(err); else resolve(url);
+    });
+  });
+  // Read HTML template
+  const templateFile = path.join(__dirname, '../pdf/templates/slip-template.html');
+  const templateHtml = await fs.readFile(templateFile, 'utf8');
+  // Read CSS
+  const cssFile = path.join(__dirname, '../pdf/templates/style.css');
+  const styleCss = await fs.readFile(cssFile, 'utf8');
+  // Prepare data for template
+  const templateData = { ...data, lang, barcode, qrcode };
+  // Compile with Handlebars
+  const template = Handlebars.compile(templateHtml);
+  let html = template(templateData);
+  // Inject CSS into <head>
+  html = html.replace('</head>', `<style>${styleCss}</style></head>`);
+  // Launch Puppeteer
+  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+  const page = await browser.newPage();
+  await page.setContent(html, { waitUntil: 'networkidle0' });
+  // Set custom size for slip (70x99mm)
+  const pdfBuffer = await page.pdf({
+    width: '70mm',
+    height: '99mm',
+    printBackground: true,
+    pageRanges: '1',
+  });
+  await browser.close();
+  return pdfBuffer;
+}
+
+/**
+ * Main PDF generation function (ESM compatible)
+ */
+export async function generatePdf(documentType, data, lang = {}) {
+  if (documentType === 'resultsReport' || documentType === 'auditSheet') {
+    return await generatePdfWithPuppeteer(documentType, data, lang);
+  }
+  if (documentType === 'labSlip' || documentType === 'masterSlip') {
+    return await generateSlipWithPuppeteer(data, lang);
+  }
+  throw new Error(`Unknown document type: ${documentType}`);
 }
 
 /**
@@ -662,6 +828,6 @@ export async function generatePdfAsBase64(documentType, data) {
 
 export default {
   generatePdf,
-  generateAndDownloadPdf,
-  generatePdfAsBase64,
+  generatePdfWithPuppeteer,
+  generateSlipWithPuppeteer,
 }; 

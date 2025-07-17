@@ -10,6 +10,7 @@ import { useTestCatalog } from '../../contexts/TestContext';
 import GlowButton from '../common/GlowButton.jsx';
 import MasterSlip from '../Print/MasterSlip.jsx';
 import DepartmentSlip from '../Print/DepartmentSlip.jsx';
+import usePdfDownload from '../Print/usePdfDownload';
 
 const ModalBackdrop = styled.div`
   position: fixed;
@@ -207,6 +208,7 @@ const PrintPreviewModal = ({
   const { t } = useTranslation();
   const { labTests, departmentColors } = useTestCatalog();
   const [activeTab, setActiveTab] = useState('master');
+  const downloadPdf = usePdfDownload();
 
   // Group tests by department
   const testsByDepartment = useMemo(() => {
@@ -249,49 +251,6 @@ const PrintPreviewModal = ({
     notes: orderData?.notes || '',
   }), [orderSummary, patientData, orderData, selectedTests, labTests]);
 
-  const handlePrint = (type) => {
-    const printWindow = window.open('', '_blank');
-    const content = document.getElementById(`print-${type}`);
-    
-    if (printWindow && content) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Print ${type === 'master' ? 'Master Slip' : 'Department Slip'}</title>
-            <style>
-              body { margin: 0; padding: 0; }
-              @media print {
-                body { margin: 0; }
-                .print-only-premium { display: block !important; }
-              }
-            </style>
-          </head>
-          <body>
-            ${content.outerHTML}
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
-    }
-  };
-
-  const handlePrintAll = () => {
-    // Print master slip first
-    handlePrint('master');
-    
-    // Print department slips
-    setTimeout(() => {
-      Object.keys(testsByDepartment).forEach((dept, index) => {
-        setTimeout(() => {
-          handlePrint(`dept-${dept}`);
-        }, index * 1000);
-      });
-    }, 1000);
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -309,10 +268,14 @@ const PrintPreviewModal = ({
           </HeaderTitle>
           <HeaderActions>
             <GlowButton
-              onClick={handlePrintAll}
+              onClick={async () => {
+                console.log('Download Master Slip clicked');
+                await downloadPdf('masterSlip', { patientData, selectedTests, orderData });
+                console.log('Download Master Slip finished');
+              }}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
-              <FaPrint /> Print All
+              <FaPrint /> Download Master Slip
             </GlowButton>
             <GlowButton
               onClick={onClose}
@@ -353,18 +316,18 @@ const PrintPreviewModal = ({
           
           <ActionButtons>
             <GlowButton
-              onClick={() => handlePrint('master')}
+              onClick={() => downloadPdf('masterSlip', { patientData, selectedTests, orderData })}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
-              <FaPrint /> Print Master Slip
+              <FaPrint /> Download Master Slip
             </GlowButton>
             {Object.keys(testsByDepartment).map(dept => (
               <GlowButton
                 key={dept}
-                onClick={() => handlePrint(`dept-${dept}`)}
+                onClick={() => downloadPdf(`departmentSlip-${dept}`, { patientData, selectedTests, orderData, department: dept })}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
               >
-                <FaBuilding /> Print {dept} Slip
+                <FaBuilding /> Download {dept} Slip
               </GlowButton>
             ))}
           </ActionButtons>

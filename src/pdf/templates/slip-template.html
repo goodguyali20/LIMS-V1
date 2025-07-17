@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="{{documentOptions.language}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=198.43,height=280.63,initial-scale=1.0">
+  <title>{{lang.slipTitle}}</title>
+  <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Source+Serif+Pro:400,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { background: #F9F9F9; margin: 0; padding: 0; }
+    .slip-card { width: 198.43px; height: 280.63px; background: #FFF; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 12px; display: flex; flex-direction: column; justify-content: space-between; }
+    .slip-header { font-family: 'Inter', sans-serif; font-weight: 600; color: #007AFF; font-size: 1.05rem; margin-bottom: 4px; }
+    .slip-section { margin-bottom: 6px; }
+    .slip-label { font-family: 'Inter', sans-serif; font-weight: 400; color: #666; font-size: 0.85rem; }
+    .slip-value { font-family: 'Source Serif Pro', serif; font-weight: 400; color: #222; font-size: 1rem; }
+    .slip-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+    .slip-footer { border-top: 2px solid #007AFF; margin-top: 8px; padding-top: 6px; }
+    .checklist { font-family: 'Inter', sans-serif; font-size: 0.9rem; color: #222; display: flex; flex-direction: column; gap: 2px; }
+    .checklist-item { display: flex; align-items: center; gap: 4px; }
+    .barcode, .qrcode { margin-top: 4px; text-align: center; }
+    .barcode-label, .qrcode-label { font-size: 0.7rem; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="slip-card">
+    <div>
+      <div class="slip-header">{{lang.hospitalName}}</div>
+      <div class="slip-section">
+        <div class="slip-label">{{lang.patientNameLabel}}</div>
+        <div class="slip-value">{{patientInfo.name}}</div>
+      </div>
+      <div class="slip-section slip-row">
+        <div>
+          <div class="slip-label">{{lang.patientIdLabel}}</div>
+          <div class="slip-value">{{patientInfo.patientId}}</div>
+        </div>
+        <div>
+          <div class="slip-label">{{lang.ageGenderLabel}}</div>
+          <div class="slip-value">{{patientInfo.age}} / {{patientInfo.gender}}</div>
+        </div>
+      </div>
+      <div class="slip-section slip-row">
+        <div>
+          <div class="slip-label">{{lang.visitIdLabel}}</div>
+          <div class="slip-value">{{visitInfo.visitId}}</div>
+        </div>
+        <div>
+          <div class="slip-label">{{lang.dateLabel}}</div>
+          <div class="slip-value">{{visitInfo.date}}</div>
+        </div>
+      </div>
+      <div class="barcode">
+        <div class="barcode-label">{{lang.barcodeLabel}}</div>
+        <div>{{barcode}}</div>
+      </div>
+      <div class="qrcode">
+        <div class="qrcode-label">{{lang.qrcodeLabel}}</div>
+        <img src="{{qrcode}}" alt="QR" width="48" height="48" />
+      </div>
+    </div>
+    <div class="slip-footer">
+      <div class="checklist">
+        <div class="checklist-item">[ ] {{lang.sampleReceived}}</div>
+        <div class="checklist-item">[ ] {{lang.sampleProcessed}}</div>
+        <div class="checklist-item">[ ] {{lang.analysisComplete}}</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html> 

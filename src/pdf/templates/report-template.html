@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="{{documentOptions.language}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{lang.reportTitle}}</title>
+  <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Source+Serif+Pro:400,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { background: #F9F9F9; }
+  </style>
+</head>
+<body>
+  <div class="report-container">
+    {{#if documentOptions.includePatientSummary}}
+    <div class="card patient-summary-card">
+      <div class="summary-title">{{lang.patientSummaryTitle}}</div>
+      <div class="summary-content">{{patientSummary}}</div>
+    </div>
+    {{/if}}
+    <div class="card patient-header-card">
+      <div class="header-row">
+        <div class="header-col">
+          <div class="major-heading">{{lang.patientNameLabel}}</div>
+          <div class="primary-text">{{patientInfo.name}}</div>
+        </div>
+        <div class="header-col">
+          <div class="secondary-text">{{lang.patientIdLabel}}: {{patientInfo.id}}</div>
+          <div class="secondary-text">{{lang.genderLabel}}: {{patientInfo.gender}}</div>
+          <div class="secondary-text">{{lang.ageLabel}}: {{patientInfo.age}}</div>
+        </div>
+        <div class="header-col">
+          <div class="secondary-text">{{lang.visitIdLabel}}: {{visitInfo.visitId}}</div>
+          <div class="secondary-text">{{lang.dateLabel}}: {{visitInfo.date}}</div>
+        </div>
+      </div>
+    </div>
+    {{#each departments}}
+    <div class="card department-card">
+      <div class="major-heading">{{departmentName}}</div>
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>{{lang.testNameLabel}}</th>
+            <th>{{lang.resultLabel}}</th>
+            <th>{{lang.unitsLabel}}</th>
+            <th>{{lang.referenceRangeLabel}}</th>
+            <th>{{lang.flagLabel}}</th>
+            {{#if ../documentOptions.includeHistoryGraph}}
+            <th>{{lang.historyLabel}}</th>
+            {{/if}}
+          </tr>
+        </thead>
+        <tbody>
+          {{#each tests}}
+          <tr class="{{flag}}">
+            <td class="secondary-text">{{testName}}</td>
+            <td class="result-value">{{result}}</td>
+            <td class="secondary-text">{{units}}</td>
+            <td class="secondary-text">{{referenceRange}}</td>
+            <td class="flag-cell">{{{flagIcon flag}}}</td>
+            {{#if ../../documentOptions.includeHistoryGraph}}
+            <td class="history-graph-cell">
+              {{#if historyGraph}}
+                <img src="{{historyGraph}}" alt="{{lang.historyGraphAlt}}" />
+              {{/if}}
+            </td>
+            {{/if}}
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    {{/each}}
+    {{#unless visitInfo.isVerified}}
+    <div class="card preliminary-footer">
+      <div class="preliminary-text">{{lang.preliminaryReportNote}}</div>
+    </div>
+    {{/unless}}
+  </div>
+</body>
+</html> 

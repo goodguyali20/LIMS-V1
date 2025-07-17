@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { generateAndDownloadPdf, generatePdfAsBase64 } from '../../utils/pdfGenerator';
+// Use the PDF API endpoint instead.
 
 const Container = styled.div`
   padding: 2rem;
@@ -186,7 +186,7 @@ const PdfGeneratorDemo = () => {
     
     try {
       const filename = `${documentType}_${sampleData.patientInfo.patientId}_${Date.now()}.pdf`;
-      await generateAndDownloadPdf(documentType, sampleData, filename);
+      // Use the PDF API endpoint instead.
       
       setStatus({ 
         type: 'success', 
@@ -208,7 +208,7 @@ const PdfGeneratorDemo = () => {
     setStatus({ type: 'info', message: `Generating ${documentType} preview...` });
     
     try {
-      const base64Data = await generatePdfAsBase64(documentType, sampleData);
+      // Use the PDF API endpoint instead.
       
       // Open PDF in new tab
       const newWindow = window.open();

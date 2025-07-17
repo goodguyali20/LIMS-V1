@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="{{documentOptions.language}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{lang.auditSheetTitle}}</title>
+  <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Source+Serif+Pro:400,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { background: #F9F9F9; }
+  </style>
+</head>
+<body>
+  <div class="report-container">
+    <div class="card">
+      <div class="major-heading">{{lang.auditSheetTitle}}</div>
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>{{lang.auditUserLabel}}</th>
+            <th>{{lang.auditNoteLabel}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each visitInfo.internalNotes}}
+          <tr>
+            <td class="secondary-text">{{user}}</td>
+            <td class="primary-text">{{note}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html> 
