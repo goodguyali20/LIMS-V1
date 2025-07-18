@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
-import toast from 'react-hot-toast';
 import { Notification, RealtimeUpdate } from '../types';
 import { useAuth } from './AuthContext';
 import { trackEvent } from '../utils/errorMonitoring';
@@ -87,10 +86,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       }
       
       // Show a user-friendly error message
-      toast.error('Real-time notifications are currently unavailable', {
-        duration: 3000,
-        position: 'top-right',
-      });
+      showFlashMessage({ type: 'error', title: 'Connection Error', message: 'Real-time notifications are currently unavailable' });
     });
 
     // Listen for real-time updates
@@ -109,7 +105,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       };
       
       addNotification(notification);
-      showToastNotification(notification);
+      showFlashMessage(notification);
     });
 
     newSocket.on('test_result', (data: RealtimeUpdate) => {
@@ -127,7 +123,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       };
       
       addNotification(notification);
-      showToastNotification(notification);
+      showFlashMessage(notification);
     });
 
     newSocket.on('inventory_alert', (data: RealtimeUpdate) => {
@@ -145,7 +141,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       };
       
       addNotification(notification);
-      showToastNotification(notification);
+      showFlashMessage(notification);
     });
 
     newSocket.on('qc_alert', (data: RealtimeUpdate) => {
@@ -163,7 +159,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       };
       
       addNotification(notification);
-      showToastNotification(notification);
+      showFlashMessage(notification);
     });
 
     setSocket(newSocket);
@@ -172,42 +168,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       newSocket.close();
     };
   }, [user]);
-
-  // Show toast notification
-  const showToastNotification = useCallback((notification: Notification) => {
-    const toastOptions = {
-      duration: 5000,
-      position: 'top-right' as const,
-    };
-
-    switch (notification.type) {
-      case 'success':
-        toast.success(notification.message, toastOptions);
-        break;
-      case 'error':
-        toast.error(notification.message, toastOptions);
-        break;
-      case 'warning':
-        toast(notification.message, {
-          ...toastOptions,
-          icon: '⚠️',
-          style: {
-            background: '#fbbf24',
-            color: '#fff',
-          },
-        });
-        break;
-      default:
-        toast(notification.message, {
-          ...toastOptions,
-          icon: 'ℹ️',
-          style: {
-            background: '#3b82f6',
-            color: '#fff',
-          },
-        });
-    }
-  }, []);
 
   // Show a global flash message
   const showNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp'>) => {
@@ -308,6 +268,15 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     );
   }, []);
 
+  // Listen for 'show-flash-message' events
+  useEffect(() => {
+    const handler = (e: CustomEvent) => {
+      showNotification(e.detail);
+    };
+    window.addEventListener('show-flash-message', handler);
+    return () => window.removeEventListener('show-flash-message', handler);
+  }, [showNotification]);
+
   const value: NotificationContextType = {
     notifications,
     unreadCount,
@@ -329,3 +298,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     </NotificationContext.Provider>
   );
 }; 
+
+export function showFlashMessage({ type = 'info', title, message }) {
+  // Use the global notification context if available
+  const event = new CustomEvent('show-flash-message', {
+    detail: { type, title, message },
+  });
+  window.dispatchEvent(event);
+} 

@@ -4,13 +4,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import { 
   FaMapMarkerAlt, FaPlus, FaEdit, FaTrash, FaSave, FaTimes, 
   FaCheck, FaGlobe, FaCity, FaBuilding, FaStar, FaStarOfLife
 } from 'react-icons/fa';
 import GlowCard from '../../components/common/GlowCard.jsx';
 import GlowButton from '../../components/common/GlowButton.jsx';
-import toast from 'react-hot-toast';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 
 const Container = styled.div`
   padding: 2rem;
@@ -270,6 +271,7 @@ const AddressManagement = () => {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const { settings, updateSettings } = useSettings();
+  const { showFlashMessage } = useNotifications();
   
   // Default Iraq data
   const defaultIraqData = {
@@ -582,8 +584,8 @@ const AddressManagement = () => {
     setAreas(defaultIraqData.areas);
     setDefaults(defaultIraqData.defaults);
     updateSettings({ addressData: defaultIraqData });
-    toast.success('Default Iraq address data initialized!');
-  }, [updateSettings]);
+    showFlashMessage({ type: 'success', title: 'Success', message: 'Default Iraq address data initialized!' });
+  }, [updateSettings, showFlashMessage]);
 
   const updateWithNewData = useCallback(() => {
     // Merge existing data with new default data
@@ -600,8 +602,8 @@ const AddressManagement = () => {
     setAreas(mergedData.areas);
     setDefaults(mergedData.defaults);
     updateSettings({ addressData: mergedData });
-    toast.success('Address data updated with new districts and areas!');
-  }, [settings.addressData, updateSettings]);
+    showFlashMessage({ type: 'success', title: 'Success', message: 'Address data updated with new districts and areas!' });
+  }, [settings.addressData, updateSettings, showFlashMessage]);
 
   const addGovernorate = useCallback(() => {
     if (!newGovernorateName.trim()) return;
@@ -632,8 +634,8 @@ const AddressManagement = () => {
       defaults: updatedDefaults 
     };
     updateSettings({ addressData });
-    toast.success('Governorate added successfully');
-  }, [newGovernorateName, governorates, districts, areas, defaults, updateSettings]);
+    showFlashMessage({ type: 'success', title: 'Success', message: 'Governorate added successfully' });
+  }, [newGovernorateName, governorates, districts, areas, defaults, updateSettings, showFlashMessage]);
 
   const updateGovernorate = useCallback((id, updates) => {
     const updatedGovernorates = governorates.map(g => g.id === id ? { ...g, ...updates } : g);
@@ -644,13 +646,13 @@ const AddressManagement = () => {
     // Save immediately
     const addressData = { governorates: updatedGovernorates, districts, areas, defaults };
     updateSettings({ addressData });
-    toast.success('Governorate updated successfully');
-  }, [governorates, districts, areas, defaults, updateSettings]);
+    showFlashMessage({ type: 'success', title: 'Success', message: 'Governorate updated successfully' });
+  }, [governorates, districts, areas, defaults, updateSettings, showFlashMessage]);
 
   const deleteGovernorate = useCallback((id) => {
     const governorate = governorates.find(g => g.id === id);
     if (governorate.isDefault) {
-      toast.error('Cannot delete default governorate');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Cannot delete default governorate' });
       return;
     }
     
@@ -673,8 +675,8 @@ const AddressManagement = () => {
       defaults 
     };
     updateSettings({ addressData });
-    toast.success('Governorate deleted successfully');
-  }, [governorates, districts, areas, defaults, updateSettings]);
+    showFlashMessage({ type: 'success', title: 'Success', message: 'Governorate deleted successfully' });
+  }, [governorates, districts, areas, defaults, updateSettings, showFlashMessage]);
 
   const setDefaultGovernorate = useCallback((id) => {
     // Optimize the state update to prevent lag
@@ -693,8 +695,8 @@ const AddressManagement = () => {
       defaults: updatedDefaults 
     };
     updateSettings({ addressData });
-    toast.success('Default governorate set successfully');
-  }, [governorates, districts, areas, defaults, updateSettings]);
+    showFlashMessage({ type: 'success', title: 'Success', message: 'Default governorate set successfully' });
+  }, [governorates, districts, areas, defaults, updateSettings, showFlashMessage]);
 
   const addDistrict = useCallback(() => {
     if (!newDistrictName.trim() || !selectedGovernorate) return;
@@ -726,8 +728,8 @@ const AddressManagement = () => {
     // Save immediately
     const addressData = { governorates, districts: updatedDistricts, areas, defaults: updatedDefaults };
     updateSettings({ addressData });
-    toast.success('District added successfully');
-  }, [newDistrictName, selectedGovernorate, districts, governorates, areas, defaults, updateSettings]);
+    showFlashMessage({ type: 'success', title: 'Success', message: 'District added successfully' });
+  }, [newDistrictName, selectedGovernorate, districts, governorates, areas, defaults, updateSettings, showFlashMessage]);
 
   const updateDistrict = useCallback((governorateId, districtId, updates) => {
     const updatedDistricts = {
@@ -744,13 +746,13 @@ const AddressManagement = () => {
     // Save immediately
     const addressData = { governorates, districts: updatedDistricts, areas, defaults };
     updateSettings({ addressData });
-    toast.success('District updated successfully');
-  }, [districts, governorates, areas, defaults, updateSettings]);
+    showFlashMessage({ type: 'success', title: 'Success', message: 'District updated successfully' });
+  }, [districts, governorates, areas, defaults, updateSettings, showFlashMessage]);
 
   const deleteDistrict = useCallback((governorateId, districtId) => {
     const district = districts[governorateId]?.find(d => d.id === districtId);
     if (district?.isDefault) {
-      toast.error('Cannot delete default district');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Cannot delete default district' });
       return;
     }
     
@@ -770,8 +772,8 @@ const AddressManagement = () => {
     // Save immediately
     const addressData = { governorates, districts: updatedDistricts, areas: updatedAreas, defaults };
     updateSettings({ addressData });
-    toast.success('District deleted successfully');
-  }, [districts, areas, governorates, defaults, updateSettings]);
+    showFlashMessage({ type: 'success', title: 'Success', message: 'District deleted successfully' });
+  }, [districts, areas, governorates, defaults, updateSettings, showFlashMessage]);
 
   const setDefaultDistrict = useCallback((governorateId, districtId) => {
     // Optimize the state update to prevent lag
@@ -791,8 +793,8 @@ const AddressManagement = () => {
     // Save immediately
     const addressData = { governorates, districts: updatedDistricts, areas, defaults: updatedDefaults };
     updateSettings({ addressData });
-    toast.success('Default district set successfully');
-  }, [districts, governorates, areas, defaults, updateSettings]);
+    showFlashMessage({ type: 'success', title: 'Success', message: 'Default district set successfully' });
+  }, [districts, governorates, areas, defaults, updateSettings, showFlashMessage]);
 
   const addArea = useCallback(() => {
     if (!newAreaName.trim() || !selectedDistrict) return;
@@ -824,8 +826,8 @@ const AddressManagement = () => {
     // Save immediately
     const addressData = { governorates, districts, areas: updatedAreas, defaults: updatedDefaults };
     updateSettings({ addressData });
-    toast.success('Area added successfully');
-  }, [newAreaName, selectedDistrict, areas, governorates, districts, defaults, updateSettings]);
+    showFlashMessage({ type: 'success', title: 'Success', message: 'Area added successfully' });
+  }, [newAreaName, selectedDistrict, areas, governorates, districts, defaults, updateSettings, showFlashMessage]);
 
   const updateArea = useCallback((districtId, areaId, updates) => {
     const updatedAreas = {
@@ -842,13 +844,13 @@ const AddressManagement = () => {
     // Save immediately
     const addressData = { governorates, districts, areas: updatedAreas, defaults };
     updateSettings({ addressData });
-    toast.success('Area updated successfully');
-  }, [areas, governorates, districts, defaults, updateSettings]);
+    showFlashMessage({ type: 'success', title: 'Success', message: 'Area updated successfully' });
+  }, [areas, governorates, districts, defaults, updateSettings, showFlashMessage]);
 
   const deleteArea = useCallback((districtId, areaId) => {
     const area = areas[districtId]?.find(a => a.id === areaId);
     if (area?.isDefault) {
-      toast.error('Cannot delete default area');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Cannot delete default area' });
       return;
     }
     
@@ -862,8 +864,8 @@ const AddressManagement = () => {
     // Save immediately
     const addressData = { governorates, districts, areas: updatedAreas, defaults };
     updateSettings({ addressData });
-    toast.success('Area deleted successfully');
-  }, [areas, governorates, districts, defaults, updateSettings]);
+    showFlashMessage({ type: 'success', title: 'Success', message: 'Area deleted successfully' });
+  }, [areas, governorates, districts, defaults, updateSettings, showFlashMessage]);
 
   const setDefaultArea = useCallback((districtId, areaId) => {
     // Optimize the state update to prevent lag
@@ -883,8 +885,8 @@ const AddressManagement = () => {
     // Save immediately
     const addressData = { governorates, districts, areas: updatedAreas, defaults: updatedDefaults };
     updateSettings({ addressData });
-    toast.success('Default area set successfully');
-  }, [areas, governorates, districts, defaults, updateSettings]);
+    showFlashMessage({ type: 'success', title: 'Success', message: 'Default area set successfully' });
+  }, [areas, governorates, districts, defaults, updateSettings, showFlashMessage]);
 
   const getDefaultGovernorate = useCallback(() => {
     return governorates.find(g => g.id === defaults.governorate);

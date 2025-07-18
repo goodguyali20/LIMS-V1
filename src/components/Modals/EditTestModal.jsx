@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { db } from '../../firebase/config';
 import { doc, updateDoc } from 'firebase/firestore';
-import { toast } from 'react-toastify';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 
 const ModalBackdrop = styled.div`
   position: fixed;
@@ -103,7 +103,10 @@ const EditTestModal = ({ test, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!testName || !department) return toast.error("Test Name and Department are required.");
+    if (!testName || !department) {
+      showFlashMessage({ type: 'error', title: 'Validation Error', message: 'Test Name and Department are required.' });
+      return;
+    }
     setIsSubmitting(true);
     
     const testData = { name: testName, department, unit, normalRange };
@@ -111,10 +114,10 @@ const EditTestModal = ({ test, onClose }) => {
 
     try {
       await updateDoc(testRef, testData);
-      toast.success(`"${testName}" has been updated successfully.`);
+      showFlashMessage({ type: 'success', title: 'Test Updated', message: `"${testName}" has been updated successfully.` });
       onClose(); // Close the modal on success
     } catch (error) {
-      toast.error("Failed to update test.");
+      showFlashMessage({ type: 'error', title: 'Update Failed', message: 'Failed to update test.' });
       console.error(error);
     } finally {
       setIsSubmitting(false);

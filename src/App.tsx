@@ -13,7 +13,7 @@ import PerformanceMonitor from './components/PerformanceMonitor';
 import AppRoutes from './AppRoutes';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import AnimatedNotification from './components/common/AnimatedNotification';
+import FlashMessage, { FlashMessageWrapper } from './components/common/FlashMessage';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -175,12 +175,14 @@ const AppContent = memo(() => {
                   <GlobalStyles />
                   {/* Global AnimatedNotification */}
                   {currentNotification && (
-                    <AnimatedNotification
-                      type={currentNotification.type}
-                      message={currentNotification.message}
-                      onClose={() => showNotification(null)}
-                      duration={5000}
-                    />
+                    <FlashMessageWrapper>
+                      <FlashMessage
+                        type={currentNotification.type}
+                        title={currentNotification.title || currentNotification.type.charAt(0).toUpperCase() + currentNotification.type.slice(1)}
+                        message={currentNotification.message}
+                        onClose={() => showNotification(null)}
+                      />
+                    </FlashMessageWrapper>
                   )}
                   <BrowserRouter
                     future={{

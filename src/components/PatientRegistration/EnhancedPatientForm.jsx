@@ -16,7 +16,6 @@ import GlowButton from '../common/GlowButton';
 import TestSelectionPanel from './TestSelectionPanel';
 import PrintPreviewModal from './PrintPreviewModal';
 import RegistrationSummaryModal from './RegistrationSummaryModal';
-import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import useBarcodeScanner from '../../hooks/useBarcodeScanner';
@@ -26,6 +25,7 @@ import { useTheme } from 'styled-components';
 import { useTestCatalog } from '../../contexts/TestContext';
 import { useTestSelectionStore } from './TestSelectionPanel';
 import { LinearProgress } from '@mui/material';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 
 // Utility functions for field rendering
 const shouldRenderField = (fields, section, fieldName) => {
@@ -958,7 +958,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     },
     onSuccess: (docRef) => {
       queryClient.invalidateQueries(['patients']);
-      toast.success('Patient registered successfully!');
+      showFlashMessage({ type: 'success', title: 'Success', message: 'Patient registered successfully!' });
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3500);
       
@@ -979,7 +979,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     },
     onError: (error) => {
       console.error('Error adding patient:', error);
-      toast.error('Failed to register patient');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to register patient' });
     },
   });
 
@@ -1458,7 +1458,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
   // Add after autosave logic
   const handleSaveDraft = () => {
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ formData: getValues(), selectedTests }));
-    toast.success('Draft saved!');
+    showFlashMessage({ type: 'success', title: 'Success', message: 'Draft saved!' });
   };
   const handleLoadDraft = () => {
     const saved = localStorage.getItem(AUTOSAVE_KEY);
@@ -1471,9 +1471,9 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         if (parsed.selectedTests) {
           setSelectedTests(parsed.selectedTests);
         }
-        toast.success('Draft loaded!');
+        showFlashMessage({ type: 'success', title: 'Success', message: 'Draft loaded!' });
       } catch (e) {
-        toast.error('Failed to load draft');
+        showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to load draft' });
       }
     }
   };

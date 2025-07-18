@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { toast } from 'react-toastify';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import { logAuditEvent } from '../../utils/auditLogger';
 import { useTranslation } from 'react-i18next';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 
 const ModalBackdrop = styled.div`
   position: fixed;
@@ -98,7 +98,7 @@ const AmendmentModal = ({ order, testToAmend, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!reason) {
-      toast.error(t('amendmentModal.reasonRequired'));
+      showFlashMessage({ type: 'error', title: t('amendmentModal.reasonRequiredTitle', { defaultValue: 'Reason Required' }), message: t('amendmentModal.reasonRequired') });
       return;
     }
     
@@ -123,12 +123,12 @@ const AmendmentModal = ({ order, testToAmend, onClose }) => {
       });
 
       await logAuditEvent('Report Amended', { orderId: order.id, ...amendmentData });
-      toast.success(t('amendmentModal.success', { id: order.id }));
+      showFlashMessage({ type: 'success', title: 'Success', message: t('amendmentModal.success', { id: order.id }) });
       onClose(); // Close the modal
 
     } catch (error) {
       console.error("Error amending report:", error);
-      toast.error(t('amendmentModal.failed'));
+      showFlashMessage({ type: 'error', title: 'Error', message: t('amendmentModal.failed') });
     } finally {
       setIsSubmitting(false);
     }

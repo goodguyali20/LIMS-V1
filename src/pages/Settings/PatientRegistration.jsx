@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import { GlowCard, GlowButton, AnimatedModal } from '../../components/common';
 import { useSettings } from '../../contexts/SettingsContext';
-import { toast } from 'react-toastify';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 import { FaSave, FaUserPlus, FaMapMarkerAlt, FaCog } from 'react-icons/fa';
 
 const Container = styled.div`
@@ -645,10 +645,10 @@ const PatientRegistrationSettings = () => {
         }
       };
       await updateSettings(updatedSettings);
-      toast.success(t('defaultLocationUpdated'));
+      showFlashMessage({ type: 'success', title: 'Success', message: t('defaultLocationUpdated') });
     } catch (error) {
       console.error('Error updating default location:', error);
-      toast.error(t('failedToUpdateDefaultLocation'));
+      showFlashMessage({ type: 'error', title: 'Error', message: t('failedToUpdateDefaultLocation') });
     } finally {
       setIsSaving(false);
     }
@@ -775,36 +775,36 @@ const PatientRegistrationSettings = () => {
             const currentValue = newSettings[key][property];
             console.log(`Personal field ${key}.${property}: ${currentValue} -> ${!currentValue}`);
             newSettings[key][property] = !currentValue;
-            toast.success(`${key} ${property} toggled to ${!currentValue}`);
+            showFlashMessage({ type: 'success', title: 'Success', message: `${key} ${property} toggled to ${!currentValue}` });
           } else {
             console.error(`Personal field ${key} not found in settings`);
-            toast.error(`Field ${key} not found`);
+            showFlashMessage({ type: 'error', title: 'Error', message: `Field ${key} not found` });
           }
         } else {
           // Handle nested sections
           if (!newSettings[section]) {
             console.error(`Section ${section} not found in settings`);
-            toast.error(`Section ${section} not found`);
+            showFlashMessage({ type: 'error', title: 'Error', message: `Section ${section} not found` });
             return prev;
           }
           
           if (!newSettings[section][key]) {
             console.error(`Field ${key} not found in section ${section}`);
-            toast.error(`Field ${key} not found in ${section}`);
+            showFlashMessage({ type: 'error', title: 'Error', message: `Field ${key} not found in ${section}` });
             return prev;
           }
           
           const currentValue = newSettings[section][key][property];
           console.log(`Nested field ${section}.${key}.${property}: ${currentValue} -> ${!currentValue}`);
           newSettings[section][key][property] = !currentValue;
-          toast.success(`${key} ${property} toggled to ${!currentValue}`);
+          showFlashMessage({ type: 'success', title: 'Success', message: `${key} ${property} toggled to ${!currentValue}` });
         }
         
         console.log('Settings updated successfully');
         return newSettings;
       } catch (error) {
         console.error('Error updating field:', error);
-        toast.error('Error updating field');
+        showFlashMessage({ type: 'error', title: 'Error', message: 'Error updating field' });
         return prev;
       }
     });
@@ -860,12 +860,12 @@ const PatientRegistrationSettings = () => {
     e.preventDefault();
     
     if (!fieldFormState.label.trim()) {
-      toast.error('Field label is required');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Field label is required' });
       return;
     }
     
     if (!fieldFormState.key.trim()) {
-      toast.error('Field key is required');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Field key is required' });
       return;
     }
     
@@ -878,7 +878,7 @@ const PatientRegistrationSettings = () => {
     );
     
     if (existingField) {
-      toast.error('A field with this key already exists in this section');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'A field with this key already exists in this section' });
       return;
     }
     
@@ -908,7 +908,7 @@ const PatientRegistrationSettings = () => {
     });
     
     setIsModalOpen(false);
-    toast.success(editingField ? 'Field updated successfully!' : 'Field added successfully!');
+    showFlashMessage({ type: 'success', title: 'Success', message: editingField ? 'Field updated successfully!' : 'Field added successfully!' });
   }, [fieldFormState, editingField, groupedFields]);
 
   const handleDeleteField = useCallback((field) => {
@@ -925,7 +925,7 @@ const PatientRegistrationSettings = () => {
         return newSettings;
       });
       
-      toast.success('Field deleted successfully!');
+      showFlashMessage({ type: 'success', title: 'Success', message: 'Field deleted successfully!' });
     }
   }, []);
 
@@ -954,7 +954,7 @@ const PatientRegistrationSettings = () => {
       return newSettings;
     });
     
-    toast.success('Field duplicated successfully!');
+    showFlashMessage({ type: 'success', title: 'Success', message: 'Field duplicated successfully!' });
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -962,15 +962,15 @@ const PatientRegistrationSettings = () => {
     try {
       const success = await updateSettings({ patientRegistrationFields: localSettings });
       if (success) {
-        toast.success('Patient registration settings saved successfully!');
+        showFlashMessage({ type: 'success', title: 'Success', message: 'Patient registration settings saved successfully!' });
         // Show success message and suggest checking the patient registration page
-        toast.success('Settings saved! Check the Patient Registration page to see changes.');
+        showFlashMessage({ type: 'success', title: 'Success', message: 'Settings saved! Check the Patient Registration page to see changes.' });
       } else {
-        toast.error('Failed to save settings. Please try again.');
+        showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to save settings. Please try again.' });
       }
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast.error('Failed to save settings. Please try again.');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to save settings. Please try again.' });
     } finally {
       setIsSaving(false);
     }
@@ -979,7 +979,7 @@ const PatientRegistrationSettings = () => {
   const handleReset = useCallback(() => {
     if (window.confirm('Are you sure you want to reset all changes? This cannot be undone.')) {
       setLocalSettings(settings.patientRegistrationFields);
-      toast.info('Settings reset to current values');
+      showFlashMessage({ type: 'info', title: 'Info', message: 'Settings reset to current values' });
     }
   }, [settings.patientRegistrationFields]);
 
@@ -1096,7 +1096,7 @@ const PatientRegistrationSettings = () => {
                   
                   return newSettings;
                 });
-                toast.success('All fields have been disabled');
+                showFlashMessage({ type: 'success', title: 'Success', message: 'All fields have been disabled' });
               }
             }}
             variant="secondary"
@@ -1129,7 +1129,7 @@ const PatientRegistrationSettings = () => {
                   
                   return newSettings;
                 });
-                toast.success('All fields have been enabled');
+                showFlashMessage({ type: 'success', title: 'Success', message: 'All fields have been enabled' });
               }
             }}
             variant="secondary"
@@ -1519,7 +1519,7 @@ const PatientRegistrationSettings = () => {
             }
           };
           updateSettings(updatedSettings);
-          toast.success(t('defaultLocationUpdated'));
+          showFlashMessage({ type: 'success', title: 'Success', message: t('defaultLocationUpdated') });
         }}>
           <DefaultLocationForm>
             <InputGroup>

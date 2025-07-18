@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'react-toastify';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 import { advancedVariants } from '../../styles/animations';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { auth } from '../../firebase/config';
@@ -126,11 +126,11 @@ const Profile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      toast.error("New passwords do not match.");
+      showFlashMessage({ type: 'error', title: 'Error', message: "New passwords do not match." });
       return;
     }
     if (newPassword.length < 6) {
-        toast.error("New password must be at least 6 characters long.");
+        showFlashMessage({ type: 'error', title: 'Error', message: "New password must be at least 6 characters long." });
         return;
     }
 
@@ -143,13 +143,13 @@ const Profile = () => {
       await reauthenticateWithCredential(user, credential);
       await updatePassword(user, newPassword);
       
-      toast.success("Password updated successfully!");
+      showFlashMessage({ type: 'success', title: 'Success', message: "Password updated successfully!" });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
       console.error(error);
-      toast.error("Failed to update password. Check your current password.");
+      showFlashMessage({ type: 'error', title: 'Error', message: "Failed to update password. Check your current password." });
     } finally {
       setIsSubmitting(false);
     }

@@ -19,7 +19,7 @@ import {
   Share2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 
 const StatusContainer = styled(motion.div)`
   min-height: 100vh;
@@ -308,12 +308,12 @@ const QRStatusPage = () => {
 
   const handleDownloadReport = () => {
     // TODO: Implement PDF download
-    toast.info('Download feature coming soon');
+    showFlashMessage({ type: 'info', title: 'Coming Soon', message: 'Download feature coming soon' });
   };
 
   const handleShareResults = () => {
     // TODO: Implement sharing functionality
-    toast.info('Share feature coming soon');
+    showFlashMessage({ type: 'info', title: 'Coming Soon', message: 'Share feature coming soon' });
   };
 
   if (loading) {

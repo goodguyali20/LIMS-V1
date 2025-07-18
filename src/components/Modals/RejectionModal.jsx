@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { toast } from 'react-toastify';
 import { db } from '../../firebase/config';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { logAuditEvent } from '../../utils/auditLogger';
 import { useTranslation } from 'react-i18next';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 
 const ModalBackdrop = styled.div`
   position: fixed;
@@ -122,11 +122,11 @@ const RejectionModal = ({ order, onClose }) => {
           reason: reason 
       });
 
-      toast.success(`Order ${order.id} has been rejected.`);
+      showFlashMessage({ type: 'success', title: 'Order Rejected', message: `Order ${order.id} has been rejected.` });
       onClose(); // Close the modal
     } catch (error) {
       console.error("Error rejecting sample:", error);
-      toast.error("Failed to reject sample.");
+      showFlashMessage({ type: 'error', title: 'Failed', message: 'Failed to reject sample.' });
     } finally {
       setIsSubmitting(false);
     }

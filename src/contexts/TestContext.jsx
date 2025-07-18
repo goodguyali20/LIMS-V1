@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import toast from 'react-hot-toast';
 import { TestContext, departmentColors } from './TestContextBase.js';
+import { showFlashMessage } from './NotificationContext.tsx';
 
 // Re-export useTestCatalog and departmentColors for direct imports
 export { useTestCatalog, departmentColors } from './TestContextBase.js';
@@ -39,11 +39,11 @@ export function TestProvider({ children }) {
         ...testData,
         createdAt: new Date()
       });
-      toast.success('Test added successfully!');
+      showFlashMessage({ type: 'success', title: 'Success', message: 'Test added successfully!' });
       return docRef;
     } catch (error) {
       console.error('Error adding test:', error);
-      toast.error('Failed to add test');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to add test' });
       throw error;
     }
   }, []);
@@ -54,10 +54,10 @@ export function TestProvider({ children }) {
         ...testData,
         updatedAt: new Date()
       });
-      toast.success('Test updated successfully!');
+      showFlashMessage({ type: 'success', title: 'Success', message: 'Test updated successfully!' });
     } catch (error) {
       console.error('Error updating test:', error);
-      toast.error('Failed to update test');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to update test' });
       throw error;
     }
   }, []);
@@ -65,10 +65,10 @@ export function TestProvider({ children }) {
   const deleteTest = useCallback(async (testId) => {
     try {
       await deleteDoc(doc(db, "labTests", testId));
-      toast.success('Test deleted successfully!');
+      showFlashMessage({ type: 'success', title: 'Success', message: 'Test deleted successfully!' });
     } catch (error) {
       console.error('Error deleting test:', error);
-      toast.error('Failed to delete test');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to delete test' });
       throw error;
     }
   }, []);

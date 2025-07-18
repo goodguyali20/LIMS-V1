@@ -4,7 +4,6 @@ import styled from 'styled-components';
 import { doc, getDoc, updateDoc, serverTimestamp, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify';
 import { 
   FaSave, FaCheck, FaTimes, FaExclamationTriangle, 
   FaSpinner, FaArrowLeft, FaVial, FaUser, FaCalendar,
@@ -12,6 +11,7 @@ import {
 } from 'react-icons/fa';
 import { logAuditEvent } from '../../utils/auditLogger';
 import { motion, AnimatePresence } from 'framer-motion';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 
 const ResultEntryContainer = styled.div`
   padding: 2rem;
@@ -425,7 +425,7 @@ const ResultEntry = () => {
       } catch (err) {
         console.error('Error fetching order:', err);
         setError('Failed to load order');
-        toast.error('Failed to load order');
+        showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to load order' });
       } finally {
         setLoading(false);
       }
@@ -509,17 +509,17 @@ const ResultEntry = () => {
         hasCriticalValues
       });
       
-      toast.success('Results saved successfully!');
+      showFlashMessage({ type: 'success', title: 'Success', message: 'Results saved successfully!' });
       
       if (hasCriticalValues) {
-        toast.warning('Critical values detected! Please review immediately.');
+        showFlashMessage({ type: 'warning', title: 'Warning', message: 'Critical values detected! Please review immediately.' });
       }
       
       navigate(`/app/order/${orderId}`);
       
     } catch (error) {
       console.error('Error saving results:', error);
-      toast.error('Failed to save results');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to save results' });
     } finally {
       setSaving(false);
     }

@@ -78,7 +78,7 @@ import { GlowCard, GlowButton, AnimatedModal, AnimatedNotification } from '../..
 import { useSettings } from '../../contexts/SettingsContext';
 
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'react-toastify';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 import UsersManagement from './Users';
 import Print from './Print';
 import PatientRegistrationSettings from './PatientRegistration';
@@ -557,9 +557,9 @@ const Settings = () => {
     const handleGeneralSubmit = async () => {
     try {
       await updateSettings(generalFormState);
-      toast.success('General settings updated successfully!');
+      showFlashMessage({ type: 'success', title: 'Success', message: 'General settings updated successfully!' });
     } catch (error) {
-      toast.error('Failed to update settings.');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to update settings.' });
     }
   };
 

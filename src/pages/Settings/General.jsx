@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useSettings } from '../../contexts/SettingsContext';
-import { toast } from 'react-toastify';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 import { FaSave, FaHospital, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 
@@ -186,10 +186,10 @@ const General = () => {
     e.preventDefault();
     try {
       await updateSettings(formState);
-      toast.success(t('generalSettingsUpdated'));
+      showFlashMessage({ type: 'success', title: t('phlebotomyView.success', { defaultValue: 'Success' }), message: t('generalSettingsUpdated') });
     } catch (error) {
       console.error('Error updating settings:', error);
-      toast.error(t('failedToUpdateSettings'));
+      showFlashMessage({ type: 'error', title: t('phlebotomyView.error', { defaultValue: 'Error' }), message: t('failedToUpdateSettings') });
     }
   };
 

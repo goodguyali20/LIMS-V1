@@ -18,7 +18,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { GlowCard, GlowButton, AnimatedModal, AnimatedNotification } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNotifications } from '../../contexts/NotificationContext';
+import { useNotifications, showFlashMessage } from '../../contexts/NotificationContext';
 
 // Styled Components
 const HistoryContainer = styled(motion.div)`

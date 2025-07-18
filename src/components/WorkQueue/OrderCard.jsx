@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { toast } from 'react-toastify';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { logAuditEvent } from '../../utils/auditLogger';
@@ -12,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useTestCatalog } from '../../contexts/TestContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { GlowButton } from '../common';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 
 const Card = styled(motion.div)`
   background: linear-gradient(145deg, 
@@ -270,11 +270,11 @@ const OrderCard = ({ order, onDownload }) => {
       });
 
       await logAuditEvent('Sample Recollected', { orderId: order.id, patientId: order.patientId });
-      toast.success(`Recollection logged for order ${order.id}.`);
+      showFlashMessage({ type: 'success', title: 'Recollection Logged', message: `Recollection logged for order ${order.id}.` });
 
     } catch (error) {
       console.error("Error logging recollection:", error);
-      toast.error("Failed to log recollection.");
+      showFlashMessage({ type: 'error', title: 'Failed', message: 'Failed to log recollection.' });
     } finally {
       setIsSubmitting(false);
     }

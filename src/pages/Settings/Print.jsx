@@ -45,7 +45,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { GlowCard, GlowButton, AnimatedModal, AnimatedNotification } from '../../components/common';
-import { toast } from 'react-toastify';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 
 // Styled Components
 const PrintContainer = styled.div`
@@ -428,7 +428,7 @@ const Print = () => {
             ? { ...template, ...formState }
             : template
         ));
-        toast.success(`Template "${formState.name}" updated successfully!`);
+        showFlashMessage({ type: 'success', title: 'Success', message: `Template "${formState.name}" updated successfully!` });
       } else {
         // Add new template
         const newTemplate = {
@@ -437,18 +437,18 @@ const Print = () => {
           active: false
         };
         setTemplates(prev => [...prev, newTemplate]);
-        toast.success(`Template "${formState.name}" added successfully!`);
+        showFlashMessage({ type: 'success', title: 'Success', message: `Template "${formState.name}" added successfully!` });
       }
       handleCloseModal();
     } catch (error) {
-      toast.error("Failed to save template.");
+      showFlashMessage({ type: 'error', title: 'Error', message: "Failed to save template." });
     }
   };
 
   const handleDeleteTemplate = async (templateId, templateName) => {
     if (window.confirm(`Are you sure you want to delete the template "${templateName}"? This cannot be undone.`)) {
       setTemplates(prev => prev.filter(template => template.id !== templateId));
-      toast.success(`Template "${templateName}" deleted successfully!`);
+      showFlashMessage({ type: 'success', title: 'Success', message: `Template "${templateName}" deleted successfully!` });
     }
   };
 

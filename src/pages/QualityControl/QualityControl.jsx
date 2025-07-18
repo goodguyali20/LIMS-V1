@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify';
 import { useTheme } from '../../contexts/ThemeContext';
+import { showFlashMessage } from '../../contexts/NotificationContext.tsx';
 import { 
   FaPlus, FaEdit, FaTrash, FaChartLine, FaThermometerHalf,
   FaSpinner, FaSearch, FaFilter, FaTimes, FaEye, FaPrint,
@@ -812,16 +812,16 @@ const QualityControl = () => {
 
       if (editingQC) {
         await updateDoc(doc(db, 'qualityControl', editingQC.id), qcData);
-        toast.success(t('qcDataUpdated'));
+        showFlashMessage({ type: 'success', title: t('phlebotomyView.success', { defaultValue: 'Success' }), message: t('qcDataUpdated') });
       } else {
         await addDoc(collection(db, 'qualityControl'), qcData);
-        toast.success(t('qcDataSaved'));
+        showFlashMessage({ type: 'success', title: t('phlebotomyView.success', { defaultValue: 'Success' }), message: t('qcDataSaved') });
       }
       
       handleCloseModal();
     } catch (error) {
       console.error('Error saving QC data:', error);
-      toast.error(t('failedToSaveQC'));
+      showFlashMessage({ type: 'error', title: t('phlebotomyView.error', { defaultValue: 'Error' }), message: t('failedToSaveQC') });
     }
   };
 
@@ -829,10 +829,10 @@ const QualityControl = () => {
     if (window.confirm(`Are you sure you want to delete ${qcName}?`)) {
       try {
         await deleteDoc(doc(db, 'qualityControl', qcId));
-        toast.success(t('qcDataDeleted'));
+        showFlashMessage({ type: 'success', title: t('phlebotomyView.success', { defaultValue: 'Success' }), message: t('qcDataDeleted') });
       } catch (error) {
         console.error('Error deleting QC data:', error);
-        toast.error(t('failedToDeleteQC'));
+        showFlashMessage({ type: 'error', title: t('phlebotomyView.error', { defaultValue: 'Error' }), message: t('failedToDeleteQC') });
       }
     }
   };

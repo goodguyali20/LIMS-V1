@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { toast } from 'react-toastify';
+import { showFlashMessage } from '../contexts/NotificationContext';
 import { FaPrint, FaArrowLeft, FaSpinner, FaBarcode, FaQrcode } from 'react-icons/fa';
 import { useReactToPrint } from 'react-to-print';
 import JsBarcode from 'jsbarcode';
@@ -186,7 +186,7 @@ const PrintOrder = () => {
       } catch (err) {
         console.error('Error fetching order:', err);
         setError('Failed to load order');
-        toast.error('Failed to load order');
+        showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to load order' });
       } finally {
         setLoading(false);
       }
@@ -200,10 +200,10 @@ const PrintOrder = () => {
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     onAfterPrint: () => {
-      toast.success('Print job completed');
+      showFlashMessage({ type: 'success', title: 'Print Job Completed', message: 'Print job completed' });
     },
     onPrintError: () => {
-      toast.error('Print failed');
+      showFlashMessage({ type: 'error', title: 'Print Failed', message: 'Print failed' });
     }
   });
 

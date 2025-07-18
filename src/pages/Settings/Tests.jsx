@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useTestCatalog } from '../../contexts/TestContext';
-import { toast } from 'react-toastify';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 import { FaPlus, FaEdit, FaTrash, FaExclamationCircle, FaSearch, FaSpinner } from 'react-icons/fa';
 import Modal from '../../components/Common/Modal';
 
@@ -310,20 +310,20 @@ const Tests = () => {
     e.preventDefault();
     try {
       if (!testFormState.name || !testFormState.department) {
-        toast.warn('Test Name and Department are required.');
+        showFlashMessage({ type: 'warning', title: 'Warning', message: 'Test Name and Department are required.' });
         return;
       }
 
       if (editingTest) {
         await updateTest(editingTest.id, testFormState);
-        toast.success(`Test "${testFormState.name}" updated successfully!`);
+        showFlashMessage({ type: 'success', title: 'Success', message: `Test "${testFormState.name}" updated successfully!` });
       } else {
         await addTest(testFormState);
-        toast.success(`Test "${testFormState.name}" added successfully!`);
+        showFlashMessage({ type: 'success', title: 'Success', message: `Test "${testFormState.name}" added successfully!` });
       }
       handleCloseModal();
     } catch (error) {
-      toast.error("Failed to save test.");
+      showFlashMessage({ type: 'error', title: 'Error', message: "Failed to save test." });
     }
   };
 
@@ -331,9 +331,9 @@ const Tests = () => {
     if (window.confirm(`Are you sure you want to delete the test "${testName}"? This cannot be undone.`)) {
       try {
         await deleteTest(testId);
-        toast.success(`Test "${testName}" deleted successfully!`);
+        showFlashMessage({ type: 'success', title: 'Success', message: `Test "${testName}" deleted successfully!` });
       } catch (error) {
-        toast.error("Failed to delete test.");
+        showFlashMessage({ type: 'error', title: 'Error', message: "Failed to delete test." });
       }
     }
   };

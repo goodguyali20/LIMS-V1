@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { toast } from 'react-toastify';
+import { showFlashMessage } from '../contexts/NotificationContext';
 import { FaSearch, FaFilter, FaPrint, FaEye, FaSpinner, FaPlus, FaSort, FaUser, FaIdCard, FaCalendar, FaUserCircle, FaVenusMars, FaBirthdayCake } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
 import GlowCard from '../components/common/GlowCard';
@@ -483,7 +483,7 @@ const Orders = () => {
       setLoading(false);
     }, (error) => {
       console.error('Error fetching orders:', error);
-      toast.error('Failed to load orders');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to load orders' });
       setLoading(false);
     });
 

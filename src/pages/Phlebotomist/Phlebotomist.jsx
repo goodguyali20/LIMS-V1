@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { collection, query, where, orderBy, onSnapshot, updateDoc, doc, addDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify';
 import { useTheme } from '../../contexts/ThemeContext';
 import { 
   FaUser, FaCalendar, FaClock, FaMapMarker, FaPhone, FaEnvelope,
@@ -20,6 +19,7 @@ import GlowCard from '../../components/common/GlowCard';
 import GlowButton from '../../components/common/GlowButton';
 import { FixedSizeList as List } from 'react-window';
 import PremiumBarcodeScanner from '../../components/common/PremiumBarcodeScanner';
+import { showFlashMessage } from '../../contexts/NotificationContext.tsx';
 
 
 // --- Enhanced Main Container ---
@@ -951,6 +951,7 @@ const Phlebotomist = () => {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [highlightedPatientId, setHighlightedPatientId] = useState(null);
   const modalRef = useRef(null);
+  const [note, setNote] = useState('');
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -1009,7 +1010,7 @@ const Phlebotomist = () => {
         return () => unsubscribe();
       } catch (error) {
         console.error('Error fetching patients:', error);
-        toast.error('Failed to load patient data');
+        showFlashMessage({ type: 'error', title: t('phlebotomyView.error', { defaultValue: 'Error' }), message: t('phlebotomyView.failedToLoadPatientData') });
         setLoading(false);
       }
     };
@@ -1130,10 +1131,10 @@ const Phlebotomist = () => {
       
       await addDoc(collection(db, 'testOrders'), testOrderData);
       
-      toast.success(t('phlebotomyView.sampleCollectedSuccess', { patientName: patient.patientName }));
+      showFlashMessage({ type: 'success', title: t('phlebotomyView.success', { defaultValue: 'Success' }), message: t('phlebotomyView.sampleCollectedSuccess', { patientName: patient.patientName }) });
     } catch (error) {
       console.error('Error collecting sample:', error);
-      toast.error(t('phlebotomyView.failedToCollectSample'));
+      showFlashMessage({ type: 'error', title: t('phlebotomyView.error', { defaultValue: 'Error' }), message: t('phlebotomyView.failedToCollectSample') });
     }
   };
 
@@ -1145,10 +1146,10 @@ const Phlebotomist = () => {
         updatedAt: new Date()
       });
       
-      toast.success(t('phlebotomyView.patientMarkedReady', { patientName: patient.patientName }));
+      showFlashMessage({ type: 'success', title: t('phlebotomyView.success', { defaultValue: 'Success' }), message: t('phlebotomyView.patientMarkedReady', { patientName: patient.patientName }) });
     } catch (error) {
       console.error('Error marking patient ready:', error);
-      toast.error(t('phlebotomyView.failedToUpdatePatient'));
+      showFlashMessage({ type: 'error', title: t('phlebotomyView.error', { defaultValue: 'Error' }), message: t('phlebotomyView.failedToUpdatePatient') });
     }
   };
 
@@ -1166,10 +1167,10 @@ const Phlebotomist = () => {
       });
       localStorage.setItem('inProcessPatientId', patient.id);
       setModalPatient(patient); // Open modal for this patient
-      toast.success(t('phlebotomyView.patientAccepted', { patientName: patient.patientName }));
+      showFlashMessage({ type: 'success', title: t('phlebotomyView.success', { defaultValue: 'Success' }), message: t('phlebotomyView.patientAccepted', { patientName: patient.patientName }) });
     } catch (error) {
       console.error('Error accepting patient:', error);
-      toast.error(t('phlebotomyView.failedToAcceptPatient'));
+      showFlashMessage({ type: 'error', title: t('phlebotomyView.error', { defaultValue: 'Error' }), message: t('phlebotomyView.failedToAcceptPatient') });
     }
   };
 
@@ -1245,15 +1246,18 @@ const Phlebotomist = () => {
         collectionTime: new Date(),
         collectedBy: 'Current Phlebotomist', // Replace with actual user
         tubeVolumes,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        phlebotomistNotes: note // Save the note
       });
-      toast.success(t('phlebotomyView.sampleCollectedSuccess', { patientName: modalPatient.patientName }));
+      // Also add note to test order if needed (optional, see handleCollectSample)
+      showFlashMessage({ type: 'success', title: t('phlebotomyView.success', { defaultValue: 'Success' }), message: t('phlebotomyView.sampleCollectedSuccess', { patientName: modalPatient.patientName }) });
       setModalPatient(null);
       setTubeVolumes({});
+      setNote('');
       localStorage.removeItem('inProcessPatientId');
     } catch (error) {
       console.error('Error marking as collected:', error);
-      toast.error(t('phlebotomyView.failedToCollectSample'));
+      showFlashMessage({ type: 'error', title: t('phlebotomyView.error', { defaultValue: 'Error' }), message: t('phlebotomyView.failedToCollectSample') });
     } finally {
       setCollecting(false);
     }
@@ -1266,10 +1270,10 @@ const Phlebotomist = () => {
         priority: 'urgent',
         updatedAt: new Date(),
       });
-      toast.success(t('phlebotomyView.markedUrgent', { patientName: patient.patientName }));
+      showFlashMessage({ type: 'success', title: t('phlebotomyView.success', { defaultValue: 'Success' }), message: t('phlebotomyView.markedUrgent', { patientName: patient.patientName }) });
     } catch (error) {
       console.error('Error marking urgent:', error);
-      toast.error(t('phlebotomyView.failedToMarkUrgent'));
+      showFlashMessage({ type: 'error', title: t('phlebotomyView.error', { defaultValue: 'Error' }), message: t('phlebotomyView.failedToMarkUrgent') });
     }
   };
 
@@ -1281,10 +1285,10 @@ const Phlebotomist = () => {
         bloodCollectionStatus: 'ready_for_collection',
         updatedAt: new Date(),
       });
-      toast.success(t('phlebotomyView.reassigned', { patientName: patient.patientName }));
+      showFlashMessage({ type: 'success', title: t('phlebotomyView.success', { defaultValue: 'Success' }), message: t('phlebotomyView.reassigned', { patientName: patient.patientName }) });
     } catch (error) {
       console.error('Error reassigning:', error);
-      toast.error(t('phlebotomyView.failedToReassign'));
+      showFlashMessage({ type: 'error', title: t('phlebotomyView.error', { defaultValue: 'Error' }), message: t('phlebotomyView.failedToReassign') });
     }
   };
 
@@ -1343,7 +1347,7 @@ const Phlebotomist = () => {
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 200);
     } else {
-      toast.error(t('phlebotomyView.patientNotFound'));
+      showFlashMessage({ type: 'error', title: t('phlebotomyView.error', { defaultValue: 'Error' }), message: t('phlebotomyView.patientNotFound') });
     }
   };
 
@@ -1779,6 +1783,18 @@ const Phlebotomist = () => {
                     <TestTag key={idx} theme={theme}>{typeof test === 'string' ? test : test.name || test.id}</TestTag>
                   ))}
                 </div>
+              </ModalSection>
+              <ModalSection>
+                <label style={{ fontWeight: 600, marginBottom: 6, display: 'block' }}>
+                  {t('phlebotomyView.addNote', { defaultValue: 'Add Note (optional)' })}
+                </label>
+                <textarea
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  rows={3}
+                  style={{ width: '100%', borderRadius: 10, border: `1.5px solid ${theme.colors.border}`, padding: 10, fontSize: '1rem', marginBottom: 12, resize: 'vertical', background: theme.colors.input, color: theme.colors.text }}
+                  placeholder={t('phlebotomyView.notePlaceholder', { defaultValue: 'Enter any notes about the collection...' })}
+                />
               </ModalSection>
               <ModalSection>
                 <GlowButton $variant="success" style={{ width: '100%' }} onClick={handleMarkAsCollected}>

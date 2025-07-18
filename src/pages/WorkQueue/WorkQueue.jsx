@@ -6,7 +6,6 @@ import { db } from '../../firebase/config';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
 import { 
   FaSpinner, FaFilter, FaSort, FaClock, FaCheckCircle, FaExclamationTriangle,
   FaSearch, FaTimes, FaEye, FaPrint, FaDownload, FaUpload, FaCog, FaBell,
@@ -26,6 +25,7 @@ import TubeIdSlip from '../../components/Print/TubeIdSlip';
 import { usePerformanceMonitor, useMemoWithPerformance, useCallbackWithPerformance } from '../../utils/performanceOptimizer';
 import { FixedSizeList as List } from 'react-window';
 import usePdfDownload from '../../components/Print/usePdfDownload';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 
 const PageContainer = styled(motion.div)`
   display: flex;
@@ -573,7 +573,7 @@ const WorkQueue = memo(() => {
       setLoading(false);
     }, (error) => {
       console.error('Error fetching orders:', error);
-      toast.error('Failed to load orders');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to load orders' });
       setLoading(false);
     });
 
@@ -676,10 +676,10 @@ const WorkQueue = memo(() => {
         status: newStatus,
         updatedAt: new Date()
       });
-      toast.success('Order status updated successfully');
+      showFlashMessage({ type: 'success', title: 'Success', message: 'Order status updated successfully' });
     } catch (error) {
       console.error('Error updating order status:', error);
-      toast.error('Failed to update order status');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to update order status' });
     }
   }, [], 'status_change');
 
@@ -697,10 +697,10 @@ const WorkQueue = memo(() => {
   const handleDownloadPDF = useCallbackWithPerformance(async (order) => {
     try {
       await downloadPdf('masterSlip', order, 'en');
-      toast.success('PDF download started');
+      showFlashMessage({ type: 'success', title: 'Success', message: 'PDF download started' });
     } catch (error) {
       console.error('Error downloading PDF:', error);
-      toast.error('Failed to download PDF');
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to download PDF' });
     }
   }, [downloadPdf], 'download_pdf');
 

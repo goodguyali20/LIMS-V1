@@ -65,7 +65,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { GlowCard, GlowButton, AnimatedModal, AnimatedNotification } from '../../components/common';
-import { toast } from 'react-toastify';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 
 // Styled Components
 const UsersContainer = styled.div`
@@ -644,7 +644,7 @@ const UsersManagement = () => {
     e.preventDefault();
     try {
       if (!userFormState.name || !userFormState.email) {
-        toast.warn('Name and Email are required.');
+        showFlashMessage({ type: 'warn', title: 'Warning', message: 'Name and Email are required.' });
         return;
       }
 
@@ -655,7 +655,7 @@ const UsersManagement = () => {
             ? { ...user, ...userFormState }
             : user
         ));
-        toast.success(`User "${userFormState.name}" updated successfully!`);
+        showFlashMessage({ type: 'success', title: 'Success', message: `User "${userFormState.name}" updated successfully!` });
       } else {
         // Add new user
         const newUser = {
@@ -664,18 +664,18 @@ const UsersManagement = () => {
           lastLogin: null
         };
         setUsers(prev => [...prev, newUser]);
-        toast.success(`User "${userFormState.name}" added successfully!`);
+        showFlashMessage({ type: 'success', title: 'Success', message: `User "${userFormState.name}" added successfully!` });
       }
       handleCloseModal();
     } catch (error) {
-      toast.error("Failed to save user.");
+      showFlashMessage({ type: 'error', title: 'Error', message: "Failed to save user." });
     }
   };
 
   const handleDeleteUser = async (userId, userName) => {
     if (window.confirm(`Are you sure you want to delete the user "${userName}"? This cannot be undone.`)) {
       setUsers(prev => prev.filter(user => user.id !== userId));
-      toast.success(`User "${userName}" deleted successfully!`);
+      showFlashMessage({ type: 'success', title: 'Success', message: `User "${userName}" deleted successfully!` });
     }
   };
 

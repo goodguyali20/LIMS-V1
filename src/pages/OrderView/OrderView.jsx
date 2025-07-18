@@ -4,11 +4,11 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import styled from 'styled-components';
 import { advancedVariants } from '../../styles/animations';
-import { toast } from 'react-toastify';
 import { FaUser, FaIdCard, FaBirthdayCake, FaVenusMars, FaCalendarAlt, FaStethoscope, FaFlask, FaExclamationTriangle, FaPrint, FaTicketAlt, FaBarcode } from 'react-icons/fa';
 import { useReactToPrint } from 'react-to-print';
 import { useTestCatalog } from '../../contexts/TestContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { showFlashMessage } from '../../contexts/NotificationContext';
 
 // Component Imports
 import AmendmentModal from '../../components/Modals/AmendmentModal';
@@ -200,7 +200,7 @@ const OrderView = () => {
         const orderData = { id: docSnap.id, ...docSnap.data() };
         setOrder(orderData);
       } else {
-        toast.error("Order not found.");
+        showFlashMessage({ type: 'error', title: 'Error', message: 'Order not found.' });
       }
       setLoading(false);
     };
@@ -291,7 +291,7 @@ const OrderView = () => {
 
   const handleAmendClick = () => {
     if (!order.results || order.results.length === 0) {
-        toast.warn("No results to amend.");
+        showFlashMessage({ type: 'warning', title: 'Warning', message: 'No results to amend.' });
         return;
     }
     setTestToAmend(order.results[0]);
@@ -301,7 +301,7 @@ const OrderView = () => {
   const handleModalClose = (wasUpdated) => {
     setIsModalOpen(false);
     if (wasUpdated) {
-        toast.success("Report amended successfully.");
+        showFlashMessage({ type: 'success', title: 'Success', message: 'Report amended successfully.' });
     }
   };
 
