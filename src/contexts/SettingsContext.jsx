@@ -41,6 +41,8 @@ export const SettingsProvider = ({ children }) => {
     patientRegistrationFields: {
       // Personal Information
       firstName: { required: true, enabled: true, label: 'First Name' },
+      fathersName: { required: true, enabled: true, label: 'Father\'s Name', labelAr: 'اسم الأب' },
+      grandFathersName: { required: true, enabled: true, label: 'Grandfather\'s Name', labelAr: 'اسم الجد' },
       lastName: { required: true, enabled: true, label: 'Last Name' },
       age: { required: true, enabled: true, label: 'Age' },
       gender: { required: true, enabled: true, label: 'Gender' },

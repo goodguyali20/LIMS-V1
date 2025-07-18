@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import GlowCard from '../../components/common/GlowCard';
 import GlowButton from '../../components/common/GlowButton';
 import { FixedSizeList as List } from 'react-window';
+import PremiumBarcodeScanner from '../../components/common/PremiumBarcodeScanner';
 
 
 // --- Enhanced Main Container ---
@@ -723,47 +724,46 @@ const PatientGrid = styled.div`
 
 const PatientCard = styled(motion.div)`
   cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
-  filter: drop-shadow(0 4px 32px #667eea22) drop-shadow(0 1.5px 8px #0002);
-  &:hover {
-    transform: translateY(-8px) scale(1.025) rotate(-0.5deg);
-    filter: drop-shadow(0 8px 40px #667eea44) drop-shadow(0 2px 12px #0003);
-    z-index: 2;
-  }
+  margin-bottom: 36px;
+  border-radius: 2.2rem;
+  background: none;
+  box-shadow: none;
+  position: relative;
 `;
 
 const PatientCardContent = styled(GlowCard)`
   padding: 2.2rem 1.7rem 1.7rem 1.7rem;
   height: 100%;
-  border: 2.5px solid transparent;
-  background: ${({ theme }) => theme.isDarkMode ? 'rgba(24,28,35,0.92)' : 'rgba(240,244,250,0.92)'};
-  backdrop-filter: blur(24px) saturate(1.2);
+  border-radius: 2.2rem;
+  background: ${({ theme }) => theme.isDarkMode ? 'rgba(24,28,35,0.82)' : 'rgba(240,244,250,0.82)'};
+  backdrop-filter: blur(18px) saturate(1.2);
   box-shadow: 0 8px 32px #667eea22, 0 2px 8px #0001;
-  border-radius: 2rem;
   position: relative;
-  overflow: visible;
-  transition: border 0.3s, box-shadow 0.3s, background 0.3s;
-  border-image: ${({ $priority, theme }) => {
-    if ($priority === 'urgent') return 'linear-gradient(90deg,#ef4444,#fbbf24) 1';
-    if ($priority === 'high') return 'linear-gradient(90deg,#fbbf24,#3b82f6) 1';
-    if ($priority === 'normal') return 'linear-gradient(90deg,#3b82f6,#10b981) 1';
-    return 'linear-gradient(90deg,#a1a1aa,#e0e7ef) 1';
-  }};
-  &:before {
+  overflow: hidden;
+  transition: box-shadow 0.3s, background 0.3s;
+  box-shadow:
+    ${({ $priority, theme }) => {
+      if ($priority === 'urgent') return `0 0 24px 4px ${theme.colors.error}33, 0 8px 32px #0002`;
+      if ($priority === 'high') return `0 0 18px 3px ${theme.colors.warning}33, 0 8px 32px #0002`;
+      if ($priority === 'normal') return `0 0 12px 2px ${theme.colors.primary}22, 0 8px 32px #0002`;
+      return '0 8px 32px #0002';
+    }};
+  &:hover::before {
+    opacity: 1;
+    transform: translateX(120%) skewX(-20deg);
+    transition: opacity 0.3s, transform 0.7s cubic-bezier(0.4,0,0.2,1);
+  }
+  &::before {
     content: '';
     position: absolute;
-    inset: 0;
-    z-index: 0;
-    border-radius: inherit;
-    background: ${({ $priority, theme }) => {
-      if ($priority === 'urgent') return 'linear-gradient(120deg,#ef4444cc 0%,#fbbf24cc 100%)';
-      if ($priority === 'high') return 'linear-gradient(120deg,#fbbf24cc 0%,#3b82f6cc 100%)';
-      if ($priority === 'normal') return 'linear-gradient(120deg,#3b82f6cc 0%,#10b981cc 100%)';
-      return 'linear-gradient(120deg,#a1a1aacc 0%,#e0e7efcc 100%)';
-    }};
-    opacity: 0.13;
-    filter: blur(12px);
+    top: 0; left: -60%;
+    width: 60%; height: 100%;
+    background: linear-gradient(120deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 100%);
+    opacity: 0;
     pointer-events: none;
+    border-radius: inherit;
+    transition: opacity 0.3s, transform 0.7s cubic-bezier(0.4,0,0.2,1);
+    z-index: 2;
   }
 `;
 
@@ -846,6 +846,16 @@ const PatientTag = styled.span`
   }};
 `;
 
+function getElapsedTime(startTime) {
+  if (!startTime) return '';
+  const now = new Date();
+  const start = startTime.toDate ? startTime.toDate() : new Date(startTime);
+  const diff = Math.floor((now - start) / 1000); // seconds
+  const min = Math.floor(diff / 60);
+  const sec = diff % 60;
+  return `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
 const Phlebotomist = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -871,6 +881,11 @@ const Phlebotomist = () => {
   const [modalPatient, setModalPatient] = useState(null);
   const [tubeVolumes, setTubeVolumes] = useState({});
   const [collecting, setCollecting] = useState(false);
+  const [timerTick, setTimerTick] = useState(0);
+  const [selectedPatientIds, setSelectedPatientIds] = useState([]);
+  const [expandedPatientIds, setExpandedPatientIds] = useState([]);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [highlightedPatientId, setHighlightedPatientId] = useState(null);
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -1007,6 +1022,11 @@ const Phlebotomist = () => {
     // Only run when patients list changes
   }, [patients]);
 
+  useEffect(() => {
+    const interval = setInterval(() => setTimerTick(t => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleCollectSample = async (patient) => {
     try {
       const patientRef = doc(db, 'patients', patient.id);
@@ -1038,10 +1058,10 @@ const Phlebotomist = () => {
       
       await addDoc(collection(db, 'testOrders'), testOrderData);
       
-      toast.success(t('phlebotomistView.sampleCollectedSuccess', { patientName: patient.patientName }));
+      toast.success(t('phlebotomyView.sampleCollectedSuccess', { patientName: patient.patientName }));
     } catch (error) {
       console.error('Error collecting sample:', error);
-      toast.error(t('phlebotomistView.failedToCollectSample'));
+      toast.error(t('phlebotomyView.failedToCollectSample'));
     }
   };
 
@@ -1053,10 +1073,10 @@ const Phlebotomist = () => {
         updatedAt: new Date()
       });
       
-      toast.success(t('phlebotomistView.patientMarkedReady', { patientName: patient.patientName }));
+      toast.success(t('phlebotomyView.patientMarkedReady', { patientName: patient.patientName }));
     } catch (error) {
       console.error('Error marking patient ready:', error);
-      toast.error(t('phlebotomistView.failedToUpdatePatient'));
+      toast.error(t('phlebotomyView.failedToUpdatePatient'));
     }
   };
 
@@ -1074,10 +1094,10 @@ const Phlebotomist = () => {
       });
       localStorage.setItem('inProcessPatientId', patient.id);
       setModalPatient(patient); // Open modal for this patient
-      toast.success(t('phlebotomistView.patientAccepted', { patientName: patient.patientName }));
+      toast.success(t('phlebotomyView.patientAccepted', { patientName: patient.patientName }));
     } catch (error) {
       console.error('Error accepting patient:', error);
-      toast.error(t('phlebotomistView.failedToAcceptPatient'));
+      toast.error(t('phlebotomyView.failedToAcceptPatient'));
     }
   };
 
@@ -1155,15 +1175,103 @@ const Phlebotomist = () => {
         tubeVolumes,
         updatedAt: new Date()
       });
-      toast.success(t('phlebotomistView.sampleCollectedSuccess', { patientName: modalPatient.patientName }));
+      toast.success(t('phlebotomyView.sampleCollectedSuccess', { patientName: modalPatient.patientName }));
       setModalPatient(null);
       setTubeVolumes({});
       localStorage.removeItem('inProcessPatientId');
     } catch (error) {
       console.error('Error marking as collected:', error);
-      toast.error(t('phlebotomistView.failedToCollectSample'));
+      toast.error(t('phlebotomyView.failedToCollectSample'));
     } finally {
       setCollecting(false);
+    }
+  };
+
+  const handleMarkUrgent = async (patient) => {
+    try {
+      const patientRef = doc(db, 'patients', patient.id);
+      await updateDoc(patientRef, {
+        priority: 'urgent',
+        updatedAt: new Date(),
+      });
+      toast.success(t('phlebotomyView.markedUrgent', { patientName: patient.patientName }));
+    } catch (error) {
+      console.error('Error marking urgent:', error);
+      toast.error(t('phlebotomyView.failedToMarkUrgent'));
+    }
+  };
+
+  const handleReassign = async (patient) => {
+    try {
+      const patientRef = doc(db, 'patients', patient.id);
+      await updateDoc(patientRef, {
+        assignedTo: null,
+        bloodCollectionStatus: 'ready_for_collection',
+        updatedAt: new Date(),
+      });
+      toast.success(t('phlebotomyView.reassigned', { patientName: patient.patientName }));
+    } catch (error) {
+      console.error('Error reassigning:', error);
+      toast.error(t('phlebotomyView.failedToReassign'));
+    }
+  };
+
+  // Handler to toggle selection
+  const handleSelectPatient = (id) => {
+    setSelectedPatientIds((prev) =>
+      prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]
+    );
+  };
+
+  // Handler to select all
+  const handleSelectAll = () => {
+    if (selectedPatientIds.length === waitingPatients.length) {
+      setSelectedPatientIds([]);
+    } else {
+      setSelectedPatientIds(waitingPatients.map(p => p.id));
+    }
+  };
+
+  // Bulk action handlers
+  const handleBulkMarkCollected = async () => {
+    for (const id of selectedPatientIds) {
+      const patient = waitingPatients.find(p => p.id === id);
+      if (patient) await handleCollectSample(patient);
+    }
+    setSelectedPatientIds([]);
+  };
+
+  const handleBulkMarkReady = async () => {
+    for (const id of selectedPatientIds) {
+      const patient = waitingPatients.find(p => p.id === id);
+      if (patient) await handleMarkReady(patient);
+    }
+    setSelectedPatientIds([]);
+  };
+
+  // Handler to toggle expansion
+  const handleToggleExpand = (id) => {
+    setExpandedPatientIds((prev) =>
+      prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]
+    );
+  };
+
+  // Handler for barcode scan
+  const handleBarcodeScan = (code) => {
+    // Try to find patient by patientId or barcode
+    const found = patients.find(
+      p => p.patientId === code || (p.barcode && p.barcode === code)
+    );
+    if (found) {
+      setScannerOpen(false);
+      setHighlightedPatientId(found.id);
+      // Optionally scroll to patient card
+      setTimeout(() => {
+        const el = document.getElementById(`patient-card-${found.id}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 200);
+    } else {
+      toast.error(t('phlebotomyView.patientNotFound'));
     }
   };
 
@@ -1177,7 +1285,7 @@ const Phlebotomist = () => {
           >
             <FaSpinner size={48} />
           </motion.div>
-          <p>{t('phlebotomistView.loadingPatientData')}</p>
+          <p>{t('phlebotomyView.loadingPatientData')}</p>
         </LoadingContainer>
       </PhlebotomistContainer>
     );
@@ -1199,7 +1307,7 @@ const Phlebotomist = () => {
     >
       <Header>
         <HeaderTitle>
-          <FaSyringe /> {t('phlebotomistView.title')}
+          <FaSyringe /> {t('phlebotomyView.title')}
         </HeaderTitle>
         <HeaderActions>
                                   <GlowButton onClick={() => navigate('/app/workqueue')}>
@@ -1215,9 +1323,9 @@ const Phlebotomist = () => {
             <FaUser />
           </StatIcon>
           <StatValue>{stats.totalPatients}</StatValue>
-          <StatLabel>{t('phlebotomistView.totalPatients')}</StatLabel>
+          <StatLabel>{t('phlebotomyView.totalPatients')}</StatLabel>
           <StatChange $positive={true}>
-            {stats.readyForCollection} {t('phlebotomistView.readyForCollection').toLowerCase()}
+            {stats.readyForCollection} {t('phlebotomyView.readyForCollection', { defaultValue: 'Ready for Collection' }).toLowerCase()}
           </StatChange>
         </StatCard>
 
@@ -1226,7 +1334,7 @@ const Phlebotomist = () => {
             <FaCheckCircle />
           </StatIcon>
           <StatValue>{stats.samplesCollected}</StatValue>
-          <StatLabel>{t('phlebotomistView.samplesCollected')}</StatLabel>
+          <StatLabel>{t('phlebotomyView.samplesCollected')}</StatLabel>
           <StatChange $positive={true}>
             {stats.averageCollectionTime} min avg time
           </StatChange>
@@ -1237,9 +1345,9 @@ const Phlebotomist = () => {
             <FaClock />
           </StatIcon>
           <StatValue>{stats.readyForCollection}</StatValue>
-          <StatLabel>{t('phlebotomistView.readyForCollection')}</StatLabel>
+          <StatLabel>{t('phlebotomyView.readyForCollection', { defaultValue: 'Ready for Collection' })}</StatLabel>
           <StatChange $positive={false}>
-            {stats.urgentPatients} {t('phlebotomistView.urgentPatients').toLowerCase()}
+            {stats.urgentPatients} {t('phlebotomyView.urgentPatients', { defaultValue: 'Urgent Patients' }).toLowerCase()}
           </StatChange>
         </StatCard>
 
@@ -1248,7 +1356,7 @@ const Phlebotomist = () => {
             <FaExclamationTriangle />
           </StatIcon>
           <StatValue>{stats.urgentPatients}</StatValue>
-          <StatLabel>{t('phlebotomistView.urgentPatients')}</StatLabel>
+          <StatLabel>{t('phlebotomyView.urgentPatients', { defaultValue: 'Urgent Patients' })}</StatLabel>
           <StatChange $positive={false}>
             Requires immediate attention
           </StatChange>
@@ -1262,7 +1370,7 @@ const Phlebotomist = () => {
             <FaSearch />
             <input
               type="text"
-              placeholder={t('phlebotomistView.searchPlaceholder')}
+              placeholder={t('phlebotomyView.searchPlaceholder', { defaultValue: 'Search patients...' })}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -1272,48 +1380,48 @@ const Phlebotomist = () => {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="all">{t('phlebotomistView.allStatus')}</option>
-            <option value="ready_for_collection">{t('phlebotomistView.readyForCollection')}</option>
-            <option value="sample_collected">{t('phlebotomistView.sampleCollected')}</option>
-            <option value="in_progress">{t('phlebotomistView.inProgress')}</option>
+            <option value="all">{t('phlebotomyView.allStatus', { defaultValue: 'All Statuses' })}</option>
+            <option value="ready_for_collection">{t('phlebotomyView.readyForCollection', { defaultValue: 'Ready for Collection' })}</option>
+            <option value="sample_collected">{t('phlebotomyView.sampleCollected', { defaultValue: 'Sample Collected' })}</option>
+            <option value="in_progress">{t('phlebotomyView.inProgress', { defaultValue: 'In Progress' })}</option>
           </FilterSelect>
 
           <FilterSelect
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
           >
-            <option value="all">{t('phlebotomistView.allPriorities')}</option>
-            <option value="urgent">{t('phlebotomistView.urgent')}</option>
-            <option value="high">{t('phlebotomistView.high')}</option>
-            <option value="normal">{t('phlebotomistView.normal')}</option>
+            <option value="all">{t('phlebotomyView.allPriorities', { defaultValue: 'All Priorities' })}</option>
+            <option value="urgent">{t('phlebotomyView.urgent', { defaultValue: 'Urgent' })}</option>
+            <option value="high">{t('phlebotomyView.high', { defaultValue: 'High' })}</option>
+            <option value="normal">{t('phlebotomyView.normal', { defaultValue: 'Normal' })}</option>
           </FilterSelect>
         </FilterGrid>
 
         <FilterActions>
           <SortContainer>
-            <span>{t('phlebotomistView.sortBy')}</span>
+            <span>{t('phlebotomyView.sortBy', { defaultValue: 'Sort By' })}</span>
             <SortButton
               $active={sortBy === 'createdAt'}
               onClick={() => handleSort('createdAt')}
             >
-              {t('phlebotomistView.created')} {getSortIcon('createdAt')}
+              {t('phlebotomyView.created', { defaultValue: 'Created' })} {getSortIcon('createdAt')}
             </SortButton>
             <SortButton
               $active={sortBy === 'patientName'}
               onClick={() => handleSort('patientName')}
             >
-              {t('phlebotomistView.patient')} {getSortIcon('patientName')}
+              {t('phlebotomyView.patient', { defaultValue: 'Patient' })} {getSortIcon('patientName')}
             </SortButton>
             <SortButton
               $active={sortBy === 'priority'}
               onClick={() => handleSort('priority')}
             >
-              {t('phlebotomistView.priority')} {getSortIcon('priority')}
+              {t('phlebotomyView.priority', { defaultValue: 'Priority' })} {getSortIcon('priority')}
             </SortButton>
           </SortContainer>
 
           <ClearFiltersButton onClick={clearFilters}>
-            <FaTimes /> {t('phlebotomistView.clearFilters')}
+            <FaTimes /> {t('phlebotomyView.clearFilters', { defaultValue: 'Clear Filters' })}
           </ClearFiltersButton>
         </FilterActions>
       </SearchAndFilterContainer>
@@ -1336,71 +1444,157 @@ const Phlebotomist = () => {
             color: theme.colors.text,
             gap: 16
           }}>
-            <span>{t('phlebotomistView.waitingForCollection')}: <b style={{color: theme.colors.primary}}>{waitingPatients.length}</b></span>
-            <span>{t('phlebotomistView.urgentPatients')}: <b style={{color: theme.colors.error}}>{waitingPatients.filter(p => p.priority === 'urgent').length}</b></span>
-            <span>{t('phlebotomistView.avgWaitTime')}: <b style={{color: theme.colors.info}}>{stats.averageCollectionTime} {t('phlebotomistView.min')}</b></span>
+            <span>{t('phlebotomyView.waitingForCollection', { defaultValue: 'Waiting for Collection' })}: <b style={{color: theme.colors.primary}}>{waitingPatients.length}</b></span>
+            <span>{t('phlebotomyView.urgentPatients', { defaultValue: 'Urgent Patients' })}: <b style={{color: theme.colors.error}}>{waitingPatients.filter(p => p.priority === 'urgent').length}</b></span>
+            <span>{t('phlebotomyView.avgWaitTime', { defaultValue: 'Average Wait Time' })}: <b style={{color: theme.colors.info}}>{stats.averageCollectionTime} {t('phlebotomyView.min', { defaultValue: 'min' })}</b></span>
           </div>
           {waitingPatients.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: theme.colors.textSecondary, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
               <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}>
                 <FaSyringe size={64} style={{ marginBottom: '1.5rem', opacity: 0.4, filter: 'drop-shadow(0 2px 16px #667eea33)' }} />
               </motion.div>
-              <h4 style={{ color: theme.colors.textSecondary, fontWeight: 700, fontSize: '1.2rem', marginBottom: 8 }}>{t('phlebotomistView.noPatientsFound')}</h4>
-              <p style={{ color: theme.colors.textSecondary, fontSize: '1rem', opacity: 0.8 }}>{t('phlebotomistView.waitingEmptyHint') || 'No patients are currently waiting for collection. New requests will appear here in real time.'}</p>
+              <h4 style={{ color: theme.colors.textSecondary, fontWeight: 700, fontSize: '1.2rem', marginBottom: 8 }}>{t('phlebotomyView.noPatientsFound', { defaultValue: 'No Patients Found' })}</h4>
+              <p style={{ color: theme.colors.textSecondary, fontSize: '1rem', opacity: 0.8 }}>{t('phlebotomyView.waitingEmptyHint', { defaultValue: 'No patients are currently waiting for collection. New requests will appear here in real time.' })}</p>
             </div>
           ) : (
-            <PatientGrid>
-              {waitingPatients.map((patient) => {
-                let color = theme.colors.primary;
-                if (patient.priority === 'urgent') color = theme.colors.error;
-                else if (patient.priority === 'high') color = theme.colors.warning;
-                else if (patient.priority === 'normal') color = theme.colors.primary;
-                return (
-                  <PatientCard
-                    key={patient.id}
-                    whileHover={{ y: -5, scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+            <React.Fragment>
+              {waitingPatients.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, background: theme.colors.surface, borderRadius: 12, padding: '1rem 1.5rem', boxShadow: '0 2px 8px #0001', border: `1.5px solid ${theme.colors.border}` }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedPatientIds.length === waitingPatients.length && waitingPatients.length > 0}
+                    onChange={handleSelectAll}
+                    style={{ width: 18, height: 18 }}
+                  />
+                  <span style={{ fontWeight: 600 }}>{t('phlebotomyView.selectAll', { defaultValue: 'Select All' })}</span>
+                  <GlowButton
+                    $variant="success"
+                    disabled={selectedPatientIds.length === 0}
+                    onClick={handleBulkMarkCollected}
                   >
-                    <PatientCardContent $priority={patient.priority}>
-                      <PatientCardHeader>
-                        <PatientInfo>
-                          <PatientDetails>
-                            <PatientName>{patient.patientName}</PatientName>
-                            <PatientMeta>
-                              <FaIdCard size={13} style={{marginRight: 4}} />{patient.patientId} &nbsp;|
-                              <FaCalendar size={13} style={{margin: '0 4px 0 8px'}} />{typeof patient.age === 'object' && patient.age !== null ? `${patient.age.value} ${patient.age.unit}` : patient.age} &nbsp;|
-                              <FaUser size={13} style={{margin: '0 4px 0 8px'}} />{patient.gender}
-                            </PatientMeta>
-                          </PatientDetails>
-                        </PatientInfo>
-                        <PriorityBadge $priority={patient.priority}>{t(`phlebotomistView.${patient.priority}`)}</PriorityBadge>
-                      </PatientCardHeader>
-                      <PatientTags>
-                        {(Array.isArray(patient.selectedTests) ? patient.selectedTests : []).map((test, idx) => (
-                          <PatientTag key={idx} color={color}><FaTag size={12} style={{marginRight: 6}} />{typeof test === 'string' ? test : test.name || test.id}</PatientTag>
-                        ))}
-                      </PatientTags>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, justifyContent: 'flex-end' }}>
-                        <GlowButton
-                          $variant="success"
-                          style={{ fontSize: '1.05rem', fontWeight: 700, padding: '0.7rem 1.4rem', borderRadius: 12, minWidth: 140 }}
-                          onClick={() => handleAcceptPatient(patient)}
-                        >
-                          <FaSyringe style={{ marginRight: 8 }} />{t('phlebotomistView.startCollection')}
-                        </GlowButton>
-                        <GlowButton
-                          $variant="secondary"
-                          style={{ fontSize: '1.05rem', fontWeight: 700, padding: '0.7rem 1.4rem', borderRadius: 12, minWidth: 120 }}
-                          onClick={() => handleViewDetails(patient)}
-                        >
-                          <FaEye style={{ marginRight: 8 }} />{t('phlebotomistView.viewDetails')}
-                        </GlowButton>
+                    <FaCheckCircle style={{ marginRight: 8 }} />{t('phlebotomyView.bulkMarkCollected', { defaultValue: 'Bulk Mark Collected' })}
+                  </GlowButton>
+                  <GlowButton
+                    $variant="secondary"
+                    disabled={selectedPatientIds.length === 0}
+                    onClick={handleBulkMarkReady}
+                  >
+                    <FaClock style={{ marginRight: 8 }} />{t('phlebotomyView.bulkMarkReady', { defaultValue: 'Bulk Mark Ready' })}
+                  </GlowButton>
+                  <span style={{ color: '#888', fontSize: '0.95rem' }}>{selectedPatientIds.length} {t('phlebotomyView.selected', { defaultValue: 'selected' })}</span>
+                </div>
+              )}
+              <GlowButton
+                $variant="primary"
+                style={{ marginBottom: 24, fontWeight: 700, fontSize: '1.05rem', borderRadius: 12 }}
+                onClick={() => setScannerOpen(true)}
+              >
+                <FaBarcode style={{ marginRight: 8 }} />{t('phlebotomyView.scanBarcode', { defaultValue: 'Scan Barcode' })}
+              </GlowButton>
+              <PatientGrid>
+                {waitingPatients.map((patient) => {
+                  let color = theme.colors.primary;
+                  if (patient.priority === 'urgent') color = theme.colors.error;
+                  else if (patient.priority === 'high') color = theme.colors.warning;
+                  else if (patient.priority === 'normal') color = theme.colors.primary;
+                  return (
+                    <PatientCard
+                      key={patient.id}
+                      id={`patient-card-${patient.id}`}
+                      style={{ marginBottom: 28, ...(highlightedPatientId === patient.id ? { boxShadow: `0 0 0 4px ${theme.colors.primary}` } : {}) }}
+                      whileHover={{ y: -5, scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 2 }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedPatientIds.includes(patient.id)}
+                          onChange={() => handleSelectPatient(patient.id)}
+                          style={{ width: 18, height: 18 }}
+                        />
                       </div>
-                    </PatientCardContent>
-                  </PatientCard>
-                );
-              })}
-            </PatientGrid>
+                      <PatientCardContent $priority={patient.priority}>
+                        <PatientCardHeader>
+                          <PatientInfo>
+                            <PatientDetails>
+                              <PatientName>{patient.patientName}</PatientName>
+                              <PatientMeta>
+                                <FaIdCard size={13} style={{marginRight: 4}} />{patient.patientId} &nbsp;|
+                                <FaCalendar size={13} style={{margin: '0 4px 0 8px'}} />{typeof patient.age === 'object' && patient.age !== null ? `${patient.age.value} ${patient.age.unit}` : patient.age} &nbsp;|
+                                <FaUser size={13} style={{margin: '0 4px 0 8px'}} />{patient.gender}
+                              </PatientMeta>
+                              {patient.bloodCollectionStatus === 'in_progress' && (
+                                <span style={{ color: theme.colors.info, fontWeight: 700, marginLeft: 8 }}>
+                                  ⏱ {getElapsedTime(patient.updatedAt || patient.collectionStartTime || patient.createdAt)}
+                                </span>
+                              )}
+                            </PatientDetails>
+                          </PatientInfo>
+                          <PriorityBadge $priority={patient.priority}>{t(`phlebotomyView.${patient.priority}`)}</PriorityBadge>
+                        </PatientCardHeader>
+                        <PatientTags>
+                          {(Array.isArray(patient.selectedTests) ? patient.selectedTests : []).map((test, idx) => (
+                            <PatientTag key={idx} color={color}><FaTag size={12} style={{marginRight: 6}} />{typeof test === 'string' ? test : test.name || test.id}</PatientTag>
+                          ))}
+                        </PatientTags>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+                          <GlowButton
+                            $variant="secondary"
+                            style={{ fontSize: '0.98rem', fontWeight: 600, padding: '0.5rem 0.9rem', borderRadius: 10, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}
+                            onClick={() => handleToggleExpand(patient.id)}
+                          >
+                            <FaNotesMedical style={{ marginRight: 4 }} />{t('phlebotomyView.notes', { defaultValue: 'Notes' })}
+                          </GlowButton>
+                          <GlowButton
+                            $variant="success"
+                            style={{ fontSize: '0.98rem', fontWeight: 700, padding: '0.5rem 0.9rem', borderRadius: 10, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}
+                            title={t('phlebotomyView.startCollection', { defaultValue: 'Collect' })}
+                            onClick={() => handleAcceptPatient(patient)}
+                          >
+                            <FaSyringe style={{ marginRight: 4 }} />{t('phlebotomyView.collect', { defaultValue: 'Collect' })}
+                          </GlowButton>
+                          <GlowButton
+                            $variant="secondary"
+                            style={{ fontSize: '0.98rem', fontWeight: 700, padding: '0.5rem 0.9rem', borderRadius: 10, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}
+                            title={t('phlebotomyView.viewDetails', { defaultValue: 'Details' })}
+                            onClick={() => handleViewDetails(patient)}
+                          >
+                            <FaEye style={{ marginRight: 4 }} />{t('phlebotomyView.details', { defaultValue: 'Details' })}
+                          </GlowButton>
+                          {patient.priority !== 'urgent' && (
+                            <GlowButton
+                              $variant="warning"
+                              style={{ fontSize: '0.98rem', fontWeight: 700, padding: '0.5rem 0.9rem', borderRadius: 10, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}
+                              title={t('phlebotomyView.markUrgent', { defaultValue: 'Urgent' })}
+                              onClick={() => handleMarkUrgent(patient)}
+                            >
+                              <FaExclamationTriangle style={{ marginRight: 4 }} />{t('phlebotomyView.urgent', { defaultValue: 'Urgent' })}
+                            </GlowButton>
+                          )}
+                          {patient.assignedTo && (
+                            <GlowButton
+                              $variant="secondary"
+                              style={{ fontSize: '0.98rem', fontWeight: 700, padding: '0.5rem 0.9rem', borderRadius: 10, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}
+                              title={t('phlebotomyView.reassign', { defaultValue: 'Reassign' })}
+                              onClick={() => handleReassign(patient)}
+                            >
+                              <FaUserPlus style={{ marginRight: 4 }} />
+                            </GlowButton>
+                          )}
+                        </div>
+                        {expandedPatientIds.includes(patient.id) && (
+                          <div style={{ background: theme.colors.surface, borderRadius: 10, marginTop: 10, padding: '1rem', boxShadow: '0 2px 8px #0001', color: theme.colors.textSecondary }}>
+                            <div style={{ fontWeight: 700, marginBottom: 6 }}>{t('phlebotomyView.notesHistory', { defaultValue: 'Notes History' })}</div>
+                            <div style={{ marginBottom: 4 }}><b>{t('phlebotomyView.phlebotomistNotes', { defaultValue: 'Phlebotomist Notes' })}:</b> {patient.phlebotomistNotes || t('phlebotomyView.noNotes', { defaultValue: 'No notes' })}</div>
+                            <div><b>{t('phlebotomyView.sampleConditions', { defaultValue: 'Sample Conditions' })}:</b> {Array.isArray(patient.sampleConditions) && patient.sampleConditions.length > 0 ? patient.sampleConditions.join(', ') : t('phlebotomyView.noSampleConditions', { defaultValue: 'No sample conditions' })}</div>
+                          </div>
+                        )}
+                      </PatientCardContent>
+                    </PatientCard>
+                  );
+                })}
+              </PatientGrid>
+            </React.Fragment>
           )}
         </div>
       </GlowCard>
@@ -1422,15 +1616,15 @@ const Phlebotomist = () => {
             color: theme.colors.text,
             gap: 16
           }}>
-            <span>{t('phlebotomistView.collectedSamples')}: <b style={{color: theme.colors.success}}>{collectedPatients.length}</b></span>
+            <span>{t('phlebotomyView.collectedSamples', { defaultValue: 'Collected Samples' })}: <b style={{color: theme.colors.success}}>{collectedPatients.length}</b></span>
           </div>
           {collectedPatients.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: theme.colors.textSecondary, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
               <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}>
                 <FaCheckCircle size={64} style={{ marginBottom: '1.5rem', opacity: 0.4, filter: 'drop-shadow(0 2px 16px #10b98133)' }} />
               </motion.div>
-              <h4 style={{ color: theme.colors.textSecondary, fontWeight: 700, fontSize: '1.2rem', marginBottom: 8 }}>{t('phlebotomistView.noCollectedPatients')}</h4>
-              <p style={{ color: theme.colors.textSecondary, fontSize: '1rem', opacity: 0.8 }}>{t('phlebotomistView.collectedEmptyHint') || 'No samples have been collected yet. Collected samples will appear here.'}</p>
+              <h4 style={{ color: theme.colors.textSecondary, fontWeight: 700, fontSize: '1.2rem', marginBottom: 8 }}>{t('phlebotomyView.noCollectedPatients', { defaultValue: 'No Collected Patients' })}</h4>
+              <p style={{ color: theme.colors.textSecondary, fontSize: '1rem', opacity: 0.8 }}>{t('phlebotomyView.collectedEmptyHint', { defaultValue: 'No samples have been collected yet. Collected samples will appear here.' })}</p>
             </div>
           ) : (
             <PatientGrid>
@@ -1452,7 +1646,7 @@ const Phlebotomist = () => {
                           </PatientMeta>
                         </PatientDetails>
                       </PatientInfo>
-                      <PriorityBadge $priority={patient.priority}>{t(`phlebotomistView.${patient.priority}`)}</PriorityBadge>
+                      <PriorityBadge $priority={patient.priority}>{t(`phlebotomyView.${patient.priority}`)}</PriorityBadge>
                     </PatientCardHeader>
                     <PatientTags>
                       {(Array.isArray(patient.selectedTests) ? patient.selectedTests : []).map((test, idx) => (
@@ -1465,7 +1659,7 @@ const Phlebotomist = () => {
                         style={{ fontSize: '1.05rem', fontWeight: 700, padding: '0.7rem 1.4rem', borderRadius: 12, minWidth: 120 }}
                         onClick={() => handleViewDetails(patient)}
                       >
-                        <FaEye style={{ marginRight: 8 }} />{t('phlebotomistView.view')}
+                        <FaEye style={{ marginRight: 8 }} />{t('phlebotomyView.view', { defaultValue: 'View' })}
                       </GlowButton>
                     </div>
                   </PatientCardContent>
@@ -1497,14 +1691,14 @@ const Phlebotomist = () => {
                 <div>
                   <h2 style={{ margin: 0, fontWeight: 700 }}>{modalPatient.patientName}</h2>
                   <div style={{ color: theme.colors.textSecondary, fontSize: '1rem' }}>
-                    {t('patientIdLabel')}: {modalPatient.patientId} &nbsp; | &nbsp;
-                    {t('ageLabel')}: {typeof modalPatient.age === 'object' && modalPatient.age !== null ? `${modalPatient.age.value} ${modalPatient.age.unit}` : modalPatient.age} &nbsp; | &nbsp;
-                    {t('genderLabel')}: {modalPatient.gender}
+                    {t('patientIdLabel', { defaultValue: 'Patient ID' })}: {modalPatient.patientId} &nbsp; | &nbsp;
+                    {t('ageLabel', { defaultValue: 'Age' })}: {typeof modalPatient.age === 'object' && modalPatient.age !== null ? `${modalPatient.age.value} ${modalPatient.age.unit}` : modalPatient.age} &nbsp; | &nbsp;
+                    {t('genderLabel', { defaultValue: 'Gender' })}: {modalPatient.gender}
                   </div>
                 </div>
               </ModalHeader>
               <ModalSection>
-                <div style={{ marginBottom: 8, fontWeight: 600 }}>{t('testsLabel')}</div>
+                <div style={{ marginBottom: 8, fontWeight: 600 }}>{t('testsLabel', { defaultValue: 'Tests' })}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                   {(Array.isArray(modalPatient.selectedTests) ? modalPatient.selectedTests : []).map((test, idx) => (
                     <TestTag key={idx} theme={theme}>{typeof test === 'string' ? test : test.name || test.id}</TestTag>
@@ -1516,9 +1710,35 @@ const Phlebotomist = () => {
                   {collecting ? (
                     <FaSpinner className="fa-spin" style={{ marginRight: 8 }} />
                   ) : null}
-                  {t('phlebotomistView.markAsCollected') || 'Mark as Collected'}
+                  {t('phlebotomyView.markAsCollected', { defaultValue: 'Mark as Collected' })}
                 </GlowButton>
               </ModalSection>
+            </ModalContent>
+          </AnimatedModal>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {scannerOpen && (
+          <AnimatedModal
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ModalContent
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              theme={theme}
+            >
+              <ModalClose theme={theme} onClick={() => setScannerOpen(false)}>&times;</ModalClose>
+              <PremiumBarcodeScanner
+                onScan={handleBarcodeScan}
+                title={t('phlebotomyView.barcodeScannerTitle', { defaultValue: 'Barcode Scanner' })}
+                placeholder={t('phlebotomyView.barcodeScannerPlaceholder', { defaultValue: 'Scan a barcode or enter manually' })}
+              />
             </ModalContent>
           </AnimatedModal>
         )}

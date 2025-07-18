@@ -390,6 +390,20 @@ const JourneyBadge = styled.span`
   }};
 `;
 
+const AnimatedGradientText = styled.span`
+  background: linear-gradient(90deg, #f59e0b, #ef4444, #f59e0b);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: gradientMove 3s linear infinite;
+  @keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+`;
+
 const Sidebar = () => {
   const { t } = useTranslation();
   const location = useLocation();
@@ -434,14 +448,11 @@ const Sidebar = () => {
     { path: '/app/dashboard', icon: Home, label: t('sidebar.dashboard'), badge: null },
     { path: '/app/orders', icon: FileText, label: t('sidebar.orders'), badge: null },
     { path: '/app/register', icon: Users, label: t('sidebar.patientRegistration'), badge: null },
-    { path: '/app/patient-history', icon: User, label: t('sidebar.patientHistory'), badge: null },
+    { path: '/app/phlebotomy', icon: FlaskConical, label: t('sidebar.phlebotomy'), badge: null },
     { path: '/app/work-queue', icon: ClipboardList, label: t('sidebar.workQueue'), badge: unreadCount > 0 ? unreadCount : null },
-    { path: '/app/phlebotomist', icon: FlaskConical, label: t('sidebar.phlebotomist'), badge: null },
+    { path: '/app/patient-history', icon: User, label: t('sidebar.patientHistory'), badge: null },
     { path: '/app/quality-control', icon: Shield, label: t('sidebar.qualityControl'), badge: null },
     { path: '/app/inventory', icon: Package, label: t('sidebar.inventory'), badge: null },
-    { path: '/app/workload', icon: BarChart3, label: t('sidebar.workload'), badge: null },
-    { path: '/app/audit-log', icon: Activity, label: t('sidebar.auditLog'), badge: null },
-    { path: '/app/showcase', icon: Zap, label: 'Library Showcase', badge: 'NEW' },
   ], [t, unreadCount]);
 
   const journeySteps = useMemo(() => [
@@ -464,7 +475,7 @@ const Sidebar = () => {
       title: 'Sample Collection',
       description: 'Collect samples',
       status: 'pending',
-      path: '/app/phlebotomist'
+      path: '/app/phlebotomy'
     },
     {
       icon: Shield,
@@ -548,40 +559,50 @@ const Sidebar = () => {
       </SidebarHeader>
 
       <NavSection variants={itemVariants}>
-        {navItems.map((item) => (
-          <NavItem
-            key={item.path}
-            to={item.path}
-            className={location.pathname === item.path ? 'active' : ''}
-            variants={itemVariants}
-            whileHover={{ x: 4 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <item.icon size={20} />
-            <span>{item.label}</span>
-            {item.badge && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                style={{
-                  background: '#ef4444',
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: '20px',
-                  height: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold',
-                  marginLeft: 'auto'
-                }}
-              >
-                {item.badge}
-              </motion.span>
-            )}
-          </NavItem>
-        ))}
+        {navItems.map((item) => {
+          const isGradient =
+            item.path === '/app/register' ||
+            item.path === '/app/phlebotomy' ||
+            item.path === '/app/work-queue';
+          return (
+            <NavItem
+              key={item.path}
+              to={item.path}
+              className={location.pathname === item.path ? 'active' : ''}
+              variants={itemVariants}
+              whileHover={{ x: 4 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <item.icon size={20} />
+              {isGradient ? (
+                <AnimatedGradientText>{item.label}</AnimatedGradientText>
+              ) : (
+                <span>{item.label}</span>
+              )}
+              {item.badge && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  style={{
+                    background: '#ef4444',
+                    color: 'white',
+                    borderRadius: '50%',
+                    width: '20px',
+                    height: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    marginLeft: 'auto'
+                  }}
+                >
+                  {item.badge}
+                </motion.span>
+              )}
+            </NavItem>
+          );
+        })}
       </NavSection>
 
       <JourneyGroup>

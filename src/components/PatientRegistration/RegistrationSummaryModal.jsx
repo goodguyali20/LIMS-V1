@@ -388,7 +388,7 @@ const RegistrationSummaryModal = ({
                   <SummaryContent>
                     <SummaryLabel style={{ marginBottom: 8 }}>{t('patientRegistration.patientName') || 'Patient Name'}</SummaryLabel>
                     <SummaryValue style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: 12 }}>
-                      {patientData.firstName} {patientData.lastName}
+                      {patientData.firstName} {patientData.fathersName} {patientData.grandFathersName} {patientData.lastName}
                     </SummaryValue>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', borderTop: '1px solid #e5e7eb22', paddingTop: 10, width: '100%' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '1rem', color: '#6b7280' }}>

@@ -25,6 +25,7 @@ import Confetti from 'react-confetti';
 import { useTheme } from 'styled-components';
 import { useTestCatalog } from '../../contexts/TestContext';
 import { useTestSelectionStore } from './TestSelectionPanel';
+import { LinearProgress } from '@mui/material';
 
 // Utility functions for field rendering
 const shouldRenderField = (fields, section, fieldName) => {
@@ -762,8 +763,10 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     defaultValues: {
       patientId: '',
       firstName: '',
+      fathersName: '',
+      grandFathersName: '',
       lastName: '',
-      age: { value: '', unit: 'years' }, // Ensure unit is always set to 'years' by default
+      age: { value: '', unit: 'years' },
       gender: '',
       phoneNumber: '',
       email: '',
@@ -772,7 +775,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         district: '',
         area: '',
         landmark: '',
-        city: '' // Add this line to ensure city is always present
+        city: ''
       },
       emergencyContact: {
         name: '',
@@ -790,7 +793,6 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         policyNumber: '',
         groupNumber: ''
       },
-      // Add any other fields you use in the form here
     }
   });
 
@@ -1100,20 +1102,24 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
 
   const [duplicateWarning, setDuplicateWarning] = useState('');
   const watchedFirstName = watch('firstName');
+  const watchedFathersName = watch('fathersName');
+  const watchedGrandFathersName = watch('grandFathersName');
   const watchedLastName = watch('lastName');
   const watchedPhone = watch('phoneNumber');
   const watchedEmail = watch('email');
   const watchedArea = watch('area');
 
   useEffect(() => {
-    if (!watchedFirstName && !watchedLastName && !watchedPhone && !watchedArea) {
+    if (!watchedFirstName && !watchedFathersName && !watchedGrandFathersName && !watchedLastName && !watchedPhone && !watchedArea) {
       setDuplicateWarning('');
       return;
     }
     const match = patients.find(
       p =>
-        watchedFirstName && watchedLastName && watchedPhone && watchedArea &&
+        watchedFirstName && watchedFathersName && watchedGrandFathersName && watchedLastName && watchedPhone && watchedArea &&
         p.firstName?.toLowerCase() === watchedFirstName.toLowerCase() &&
+        p.fathersName?.toLowerCase() === watchedFathersName.toLowerCase() &&
+        p.grandFathersName?.toLowerCase() === watchedGrandFathersName.toLowerCase() &&
         p.lastName?.toLowerCase() === watchedLastName.toLowerCase() &&
         p.phoneNumber === watchedPhone &&
         p.area === watchedArea
@@ -1123,7 +1129,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     } else {
       setDuplicateWarning('');
     }
-  }, [watchedFirstName, watchedLastName, watchedPhone, watchedArea, patients]);
+  }, [watchedFirstName, watchedFathersName, watchedGrandFathersName, watchedLastName, watchedPhone, watchedArea, patients]);
 
   const handleTestSelection = (testName) => {
     if (!selectedTests.includes(testName)) {
@@ -1431,6 +1437,48 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
   // Map selectedTests (names) to test objects
   const selectedTestObjects = selectedTests.map(testName => labTests.find(t => t.name === testName)).filter(Boolean);
 
+  // Add after useForm and before the form JSX
+  const requiredFields = [
+    'firstName', 'fathersName', 'grandFathersName', 'lastName', 'age', 'gender', 'phoneNumber',
+    'address.governorate', 'address.district', 'address.area',
+    'emergencyContact.name', 'emergencyContact.relationship', 'emergencyContact.phoneNumber'
+  ];
+  const values = getValues();
+  let filled = 0;
+  requiredFields.forEach(field => {
+    const parts = field.split('.');
+    let val = values;
+    for (const part of parts) {
+      val = val?.[part];
+    }
+    if (val && (typeof val === 'string' ? val.trim() : true)) filled++;
+  });
+  const progress = Math.round((filled / requiredFields.length) * 100);
+
+  // Add after autosave logic
+  const handleSaveDraft = () => {
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ formData: getValues(), selectedTests }));
+    toast.success('Draft saved!');
+  };
+  const handleLoadDraft = () => {
+    const saved = localStorage.getItem(AUTOSAVE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.formData) {
+          reset(parsed.formData);
+        }
+        if (parsed.selectedTests) {
+          setSelectedTests(parsed.selectedTests);
+        }
+        toast.success('Draft loaded!');
+      } catch (e) {
+        toast.error('Failed to load draft');
+      }
+    }
+  };
+  const hasDraft = !!localStorage.getItem(AUTOSAVE_KEY);
+
   return (
     <>
       {showConfetti && <Confetti width={window.innerWidth} height={window.innerHeight} numberOfPieces={250} recycle={false} />} 
@@ -1438,6 +1486,10 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         <h2 style={{ marginBottom: '1.5rem', color: '#667eea', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FaSmileBeam style={{ color: '#f093fb' }} /> {t('patientRegistration.title')}
         </h2>
+        <div style={{ width: '100%', marginBottom: 16 }}>
+          <LinearProgress variant="determinate" value={progress} />
+          <div style={{ textAlign: 'right', fontSize: 12, color: '#888', marginTop: 2 }}>{progress}%</div>
+        </div>
         <RegistrationLayout>
           <MainFormColumn>
             <form onSubmit={handleSubmit(onSubmit)}>
@@ -1449,6 +1501,8 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                 <FormGrid>
                   {renderField('patientId', settings.patientRegistrationFields.patientId)}
                   {renderField('firstName', settings.patientRegistrationFields.firstName)}
+                  {renderField('fathersName', settings.patientRegistrationFields.fathersName)}
+                  {renderField('grandFathersName', settings.patientRegistrationFields.grandFathersName)}
                   {renderField('lastName', settings.patientRegistrationFields.lastName)}
                   {renderField('age', settings.patientRegistrationFields.age)}
                   {renderSelectField('gender', settings.patientRegistrationFields.gender, genderOptions)}
@@ -1677,6 +1731,16 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
           notes: getValues('notes') || ''
         }}
       />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <GlowButton type="button" onClick={handleSaveDraft}>
+          Save as Draft
+        </GlowButton>
+        {hasDraft && (
+          <GlowButton type="button" onClick={handleLoadDraft}>
+            Load Draft
+          </GlowButton>
+        )}
+      </div>
     </>
   );
 };

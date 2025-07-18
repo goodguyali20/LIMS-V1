@@ -187,7 +187,7 @@ const MasterSlip = ({ order, user, settings }) => {
       <Section>
         <SectionTitle>{t('patientInformation')}</SectionTitle>
         <InfoGrid>
-          <InfoItem><strong>{t('nameLabel')}</strong> {order?.patientName || 'N/A'}</InfoItem>
+          <InfoItem><strong>{t('nameLabel')}</strong> {order?.firstName ? `${order.firstName} ${order.fathersName || ''} ${order.grandFathersName || ''} ${order.lastName || ''}`.trim() : (order?.patientName || 'N/A')}</InfoItem>
           <InfoItem><strong>{t('patientIdLabel')}</strong> {order?.patientId || 'N/A'}</InfoItem>
           <InfoItem><strong>{t('ageGenderLabel')}</strong> {typeof order?.age === 'object' ? `${order?.age?.value || ''} ${order?.age?.unit || ''}` : order?.age || 'N/A'} / {order?.gender || 'N/A'}</InfoItem>
           <InfoItem><strong>{t('phoneLabel')}</strong> {order?.phone || 'N/A'}</InfoItem>

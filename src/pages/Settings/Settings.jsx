@@ -881,30 +881,49 @@ const Settings = () => {
       </SearchAndFilterContainer>
 
       <SettingsGrid>
-        {filteredCategories.map((category, index) => (
-          <SettingCard
-            key={category.id}
-            as={motion.div}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            color={category.color}
-            onClick={() => setActiveTab(category.id)}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
+        {filteredCategories.map(category => (
+          <SettingCard key={category.id} color={category.color} onClick={() => setActiveTab(category.id)}>
             <SettingCardContent>
-              <SettingIcon color={category.color}>
-                <category.icon size={24} />
-              </SettingIcon>
+              <SettingIcon color={category.color}><category.icon size={32} /></SettingIcon>
               <SettingInfo>
                 <SettingTitle>{category.title}</SettingTitle>
                 <SettingDescription>{category.description}</SettingDescription>
+                <SettingBadge color={category.color}>{category.badge}</SettingBadge>
               </SettingInfo>
-              <SettingBadge color={category.color}>{category.badge}</SettingBadge>
             </SettingCardContent>
           </SettingCard>
         ))}
+        {/* Custom cards for Workload, Audit Log, and Library Showcase */}
+        <SettingCard color="#6366f1" onClick={() => window.location.href='/app/workload'}>
+          <SettingCardContent>
+            <SettingIcon color="#6366f1"><Monitor size={32} /></SettingIcon>
+            <SettingInfo>
+              <SettingTitle>Workload</SettingTitle>
+              <SettingDescription>View and analyze laboratory workload statistics</SettingDescription>
+              <SettingBadge color="#6366f1">Analytics</SettingBadge>
+            </SettingInfo>
+          </SettingCardContent>
+        </SettingCard>
+        <SettingCard color="#dc2626" onClick={() => window.location.href='/app/audit-log'}>
+          <SettingCardContent>
+            <SettingIcon color="#dc2626"><Shield size={32} /></SettingIcon>
+            <SettingInfo>
+              <SettingTitle>Audit Log</SettingTitle>
+              <SettingDescription>Review system audit logs and activity history</SettingDescription>
+              <SettingBadge color="#dc2626">Logs</SettingBadge>
+            </SettingInfo>
+          </SettingCardContent>
+        </SettingCard>
+        <SettingCard color="#ec4899" onClick={() => window.location.href='/app/showcase'}>
+          <SettingCardContent>
+            <SettingIcon color="#ec4899"><Zap size={32} /></SettingIcon>
+            <SettingInfo>
+              <SettingTitle>Library Showcase</SettingTitle>
+              <SettingDescription>Explore advanced UI libraries and components</SettingDescription>
+              <SettingBadge color="#ec4899">Demo</SettingBadge>
+            </SettingInfo>
+          </SettingCardContent>
+        </SettingCard>
       </SettingsGrid>
 
       <TabsContainer>

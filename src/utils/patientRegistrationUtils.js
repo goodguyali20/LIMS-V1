@@ -38,6 +38,33 @@ export const generatePatientSchema = (fieldConfig) => {
           .or(z.literal(''));
   }
 
+  if (fieldConfig.fathersName?.enabled) {
+    schemaFields.fathersName = fieldConfig.fathersName.required
+      ? z.string()
+          .min(2, "Father's name must be at least 2 characters")
+          .max(50, "Father's name must be less than 50 characters")
+          .regex(/^[a-zA-Z\u0600-\u06FF\s]+$/, "Father's name can only contain Arabic or Latin letters and spaces")
+      : z.string()
+          .min(2, "Father's name must be at least 2 characters")
+          .max(50, "Father's name must be less than 50 characters")
+          .regex(/^[a-zA-Z\u0600-\u06FF\s]+$/, "Father's name can only contain Arabic or Latin letters and spaces")
+          .optional()
+          .or(z.literal(''));
+  }
+  if (fieldConfig.grandFathersName?.enabled) {
+    schemaFields.grandFathersName = fieldConfig.grandFathersName.required
+      ? z.string()
+          .min(2, "Grandfather's name must be at least 2 characters")
+          .max(50, "Grandfather's name must be less than 50 characters")
+          .regex(/^[a-zA-Z\u0600-\u06FF\s]+$/, "Grandfather's name can only contain Arabic or Latin letters and spaces")
+      : z.string()
+          .min(2, "Grandfather's name must be at least 2 characters")
+          .max(50, "Grandfather's name must be less than 50 characters")
+          .regex(/^[a-zA-Z\u0600-\u06FF\s]+$/, "Grandfather's name can only contain Arabic or Latin letters and spaces")
+          .optional()
+          .or(z.literal(''));
+  }
+
   if (fieldConfig.age?.enabled) {
     schemaFields.age = fieldConfig.age.required
       ? z.object({
@@ -66,13 +93,9 @@ export const generatePatientSchema = (fieldConfig) => {
   if (fieldConfig.phoneNumber?.enabled) {
     schemaFields.phoneNumber = fieldConfig.phoneNumber.required
       ? z.string()
-          .min(10, 'Phone number must be at least 10 digits')
-          .max(15, 'Phone number must be less than 15 digits')
-          .regex(/^[\d\s\-\+\(\)]+$/, 'Phone number can only contain digits, spaces, hyphens, plus signs, and parentheses')
+          .regex(/^07\d{9}$/, 'Phone number must start with 07 and be exactly 11 digits (Iraq format)')
       : z.string()
-          .min(10, 'Phone number must be at least 10 digits')
-          .max(15, 'Phone number must be less than 15 digits')
-          .regex(/^[\d\s\-\+\(\)]+$/, 'Phone number can only contain digits, spaces, hyphens, plus signs, and parentheses')
+          .regex(/^07\d{9}$/, 'Phone number must start with 07 and be exactly 11 digits (Iraq format)')
           .optional()
           .or(z.literal(''));
   }
@@ -280,6 +303,8 @@ export const generateDefaultValues = (fieldConfig) => {
   // Personal Information
   if (fieldConfig.firstName?.enabled) defaultValues.firstName = '';
   if (fieldConfig.lastName?.enabled) defaultValues.lastName = '';
+  if (fieldConfig.fathersName?.enabled) defaultValues.fathersName = '';
+  if (fieldConfig.grandFathersName?.enabled) defaultValues.grandFathersName = '';
   if (fieldConfig.age?.enabled) defaultValues.age = null;
   if (fieldConfig.gender?.enabled) defaultValues.gender = '';
   if (fieldConfig.phoneNumber?.enabled) defaultValues.phoneNumber = '';

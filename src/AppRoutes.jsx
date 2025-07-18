@@ -61,7 +61,7 @@ const AppContent = () => {
           <Route path="register" element={<PatientRegistration />} />
           <Route path="patient-history" element={<PatientHistory />} />
           <Route path="work-queue" element={<WorkQueue />} />
-          <Route path="phlebotomist" element={<Phlebotomist />} />
+          <Route path="phlebotomy" element={<Phlebotomist />} />
           <Route path="quality-control" element={<QualityControl />} />
           <Route path="inventory" element={<Inventory />} />
           <Route path="workload" element={<WorkloadView />} />

@@ -185,7 +185,7 @@ const TubeIdSlip = ({ order, user, settings }) => {
       <Section>
         <SectionTitle>Patient Information</SectionTitle>
         <InfoGrid>
-          <InfoItem><strong>Name:</strong> {order?.patientName || 'N/A'}</InfoItem>
+          <InfoItem><strong>Name:</strong> {order?.firstName ? `${order.firstName} ${order.fathersName || ''} ${order.grandFathersName || ''} ${order.lastName || ''}`.trim() : (order?.patientName || 'N/A')}</InfoItem>
           <InfoItem><strong>Patient ID:</strong> {order?.patientId || 'N/A'}</InfoItem>
           <InfoItem><strong>Age/Gender:</strong> {order?.age || 'N/A'} / {order?.gender || 'N/A'}</InfoItem>
           <InfoItem><strong>Phone:</strong> {order?.phone || 'N/A'}</InfoItem>

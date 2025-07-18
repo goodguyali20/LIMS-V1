@@ -269,7 +269,7 @@ const PrintPreviewModal = ({
       departments: Object.keys(testsByDepartment),
       orderId: orderData?.id || `ORD-${Date.now()}`,
       orderDate: new Date().toLocaleDateString(),
-      patientName: patientData ? `${patientData.firstName} ${patientData.lastName}` : 'N/A',
+      patientName: patientData ? `${patientData.firstName} ${patientData.fathersName} ${patientData.grandFathersName} ${patientData.lastName}` : 'N/A',
       patientId: patientData?.id || 'N/A',
       phone: patientData?.phoneNumber || 'N/A'
     };
