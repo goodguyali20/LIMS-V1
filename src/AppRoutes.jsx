@@ -34,6 +34,7 @@ import PdfGeneratorDemo from './components/Print/PdfGeneratorDemo.jsx';
 import PdfTestPage from './components/Print/PdfTestPage.jsx';
 import LayoutShiftDebug from './pages/LayoutShiftDebug.jsx';
 import PerformanceMonitor from './pages/PerformanceMonitor.jsx';
+import PatientDetails from './pages/PatientDetails.jsx';
 
 // Wrapper component that uses theme context
 const AppContent = () => {
@@ -76,6 +77,7 @@ const AppContent = () => {
           <Route path="pdf-test" element={<PdfTestPage />} />
           <Route path="layout-debug" element={<LayoutShiftDebug />} />
           <Route path="performance" element={<PerformanceMonitor />} />
+          <Route path="patient/:patientId" element={<PatientDetails />} />
   
           <Route path="settings" element={<Settings />}>
             <Route index element={<Navigate to="general" replace />} />

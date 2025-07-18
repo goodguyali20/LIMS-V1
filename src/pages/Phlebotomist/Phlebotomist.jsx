@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { collection, query, where, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, updateDoc, doc, addDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
@@ -13,7 +13,7 @@ import {
   FaUserMd, FaVial, FaSyringe, FaThermometer, FaExclamationTriangle,
   FaInfoCircle, FaChartLine, FaCalendarAlt, FaMapMarkerAlt,
   FaUserCircle, FaFileAlt, FaDownload, FaUpload, FaCog, FaBell,
-  FaIdCard
+  FaIdCard, FaUserPlus, FaHeartbeat, FaNotesMedical, FaFlask, FaTag
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import GlowCard from '../../components/common/GlowCard';
@@ -350,16 +350,16 @@ const PriorityBadge = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1.2rem;
   border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 1.01rem;
+  font-weight: 800;
   background: ${({ $priority, theme }) => {
     switch ($priority) {
-      case 'urgent': return `${theme.colors.error}20`;
-      case 'high': return `${theme.colors.warning}20`;
-      case 'normal': return `${theme.colors.primary}20`;
-      default: return `${theme.colors.info}20`;
+      case 'urgent': return `linear-gradient(90deg,${theme.colors.error}33 0%,#fff0 100%)`;
+      case 'high': return `linear-gradient(90deg,${theme.colors.warning}33 0%,#fff0 100%)`;
+      case 'normal': return `linear-gradient(90deg,${theme.colors.primary}33 0%,#fff0 100%)`;
+      default: return `linear-gradient(90deg,${theme.colors.info}33 0%,#fff0 100%)`;
     }
   }};
   color: ${({ $priority, theme }) => {
@@ -368,6 +368,22 @@ const PriorityBadge = styled.div`
       case 'high': return theme.colors.warning;
       case 'normal': return theme.colors.primary;
       default: return theme.colors.info;
+    }
+  }};
+  border: 2px solid ${({ $priority, theme }) => {
+    switch ($priority) {
+      case 'urgent': return theme.colors.error + '55';
+      case 'high': return theme.colors.warning + '55';
+      case 'normal': return theme.colors.primary + '55';
+      default: return theme.colors.info + '55';
+    }
+  }};
+  box-shadow: 0 1.5px 8px ${({ $priority, theme }) => {
+    switch ($priority) {
+      case 'urgent': return theme.colors.error + '22';
+      case 'high': return theme.colors.warning + '22';
+      case 'normal': return theme.colors.primary + '22';
+      default: return theme.colors.info + '22';
     }
   }};
 `;
@@ -443,14 +459,18 @@ const TestTags = styled.div`
   gap: 0.5rem;
 `;
 
+// Tag for tests
 const TestTag = styled.span`
-  padding: 0.25rem 0.75rem;
-  background: ${({ theme }) => theme.colors.background};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 12px;
-  font-size: 0.8rem;
-  color: ${({ theme }) => theme.colors.text};
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  background: ${({ theme }) => theme.colors.primary + '22'};
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 0.2rem 0.7rem;
+  margin: 0 0.25rem 0.25rem 0;
+  gap: 0.3rem;
 `;
 
 const SampleActions = styled.div`
@@ -531,13 +551,308 @@ const EmptyState = styled(GlowCard)`
   }
 `;
 
+const AnimatedModal = styled(motion.div)`
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 1000;
+  background: rgba(20, 24, 40, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+const ModalContent = styled(motion.div)`
+  background: ${({ theme }) => theme.colors.surface};
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(102,126,234,0.18), 0 4px 16px rgba(0,0,0,0.08);
+  padding: 2.5rem 2rem 2rem 2rem;
+  min-width: 350px;
+  max-width: 95vw;
+  width: 500px;
+  position: relative;
+  overflow: hidden;
+`;
+const ModalHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+`;
+const ModalClose = styled.button`
+  position: absolute;
+  top: 1.2rem;
+  right: 1.2rem;
+  background: none;
+  border: none;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 1.5rem;
+  cursor: pointer;
+`;
+const ModalSection = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+// Helper: group tests by department
+function groupTestsByDepartment(tests) {
+  const grouped = {};
+  (tests || []).forEach(test => {
+    const dept = typeof test === 'object' && test.department ? test.department : 'General';
+    if (!grouped[dept]) grouped[dept] = [];
+    grouped[dept].push(test);
+  });
+  return grouped;
+}
+
+// Helper: recommended volume per department (cc)
+const DEPT_RECOMMENDED = {
+  Chemistry: 3,
+  Hematology: 2,
+  Microbiology: 2,
+  Virology: 2,
+  General: 2
+};
+
+// Modern, glassy, vertical animated syringe
+const SyringeSVG = ({ percent }) => (
+  <svg width="60" height="180" viewBox="0 0 60 180">
+    {/* Barrel */}
+    <rect x="20" y="30" width="20" height="100" rx="10" fill="url(#barrelGradient)" stroke="#b3c6e7" strokeWidth="2" filter="url(#barrelShadow)" />
+    {/* Blood fill */}
+    <motion.rect
+      x="20" y={130 - 100 * percent}
+      width="20"
+      height={100 * percent}
+      rx="10"
+      fill="url(#bloodGradient)"
+      initial={{ height: 0 }}
+      animate={{ height: 100 * percent, y: 130 - 100 * percent }}
+      transition={{ duration: 0.6, type: 'spring' }}
+    />
+    {/* Plunger */}
+    <motion.rect
+      x="22" y={30 + (1 - percent) * 100 - 8}
+      width="16"
+      height="16"
+      rx="8"
+      fill="#e5e7eb"
+      stroke="#b3c6e7"
+      strokeWidth="2"
+      filter="url(#plungerShadow)"
+      initial={{ y: 130 - 8 }}
+      animate={{ y: 30 + (1 - percent) * 100 - 8 }}
+      transition={{ duration: 0.6, type: 'spring' }}
+    />
+    {/* Needle */}
+    <rect x="28" y="10" width="4" height="20" rx="2" fill="#b3c6e7" />
+    {/* Drop */}
+    {percent > 0.99 && (
+      <motion.ellipse
+        cx="30" cy="7" rx="4" ry="7"
+        fill="#60a5fa"
+        initial={{ opacity: 0, cy: 7 }}
+        animate={{ opacity: 1, cy: 15 }}
+        transition={{ duration: 0.7, repeat: Infinity, repeatType: 'reverse' }}
+      />
+    )}
+    {/* Gradients and shadows */}
+    <defs>
+      <linearGradient id="barrelGradient" x1="20" y1="30" x2="40" y2="130" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#f8fafc" />
+        <stop offset="1" stopColor="#dbeafe" />
+      </linearGradient>
+      <linearGradient id="bloodGradient" x1="20" y1="130" x2="40" y2="30" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#ef4444" />
+        <stop offset="1" stopColor="#fbbf24" />
+      </linearGradient>
+      <filter id="barrelShadow" x="0" y="0" width="60" height="180">
+        <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#a5b4fc" floodOpacity="0.18" />
+      </filter>
+      <filter id="plungerShadow" x="0" y="0" width="60" height="180">
+        <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#64748b" floodOpacity="0.12" />
+      </filter>
+    </defs>
+  </svg>
+);
+
+// Modern, glassy, animated test tube
+const TubeSVG = ({ percent, color, label }) => (
+  <svg width="48" height="120" viewBox="0 0 48 120">
+    {/* Tube body */}
+    <rect x="12" y="20" width="24" height="80" rx="12" fill="url(#tubeGlass)" stroke="#b3c6e7" strokeWidth="2" filter="url(#tubeShadow)" />
+    {/* Blood fill */}
+    <motion.rect
+      x="12" y={100 - 80 * percent + 20}
+      width="24"
+      height={80 * percent}
+      rx="12"
+      fill={color}
+      style={{ opacity: 0.85 }}
+      initial={{ height: 0 }}
+      animate={{ height: 80 * percent, y: 100 - 80 * percent + 20 }}
+      transition={{ duration: 0.6, type: 'spring' }}
+    />
+    {/* Cap */}
+    <rect x="12" y="10" width="24" height="16" rx="6" fill={color} filter="url(#capShadow)" />
+    {/* Label */}
+    <text x="24" y="115" textAnchor="middle" fontSize="12" fill={color} style={{ fontWeight: 700 }}>{label}</text>
+    {/* Gradients and shadows */}
+    <defs>
+      <linearGradient id="tubeGlass" x1="12" y1="20" x2="36" y2="100" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#f1f5f9" />
+        <stop offset="1" stopColor="#dbeafe" />
+      </linearGradient>
+      <filter id="tubeShadow" x="0" y="0" width="48" height="120">
+        <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#a5b4fc" floodOpacity="0.18" />
+      </filter>
+      <filter id="capShadow" x="0" y="0" width="48" height="120">
+        <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor={color} floodOpacity="0.18" />
+      </filter>
+    </defs>
+  </svg>
+);
+
+// --- Inventory-style Patient Card Components ---
+const PatientGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2.5rem;
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+  }
+`;
+
+const PatientCard = styled(motion.div)`
+  cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+  filter: drop-shadow(0 4px 32px #667eea22) drop-shadow(0 1.5px 8px #0002);
+  &:hover {
+    transform: translateY(-8px) scale(1.025) rotate(-0.5deg);
+    filter: drop-shadow(0 8px 40px #667eea44) drop-shadow(0 2px 12px #0003);
+    z-index: 2;
+  }
+`;
+
+const PatientCardContent = styled(GlowCard)`
+  padding: 2.2rem 1.7rem 1.7rem 1.7rem;
+  height: 100%;
+  border: 2.5px solid transparent;
+  background: ${({ theme }) => theme.isDarkMode ? 'rgba(24,28,35,0.92)' : 'rgba(240,244,250,0.92)'};
+  backdrop-filter: blur(24px) saturate(1.2);
+  box-shadow: 0 8px 32px #667eea22, 0 2px 8px #0001;
+  border-radius: 2rem;
+  position: relative;
+  overflow: visible;
+  transition: border 0.3s, box-shadow 0.3s, background 0.3s;
+  border-image: ${({ $priority, theme }) => {
+    if ($priority === 'urgent') return 'linear-gradient(90deg,#ef4444,#fbbf24) 1';
+    if ($priority === 'high') return 'linear-gradient(90deg,#fbbf24,#3b82f6) 1';
+    if ($priority === 'normal') return 'linear-gradient(90deg,#3b82f6,#10b981) 1';
+    return 'linear-gradient(90deg,#a1a1aa,#e0e7ef) 1';
+  }};
+  &:before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    background: ${({ $priority, theme }) => {
+      if ($priority === 'urgent') return 'linear-gradient(120deg,#ef4444cc 0%,#fbbf24cc 100%)';
+      if ($priority === 'high') return 'linear-gradient(120deg,#fbbf24cc 0%,#3b82f6cc 100%)';
+      if ($priority === 'normal') return 'linear-gradient(120deg,#3b82f6cc 0%,#10b981cc 100%)';
+      return 'linear-gradient(120deg,#a1a1aacc 0%,#e0e7efcc 100%)';
+    }};
+    opacity: 0.13;
+    filter: blur(12px);
+    pointer-events: none;
+  }
+`;
+
+const PatientCardHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.2rem;
+`;
+
+const PatientInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+`;
+
+const PatientDetails = styled.div``;
+
+const PatientMeta = styled.p`
+  font-size: 1.05rem;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  margin: 0;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+`;
+
+const PatientTags = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin: 0.7rem 0 1.2rem 0;
+`;
+
+const PatientTag = styled.span`
+  display: inline-flex;
+  align-items: center;
+  background: ${({ color }) => `linear-gradient(90deg,${color}22 0%,#fff0 100%)`};
+  color: ${({ color }) => color};
+  font-size: 1.01rem;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 0.28rem 1.25rem;
+  border: 2px solid ${({ color }) => color + '55'};
+  box-shadow: 0 2px 8px ${({ color }) => color + '18'};
+  user-select: none;
+  letter-spacing: 0.01em;
+  transition: box-shadow 0.3s, border 0.3s;
+  font-weight: 800;
+  background: ${({ $priority, theme }) => {
+    switch ($priority) {
+      case 'urgent': return `linear-gradient(90deg,${theme.colors.error}33 0%,#fff0 100%)`;
+      case 'high': return `linear-gradient(90deg,${theme.colors.warning}33 0%,#fff0 100%)`;
+      case 'normal': return `linear-gradient(90deg,${theme.colors.primary}33 0%,#fff0 100%)`;
+      default: return `linear-gradient(90deg,${theme.colors.info}33 0%,#fff0 100%)`;
+    }
+  }};
+  color: ${({ $priority, theme }) => {
+    switch ($priority) {
+      case 'urgent': return theme.colors.error;
+      case 'high': return theme.colors.warning;
+      case 'normal': return theme.colors.primary;
+      default: return theme.colors.info;
+    }
+  }};
+  border: 2px solid ${({ $priority, theme }) => {
+    switch ($priority) {
+      case 'urgent': return theme.colors.error + '55';
+      case 'high': return theme.colors.warning + '55';
+      case 'normal': return theme.colors.primary + '55';
+      default: return theme.colors.info + '55';
+    }
+  }};
+  box-shadow: 0 1.5px 8px ${({ $priority, theme }) => {
+    switch ($priority) {
+      case 'urgent': return theme.colors.error + '22';
+      case 'high': return theme.colors.warning + '22';
+      case 'normal': return theme.colors.primary + '22';
+      default: return theme.colors.info + '22';
+    }
+  }};
+`;
+
 const Phlebotomist = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { theme } = useTheme();
   
-  const [samples, setSamples] = useState([]);
-  const [filteredSamples, setFilteredSamples] = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [filteredPatients, setFilteredPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -546,48 +861,53 @@ const Phlebotomist = () => {
   const [sortOrder, setSortOrder] = useState('desc');
   
   const [stats, setStats] = useState({
-    totalSamples: 0,
-    pendingSamples: 0,
-    collectedSamples: 0,
-    urgentSamples: 0,
+    totalPatients: 0,
+    readyForCollection: 0,
+    samplesCollected: 0,
+    urgentPatients: 0,
     averageCollectionTime: 0
   });
 
+  const [modalPatient, setModalPatient] = useState(null);
+  const [tubeVolumes, setTubeVolumes] = useState({});
+  const [collecting, setCollecting] = useState(false);
+
   useEffect(() => {
-    const fetchSamples = async () => {
+    const fetchPatients = async () => {
       try {
         setLoading(true);
-        const ordersQuery = query(
-          collection(db, 'testOrders'), 
-          where('status', 'in', ['Pending Sample', 'Sample Collected']),
+        const patientsQuery = query(
+          collection(db, 'patients'), 
           orderBy('createdAt', 'desc')
         );
         
-        const unsubscribe = onSnapshot(ordersQuery, (querySnapshot) => {
-          const samplesData = [];
+        const unsubscribe = onSnapshot(patientsQuery, (querySnapshot) => {
+          const patientsData = [];
           querySnapshot.forEach((doc) => {
             const data = { id: doc.id, ...doc.data() };
             // Add phlebotomy-specific data
+            data.bloodCollectionStatus = data.bloodCollectionStatus || 'ready_for_collection';
             data.priority = data.priority || 'normal';
             data.collectionTime = data.collectionTime || null;
             data.phlebotomistNotes = data.phlebotomistNotes || '';
             data.sampleConditions = data.sampleConditions || [];
             data.collectionMethod = data.collectionMethod || 'standard';
-            samplesData.push(data);
+            data.patientName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
+            patientsData.push(data);
           });
           
-          setSamples(samplesData);
+          setPatients(patientsData);
           
           // Calculate stats
-          const pending = samplesData.filter(s => s.status === 'Pending Sample');
-          const collected = samplesData.filter(s => s.status === 'Sample Collected');
-          const urgent = samplesData.filter(s => s.priority === 'urgent');
+          const readyForCollection = patientsData.filter(p => p.bloodCollectionStatus === 'ready_for_collection');
+          const samplesCollected = patientsData.filter(p => p.bloodCollectionStatus === 'sample_collected');
+          const urgent = patientsData.filter(p => p.priority === 'urgent');
           
-          const collectionTimes = collected
-            .filter(s => s.collectionTime)
-            .map(s => {
-              const created = s.createdAt?.toDate ? s.createdAt.toDate() : new Date(s.createdAt);
-              const collected = s.collectionTime?.toDate ? s.collectionTime.toDate() : new Date(s.collectionTime);
+          const collectionTimes = samplesCollected
+            .filter(p => p.collectionTime)
+            .map(p => {
+              const created = p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt);
+              const collected = p.collectionTime?.toDate ? p.collectionTime.toDate() : new Date(p.collectionTime);
               return (collected - created) / (1000 * 60); // minutes
             });
           
@@ -596,10 +916,10 @@ const Phlebotomist = () => {
             : 0;
           
           setStats({
-            totalSamples: samplesData.length,
-            pendingSamples: pending.length,
-            collectedSamples: collected.length,
-            urgentSamples: urgent.length,
+            totalPatients: patientsData.length,
+            readyForCollection: readyForCollection.length,
+            samplesCollected: samplesCollected.length,
+            urgentPatients: urgent.length,
             averageCollectionTime: Math.round(avgTime)
           });
           
@@ -608,35 +928,35 @@ const Phlebotomist = () => {
 
         return () => unsubscribe();
       } catch (error) {
-        console.error('Error fetching samples:', error);
-        toast.error('Failed to load sample data');
+        console.error('Error fetching patients:', error);
+        toast.error('Failed to load patient data');
         setLoading(false);
       }
     };
 
-    fetchSamples();
+    fetchPatients();
   }, []);
 
   useEffect(() => {
-    let filtered = samples;
+    let filtered = patients;
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(sample => 
-        sample.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sample.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sample.patientId?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(patient => 
+        patient.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        patient.patientId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        patient.phoneNumber?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Apply status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(sample => sample.status === statusFilter);
+      filtered = filtered.filter(patient => patient.bloodCollectionStatus === statusFilter);
     }
 
     // Apply priority filter
     if (priorityFilter !== 'all') {
-      filtered = filtered.filter(sample => sample.priority === priorityFilter);
+      filtered = filtered.filter(patient => patient.priority === priorityFilter);
     }
 
     // Apply sorting
@@ -668,28 +988,102 @@ const Phlebotomist = () => {
       }
     });
 
-    setFilteredSamples(filtered);
-  }, [samples, searchTerm, statusFilter, priorityFilter, sortBy, sortOrder]);
+    setFilteredPatients(filtered);
+  }, [patients, searchTerm, statusFilter, priorityFilter, sortBy, sortOrder]);
 
-  const handleCollectSample = async (sample) => {
+  useEffect(() => {
+    // On mount, check for in-process patient
+    const inProcessId = localStorage.getItem('inProcessPatientId');
+    if (inProcessId && patients.length > 0) {
+      const found = patients.find(
+        p => p.id === inProcessId && p.bloodCollectionStatus === 'in_progress' && p.assignedTo === 'Current Phlebotomist'
+      );
+      if (found) {
+        setModalPatient(found);
+      } else {
+        localStorage.removeItem('inProcessPatientId');
+      }
+    }
+    // Only run when patients list changes
+  }, [patients]);
+
+  const handleCollectSample = async (patient) => {
     try {
-      const sampleRef = doc(db, 'testOrders', sample.id);
-      await updateDoc(sampleRef, {
-        status: 'Sample Collected',
+      const patientRef = doc(db, 'patients', patient.id);
+      await updateDoc(patientRef, {
+        bloodCollectionStatus: 'sample_collected',
         collectionTime: new Date(),
         collectedBy: 'Current Phlebotomist', // Replace with actual user
-        phlebotomistNotes: sample.phlebotomistNotes || ''
+        phlebotomistNotes: patient.phlebotomistNotes || ''
       });
       
-      toast.success(`Sample collected for ${sample.patientName}`);
+      // Create a test order for the collected sample
+      const testOrderData = {
+        patientId: patient.patientId,
+        patientName: patient.patientName,
+        patientAge: patient.age,
+        patientGender: patient.gender,
+        referringDoctor: patient.referringDoctor || 'N/A',
+        orderDate: new Date(),
+        status: 'Sample Collected',
+        priority: patient.priority || 'Normal',
+        tests: patient.selectedTests || [],
+        totalPrice: 0, // Calculate based on tests
+        notes: patient.phlebotomistNotes || '',
+        createdBy: 'Phlebotomist',
+        createdAt: new Date(),
+        collectionTime: new Date(),
+        collectedBy: 'Current Phlebotomist'
+      };
+      
+      await addDoc(collection(db, 'testOrders'), testOrderData);
+      
+      toast.success(t('phlebotomistView.sampleCollectedSuccess', { patientName: patient.patientName }));
     } catch (error) {
       console.error('Error collecting sample:', error);
-      toast.error('Failed to collect sample');
+      toast.error(t('phlebotomistView.failedToCollectSample'));
     }
   };
 
-  const handleViewDetails = (sample) => {
-    navigate(`/app/order/${sample.id}`, { state: { sample } });
+  const handleMarkReady = async (patient) => {
+    try {
+      const patientRef = doc(db, 'patients', patient.id);
+      await updateDoc(patientRef, {
+        bloodCollectionStatus: 'ready_for_collection',
+        updatedAt: new Date()
+      });
+      
+      toast.success(t('phlebotomistView.patientMarkedReady', { patientName: patient.patientName }));
+    } catch (error) {
+      console.error('Error marking patient ready:', error);
+      toast.error(t('phlebotomistView.failedToUpdatePatient'));
+    }
+  };
+
+  const handleViewDetails = (patient) => {
+    navigate(`/app/patient/${patient.id}`, { state: { patient } });
+  };
+
+  const handleAcceptPatient = async (patient) => {
+    try {
+      const patientRef = doc(db, 'patients', patient.id);
+      await updateDoc(patientRef, {
+        bloodCollectionStatus: 'in_progress',
+        assignedTo: 'Current Phlebotomist', // Assign to current phlebotomist
+        updatedAt: new Date()
+      });
+      localStorage.setItem('inProcessPatientId', patient.id);
+      setModalPatient(patient); // Open modal for this patient
+      toast.success(t('phlebotomistView.patientAccepted', { patientName: patient.patientName }));
+    } catch (error) {
+      console.error('Error accepting patient:', error);
+      toast.error(t('phlebotomistView.failedToAcceptPatient'));
+    }
+  };
+
+  const closeModal = () => {
+    setModalPatient(null);
+    localStorage.removeItem('inProcessPatientId');
   };
 
   const clearFilters = () => {
@@ -712,6 +1106,66 @@ const Phlebotomist = () => {
     return sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />;
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'ready_for_collection': return '#F59E0B';
+      case 'sample_collected': return '#10B981';
+      case 'in_progress': return '#3B82F6';
+      default: return '#6B7280';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'ready_for_collection': return 'Ready for Collection';
+      case 'sample_collected': return 'Sample Collected';
+      case 'in_progress': return 'In Progress';
+      default: return 'Unknown';
+    }
+  };
+
+  const handleTubeVolumeChange = (dept, value) => {
+    setTubeVolumes(prev => ({ ...prev, [dept]: value }));
+  };
+
+  let grouped = {};
+  let departments = [];
+  let totalRecommended = 0;
+  let totalCollected = 0;
+  let allFilled = false;
+
+  if (modalPatient && Array.isArray(modalPatient.selectedTests)) {
+    grouped = groupTestsByDepartment(modalPatient.selectedTests);
+    departments = Object.keys(grouped);
+    totalRecommended = departments.reduce((sum, dept) => sum + (DEPT_RECOMMENDED[dept] || 2), 0);
+    totalCollected = departments.reduce((sum, dept) => sum + (Number(tubeVolumes[dept]) || 0), 0);
+    allFilled = departments.every(dept => tubeVolumes[dept] && Number(tubeVolumes[dept]) > 0);
+  }
+
+  const handleMarkAsCollected = async () => {
+    if (!modalPatient) return;
+    setCollecting(true);
+    try {
+      const patientRef = doc(db, 'patients', modalPatient.id);
+      await updateDoc(patientRef, {
+        bloodCollectionStatus: 'sample_collected',
+        assignedTo: null,
+        collectionTime: new Date(),
+        collectedBy: 'Current Phlebotomist', // Replace with actual user
+        tubeVolumes,
+        updatedAt: new Date()
+      });
+      toast.success(t('phlebotomistView.sampleCollectedSuccess', { patientName: modalPatient.patientName }));
+      setModalPatient(null);
+      setTubeVolumes({});
+      localStorage.removeItem('inProcessPatientId');
+    } catch (error) {
+      console.error('Error marking as collected:', error);
+      toast.error(t('phlebotomistView.failedToCollectSample'));
+    } finally {
+      setCollecting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -723,11 +1177,19 @@ const Phlebotomist = () => {
           >
             <FaSpinner size={48} />
           </motion.div>
-          <p>Loading sample collection data...</p>
+          <p>{t('phlebotomistView.loadingPatientData')}</p>
         </LoadingContainer>
       </PhlebotomistContainer>
     );
   }
+
+  // Split patients
+  const waitingPatients = filteredPatients.filter(
+    p => (!p.assignedTo && p.bloodCollectionStatus === 'ready_for_collection') || p.bloodCollectionStatus === 'in_progress'
+  );
+  const collectedPatients = filteredPatients.filter(
+    p => p.bloodCollectionStatus === 'sample_collected'
+  );
 
   return (
     <PhlebotomistContainer
@@ -737,12 +1199,12 @@ const Phlebotomist = () => {
     >
       <Header>
         <HeaderTitle>
-          <FaSyringe /> Sample Collection
+          <FaSyringe /> {t('phlebotomistView.title')}
         </HeaderTitle>
         <HeaderActions>
-          <GlowButton onClick={() => navigate('/app/workqueue')}>
-            <FaEye /> View Work Queue
-          </GlowButton>
+                                  <GlowButton onClick={() => navigate('/app/workqueue')}>
+              <FaEye /> View Work Queue
+            </GlowButton>
         </HeaderActions>
       </Header>
 
@@ -750,12 +1212,12 @@ const Phlebotomist = () => {
       <StatsContainer>
         <StatCard>
           <StatIcon color="#3B82F6">
-            <FaVial />
+            <FaUser />
           </StatIcon>
-          <StatValue>{stats.totalSamples}</StatValue>
-          <StatLabel>Total Samples</StatLabel>
+          <StatValue>{stats.totalPatients}</StatValue>
+          <StatLabel>{t('phlebotomistView.totalPatients')}</StatLabel>
           <StatChange $positive={true}>
-            {stats.pendingSamples} pending collection
+            {stats.readyForCollection} {t('phlebotomistView.readyForCollection').toLowerCase()}
           </StatChange>
         </StatCard>
 
@@ -763,8 +1225,8 @@ const Phlebotomist = () => {
           <StatIcon color="#10B981">
             <FaCheckCircle />
           </StatIcon>
-          <StatValue>{stats.collectedSamples}</StatValue>
-          <StatLabel>Collected Today</StatLabel>
+          <StatValue>{stats.samplesCollected}</StatValue>
+          <StatLabel>{t('phlebotomistView.samplesCollected')}</StatLabel>
           <StatChange $positive={true}>
             {stats.averageCollectionTime} min avg time
           </StatChange>
@@ -774,10 +1236,10 @@ const Phlebotomist = () => {
           <StatIcon color="#F59E0B">
             <FaClock />
           </StatIcon>
-          <StatValue>{stats.pendingSamples}</StatValue>
-          <StatLabel>Pending Collection</StatLabel>
+          <StatValue>{stats.readyForCollection}</StatValue>
+          <StatLabel>{t('phlebotomistView.readyForCollection')}</StatLabel>
           <StatChange $positive={false}>
-            {stats.urgentSamples} urgent samples
+            {stats.urgentPatients} {t('phlebotomistView.urgentPatients').toLowerCase()}
           </StatChange>
         </StatCard>
 
@@ -785,8 +1247,8 @@ const Phlebotomist = () => {
           <StatIcon color="#EF4444">
             <FaExclamationTriangle />
           </StatIcon>
-          <StatValue>{stats.urgentSamples}</StatValue>
-          <StatLabel>Urgent Samples</StatLabel>
+          <StatValue>{stats.urgentPatients}</StatValue>
+          <StatLabel>{t('phlebotomistView.urgentPatients')}</StatLabel>
           <StatChange $positive={false}>
             Requires immediate attention
           </StatChange>
@@ -800,7 +1262,7 @@ const Phlebotomist = () => {
             <FaSearch />
             <input
               type="text"
-              placeholder="Search by patient name, order ID, or patient ID..."
+              placeholder={t('phlebotomistView.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -810,125 +1272,257 @@ const Phlebotomist = () => {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="all">All Status</option>
-            <option value="Pending Sample">Pending Collection</option>
-            <option value="Sample Collected">Collected</option>
+            <option value="all">{t('phlebotomistView.allStatus')}</option>
+            <option value="ready_for_collection">{t('phlebotomistView.readyForCollection')}</option>
+            <option value="sample_collected">{t('phlebotomistView.sampleCollected')}</option>
+            <option value="in_progress">{t('phlebotomistView.inProgress')}</option>
           </FilterSelect>
 
           <FilterSelect
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
           >
-            <option value="all">All Priorities</option>
-            <option value="urgent">Urgent</option>
-            <option value="high">High</option>
-            <option value="normal">Normal</option>
+            <option value="all">{t('phlebotomistView.allPriorities')}</option>
+            <option value="urgent">{t('phlebotomistView.urgent')}</option>
+            <option value="high">{t('phlebotomistView.high')}</option>
+            <option value="normal">{t('phlebotomistView.normal')}</option>
           </FilterSelect>
         </FilterGrid>
 
         <FilterActions>
           <SortContainer>
-            <span>Sort by:</span>
+            <span>{t('phlebotomistView.sortBy')}</span>
             <SortButton
               $active={sortBy === 'createdAt'}
               onClick={() => handleSort('createdAt')}
             >
-              Created {getSortIcon('createdAt')}
+              {t('phlebotomistView.created')} {getSortIcon('createdAt')}
             </SortButton>
             <SortButton
               $active={sortBy === 'patientName'}
               onClick={() => handleSort('patientName')}
             >
-              Patient {getSortIcon('patientName')}
+              {t('phlebotomistView.patient')} {getSortIcon('patientName')}
             </SortButton>
             <SortButton
               $active={sortBy === 'priority'}
               onClick={() => handleSort('priority')}
             >
-              Priority {getSortIcon('priority')}
+              {t('phlebotomistView.priority')} {getSortIcon('priority')}
             </SortButton>
           </SortContainer>
 
           <ClearFiltersButton onClick={clearFilters}>
-            <FaTimes /> Clear Filters
+            <FaTimes /> {t('phlebotomistView.clearFilters')}
           </ClearFiltersButton>
         </FilterActions>
       </SearchAndFilterContainer>
 
-      {/* Sample Collection List */}
-      <GlowCard style={{ minHeight: 400 }}>
-        <div style={{ padding: '1.5rem' }}>
-          <h3 style={{ marginBottom: '1rem', color: theme.colors.text }}>
-            Sample Collection List
-          </h3>
-          {filteredSamples.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: theme.colors.textSecondary }}>
-              <FaVial size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-              <p>No samples found matching your criteria</p>
+      {/* Patient Collection List */}
+      <GlowCard style={{ minHeight: 180, marginBottom: 32, background: theme.isDarkMode ? '#181C23' : '#f8fafc', boxShadow: theme.isDarkMode ? '0 8px 32px #1118' : '0 8px 32px #e0e7ef33', border: 'none', backdropFilter: 'blur(18px)' }}>
+        <div style={{ padding: '2rem 1.5rem 1.5rem 1.5rem' }}>
+          {/* Persistent summary bar */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: theme.isDarkMode ? '#23272F' : '#e5e9f2',
+            borderRadius: 16,
+            padding: '1rem 1.5rem',
+            marginBottom: 24,
+            boxShadow: '0 2px 8px #0001',
+            fontWeight: 700,
+            fontSize: '1.1rem',
+            color: theme.colors.text,
+            gap: 16
+          }}>
+            <span>{t('phlebotomistView.waitingForCollection')}: <b style={{color: theme.colors.primary}}>{waitingPatients.length}</b></span>
+            <span>{t('phlebotomistView.urgentPatients')}: <b style={{color: theme.colors.error}}>{waitingPatients.filter(p => p.priority === 'urgent').length}</b></span>
+            <span>{t('phlebotomistView.avgWaitTime')}: <b style={{color: theme.colors.info}}>{stats.averageCollectionTime} {t('phlebotomistView.min')}</b></span>
+          </div>
+          {waitingPatients.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: theme.colors.textSecondary, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}>
+                <FaSyringe size={64} style={{ marginBottom: '1.5rem', opacity: 0.4, filter: 'drop-shadow(0 2px 16px #667eea33)' }} />
+              </motion.div>
+              <h4 style={{ color: theme.colors.textSecondary, fontWeight: 700, fontSize: '1.2rem', marginBottom: 8 }}>{t('phlebotomistView.noPatientsFound')}</h4>
+              <p style={{ color: theme.colors.textSecondary, fontSize: '1rem', opacity: 0.8 }}>{t('phlebotomistView.waitingEmptyHint') || 'No patients are currently waiting for collection. New requests will appear here in real time.'}</p>
             </div>
           ) : (
-            <div style={{ width: '100%', height: Math.min(filteredSamples.length * 100, 600), maxWidth: '100%' }}>
-              <List
-                height={Math.min(filteredSamples.length * 100, 600)}
-                itemCount={filteredSamples.length}
-                itemSize={120} // Adjust based on sample item height
-                width={'100%'}
-                style={{ overflowX: 'hidden' }}
-              >
-                {({ index, style }) => {
-                  const sample = filteredSamples[index];
-                  return (
-                    <div style={style} key={sample.id}>
-                      <div
-                        style={{
-                          padding: '1rem',
-                          border: `1px solid ${theme.colors.border}`,
-                          borderRadius: '12px',
-                          background: theme.colors.surface,
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          margin: '0.5rem 0'
-                        }}
-                      >
-                        <div>
-                          <h4 style={{ margin: '0 0 0.5rem 0', color: theme.colors.text }}>
-                            {sample.patientName}
-                          </h4>
-                          <p style={{ margin: '0', color: theme.colors.textSecondary, fontSize: '0.9rem' }}>
-                            Order ID: {sample.orderId} • Status: {sample.status}
-                          </p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <GlowButton
-                            size="small"
-                            onClick={() => handleViewDetails(sample)}
-                          >
-                            <FaEye /> View
-                          </GlowButton>
-                          {sample.status === 'Pending Sample' && (
-                            <GlowButton
-                              size="small"
-                              $variant="success"
-                              onClick={() => handleCollectSample(sample)}
-                            >
-                              <FaCheckCircle /> Collect
-                            </GlowButton>
-                          )}
-                        </div>
+            <PatientGrid>
+              {waitingPatients.map((patient) => {
+                let color = theme.colors.primary;
+                if (patient.priority === 'urgent') color = theme.colors.error;
+                else if (patient.priority === 'high') color = theme.colors.warning;
+                else if (patient.priority === 'normal') color = theme.colors.primary;
+                return (
+                  <PatientCard
+                    key={patient.id}
+                    whileHover={{ y: -5, scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <PatientCardContent $priority={patient.priority}>
+                      <PatientCardHeader>
+                        <PatientInfo>
+                          <PatientDetails>
+                            <PatientName>{patient.patientName}</PatientName>
+                            <PatientMeta>
+                              <FaIdCard size={13} style={{marginRight: 4}} />{patient.patientId} &nbsp;|
+                              <FaCalendar size={13} style={{margin: '0 4px 0 8px'}} />{typeof patient.age === 'object' && patient.age !== null ? `${patient.age.value} ${patient.age.unit}` : patient.age} &nbsp;|
+                              <FaUser size={13} style={{margin: '0 4px 0 8px'}} />{patient.gender}
+                            </PatientMeta>
+                          </PatientDetails>
+                        </PatientInfo>
+                        <PriorityBadge $priority={patient.priority}>{t(`phlebotomistView.${patient.priority}`)}</PriorityBadge>
+                      </PatientCardHeader>
+                      <PatientTags>
+                        {(Array.isArray(patient.selectedTests) ? patient.selectedTests : []).map((test, idx) => (
+                          <PatientTag key={idx} color={color}><FaTag size={12} style={{marginRight: 6}} />{typeof test === 'string' ? test : test.name || test.id}</PatientTag>
+                        ))}
+                      </PatientTags>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, justifyContent: 'flex-end' }}>
+                        <GlowButton
+                          $variant="success"
+                          style={{ fontSize: '1.05rem', fontWeight: 700, padding: '0.7rem 1.4rem', borderRadius: 12, minWidth: 140 }}
+                          onClick={() => handleAcceptPatient(patient)}
+                        >
+                          <FaSyringe style={{ marginRight: 8 }} />{t('phlebotomistView.startCollection')}
+                        </GlowButton>
+                        <GlowButton
+                          $variant="secondary"
+                          style={{ fontSize: '1.05rem', fontWeight: 700, padding: '0.7rem 1.4rem', borderRadius: 12, minWidth: 120 }}
+                          onClick={() => handleViewDetails(patient)}
+                        >
+                          <FaEye style={{ marginRight: 8 }} />{t('phlebotomistView.viewDetails')}
+                        </GlowButton>
                       </div>
-                    </div>
-                  );
-                }}
-              </List>
-            </div>
+                    </PatientCardContent>
+                  </PatientCard>
+                );
+              })}
+            </PatientGrid>
           )}
         </div>
       </GlowCard>
-      {/* 
-      // Commented out old sample grid implementation
-      // This section was causing JSX parsing issues due to nested comments
-      */}
+
+      {/* Collected Patients List */}
+      <GlowCard style={{ minHeight: 180, background: theme.isDarkMode ? '#181C23' : '#f8fafc', boxShadow: theme.isDarkMode ? '0 8px 32px #1118' : '0 8px 32px #e0e7ef33', border: 'none', backdropFilter: 'blur(18px)' }}>
+        <div style={{ padding: '2rem 1.5rem 1.5rem 1.5rem' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: theme.isDarkMode ? '#23272F' : '#e5e9f2',
+            borderRadius: 16,
+            padding: '1rem 1.5rem',
+            marginBottom: 24,
+            boxShadow: '0 2px 8px #0001',
+            fontWeight: 700,
+            fontSize: '1.1rem',
+            color: theme.colors.text,
+            gap: 16
+          }}>
+            <span>{t('phlebotomistView.collectedSamples')}: <b style={{color: theme.colors.success}}>{collectedPatients.length}</b></span>
+          </div>
+          {collectedPatients.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: theme.colors.textSecondary, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}>
+                <FaCheckCircle size={64} style={{ marginBottom: '1.5rem', opacity: 0.4, filter: 'drop-shadow(0 2px 16px #10b98133)' }} />
+              </motion.div>
+              <h4 style={{ color: theme.colors.textSecondary, fontWeight: 700, fontSize: '1.2rem', marginBottom: 8 }}>{t('phlebotomistView.noCollectedPatients')}</h4>
+              <p style={{ color: theme.colors.textSecondary, fontSize: '1rem', opacity: 0.8 }}>{t('phlebotomistView.collectedEmptyHint') || 'No samples have been collected yet. Collected samples will appear here.'}</p>
+            </div>
+          ) : (
+            <PatientGrid>
+              {collectedPatients.map((patient) => (
+                <PatientCard
+                  key={patient.id}
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <PatientCardContent $priority={patient.priority}>
+                    <PatientCardHeader>
+                      <PatientInfo>
+                        <PatientDetails>
+                          <PatientName>{patient.patientName}</PatientName>
+                          <PatientMeta>
+                            <FaIdCard size={13} style={{marginRight: 4}} />{patient.patientId} &nbsp;|
+                            <FaCalendar size={13} style={{margin: '0 4px 0 8px'}} />{typeof patient.age === 'object' && patient.age !== null ? `${patient.age.value} ${patient.age.unit}` : patient.age} &nbsp;|
+                            <FaUser size={13} style={{margin: '0 4px 0 8px'}} />{patient.gender}
+                          </PatientMeta>
+                        </PatientDetails>
+                      </PatientInfo>
+                      <PriorityBadge $priority={patient.priority}>{t(`phlebotomistView.${patient.priority}`)}</PriorityBadge>
+                    </PatientCardHeader>
+                    <PatientTags>
+                      {(Array.isArray(patient.selectedTests) ? patient.selectedTests : []).map((test, idx) => (
+                        <PatientTag key={idx} color={theme.colors.success}><FaTag size={12} />{typeof test === 'string' ? test : test.name || test.id}</PatientTag>
+                      ))}
+                    </PatientTags>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, justifyContent: 'flex-end' }}>
+                      <GlowButton
+                        $variant="secondary"
+                        style={{ fontSize: '1.05rem', fontWeight: 700, padding: '0.7rem 1.4rem', borderRadius: 12, minWidth: 120 }}
+                        onClick={() => handleViewDetails(patient)}
+                      >
+                        <FaEye style={{ marginRight: 8 }} />{t('phlebotomistView.view')}
+                      </GlowButton>
+                    </div>
+                  </PatientCardContent>
+                </PatientCard>
+              ))}
+            </PatientGrid>
+          )}
+        </div>
+      </GlowCard>
+
+      <AnimatePresence>
+        {modalPatient && (
+          <AnimatedModal
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <ModalContent
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              theme={theme}
+            >
+              <ModalClose theme={theme} onClick={closeModal}>&times;</ModalClose>
+              <ModalHeader>
+                <FaSyringe size={32} style={{ color: theme.colors.primary }} />
+                <div>
+                  <h2 style={{ margin: 0, fontWeight: 700 }}>{modalPatient.patientName}</h2>
+                  <div style={{ color: theme.colors.textSecondary, fontSize: '1rem' }}>
+                    {t('patientIdLabel')}: {modalPatient.patientId} &nbsp; | &nbsp;
+                    {t('ageLabel')}: {typeof modalPatient.age === 'object' && modalPatient.age !== null ? `${modalPatient.age.value} ${modalPatient.age.unit}` : modalPatient.age} &nbsp; | &nbsp;
+                    {t('genderLabel')}: {modalPatient.gender}
+                  </div>
+                </div>
+              </ModalHeader>
+              <ModalSection>
+                <div style={{ marginBottom: 8, fontWeight: 600 }}>{t('testsLabel')}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {(Array.isArray(modalPatient.selectedTests) ? modalPatient.selectedTests : []).map((test, idx) => (
+                    <TestTag key={idx} theme={theme}>{typeof test === 'string' ? test : test.name || test.id}</TestTag>
+                  ))}
+                </div>
+              </ModalSection>
+              <ModalSection>
+                <GlowButton $variant="success" style={{ width: '100%' }} onClick={handleMarkAsCollected}>
+                  {collecting ? (
+                    <FaSpinner className="fa-spin" style={{ marginRight: 8 }} />
+                  ) : null}
+                  {t('phlebotomistView.markAsCollected') || 'Mark as Collected'}
+                </GlowButton>
+              </ModalSection>
+            </ModalContent>
+          </AnimatedModal>
+        )}
+      </AnimatePresence>
     </PhlebotomistContainer>
   );
 };

@@ -29,12 +29,14 @@ import {
   Activity
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { GlowCard, GlowButton, AnimatedModal, AnimatedNotification } from '../../components/common';
+import { GlowCard, GlowButton, AnimatedModal } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 const LotManager = () => {
   const { t } = useTranslation();
-  // const { user } = useAuth(); // Unused variable, comment out or remove
+  const { user } = useAuth(); // Unused variable, comment out or remove
+  const { showNotification } = useNotifications();
   const [lots, setLots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -42,7 +44,6 @@ const LotManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
-  const [notification, setNotification] = useState(null);
 
   // Mock data
   useEffect(() => {
@@ -153,10 +154,9 @@ const LotManager = () => {
   const handleSubmit = (formData) => {
     if (editingLot) {
       setLots(prev => prev.map(lot => lot.id === editingLot.id ? { ...lot, ...formData } : lot));
-      setNotification({
+      showNotification({
         type: 'success',
         message: t('lotManager.lotUpdatedSuccessfully'),
-        icon: CheckCircle
       });
     } else {
       const newLot = {
@@ -171,10 +171,9 @@ const LotManager = () => {
         critical: false
       };
       setLots(prev => [newLot, ...prev]);
-      setNotification({
+      showNotification({
         type: 'success',
         message: t('lotManager.lotAddedSuccessfully'),
-        icon: CheckCircle
       });
     }
     setShowModal(false);
@@ -183,10 +182,9 @@ const LotManager = () => {
 
   const handleDelete = (lotId) => {
     setLots(prev => prev.filter(lot => lot.id !== lotId));
-    setNotification({
+    showNotification({
       type: 'success',
       message: t('lotManager.lotDeletedSuccessfully'),
-      icon: CheckCircle
     });
   };
 
@@ -676,10 +674,7 @@ const LotManager = () => {
       </AnimatedModal>
 
       {/* Notification */}
-      <AnimatedNotification
-        notification={notification}
-        onClose={() => setNotification(null)}
-      />
+      {/* AnimatedNotification is removed as per edit hint */}
     </div>
   );
 };

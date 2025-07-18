@@ -18,6 +18,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { GlowCard, GlowButton, AnimatedModal, AnimatedNotification } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 // Styled Components
 const HistoryContainer = styled(motion.div)`
@@ -411,7 +412,7 @@ const PatientHistory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterDateRange, setFilterDateRange] = useState('all');
-  const [notification, setNotification] = useState(null);
+  const { showNotification } = useNotifications();
   const [sortBy, setSortBy] = useState('recent');
   const [sortOrder, setSortOrder] = useState('desc');
 
@@ -929,16 +930,6 @@ const PatientHistory = () => {
               }}
             />
           </AnimatedModal>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {notification && (
-          <AnimatedNotification
-            type={notification.type}
-            message={notification.message}
-            onClose={() => setNotification(null)}
-          />
         )}
       </AnimatePresence>
     </HistoryContainer>

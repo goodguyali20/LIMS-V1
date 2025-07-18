@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { toast } from 'react-toastify';
-import { FaSearch, FaFilter, FaPrint, FaEye, FaSpinner, FaPlus, FaSort, FaUser, FaIdCard, FaCalendar } from 'react-icons/fa';
+import { FaSearch, FaFilter, FaPrint, FaEye, FaSpinner, FaPlus, FaSort, FaUser, FaIdCard, FaCalendar, FaUserCircle, FaVenusMars, FaBirthdayCake } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
 import GlowCard from '../components/common/GlowCard';
 import GlowButton from '../components/common/GlowButton';
@@ -13,6 +13,7 @@ import EmptyState from '../components/common/EmptyState';
 import SuccessState from '../components/common/SuccessState';
 import { advancedVariants, pageTransitions } from '../styles/animations';
 import { FixedSizeList as List } from 'react-window';
+import PrintPreviewModal from '../components/PatientRegistration/PrintPreviewModal';
 
 const OrdersContainer = styled(motion.div)`
   padding: 2rem;
@@ -418,6 +419,42 @@ const StatCard = styled(motion.div)`
   }
 `;
 
+const PatientAvatar = styled.div`
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-right: 1.2rem;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+  flex-shrink: 0;
+`;
+
+// Helper to transform order to patientData for PrintPreviewModal
+function orderToPatientData(order) {
+  if (!order) return {};
+  let firstName = '', lastName = '';
+  if (order.patientName) {
+    const parts = order.patientName.split(' ');
+    firstName = parts[0] || '';
+    lastName = parts.slice(1).join(' ') || '';
+  }
+  return {
+    id: order.patientId || order.id || '',
+    firstName,
+    lastName,
+    age: order.age || { value: '', unit: 'years' },
+    gender: order.gender || '',
+    phoneNumber: order.phone || '',
+    // Add any other fields as needed
+  };
+}
+
 const Orders = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -428,6 +465,8 @@ const Orders = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [printOrder, setPrintOrder] = useState(null);
 
   useEffect(() => {
     const q = query(
@@ -677,70 +716,83 @@ const Orders = () => {
             />
           </motion.div>
         ) : (
-          <div style={{ width: '100%', height: Math.min(filteredOrders.length * 200, 800), maxWidth: '100%' }}>
-            <List
-              height={Math.min(filteredOrders.length * 200, 800)}
-              itemCount={filteredOrders.length}
-              itemSize={220} // Adjust based on card height
-              width={'100%'}
-              style={{ overflowX: 'hidden' }}
-            >
-              {({ index, style }) => {
-                const order = filteredOrders[index];
-                return (
-                  <div style={style} key={order.id}>
-                    <OrderCard
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      status={order.status}
-                    >
-                      <PatientInfo>
-                        <h3>{order.patientName}</h3>
-                        <p><FaUser /> Patient ID: {order.patientId}</p>
-                        <p><FaIdCard /> Order ID: {order.id}</p>
-                        <p><FaCalendar /> Date: {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A'}</p>
-                      </PatientInfo>
-
-                      <TestList>
-                        <h4>Tests:</h4>
-                        <ul>
-                          {order.tests?.map((test, idx) => (
-                            <li key={idx}>{test}</li>
-                          ))}
-                        </ul>
-                      </TestList>
-
-                      <StatusBadge status={order.status}>
-                        {order.status}
-                      </StatusBadge>
-
-                      <OrderActions>
-                        <ActionButton
-                          onClick={() => handleViewOrder(order.id)}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <FaEye /> View
-                        </ActionButton>
-                        <ActionButton
-                          onClick={() => handlePrintOrder(order.id)}
-                          $variant="secondary"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <FaPrint /> Print
-                        </ActionButton>
-                      </OrderActions>
-                    </OrderCard>
+          <OrdersGrid
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            {filteredOrders.map((order, index) => (
+              <OrderCard
+                key={order.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                status={order.status}
+              >
+                {/* PatientInfo, TestList, StatusBadge, OrderActions as before */}
+                <PatientInfo style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <PatientAvatar>
+                    {order.patientName ? order.patientName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() : <FaUserCircle />}
+                  </PatientAvatar>
+                  <div>
+                    <h3 style={{ margin: 0 }}>{order.patientName}</h3>
+                    <div style={{ display: 'flex', gap: '1.2rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}><FaUser /> {order.patientId}</p>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}><FaIdCard /> {order.id}</p>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}><FaCalendar /> {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A'}</p>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}><FaBirthdayCake /> {order.age?.value ? `${order.age.value} ${order.age.unit || ''}` : '—'}</p>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}><FaVenusMars /> {order.gender ? order.gender : '—'}</p>
+                    </div>
                   </div>
-                );
-              }}
-            </List>
-          </div>
+                </PatientInfo>
+                <TestList>
+                  <h4>Tests:</h4>
+                  <ul>
+                    {order.tests?.map((test, idx) => (
+                      <li key={idx}>{test}</li>
+                    ))}
+                  </ul>
+                </TestList>
+                <StatusBadge status={order.status}>
+                  {order.status}
+                </StatusBadge>
+                <OrderActions>
+                  <ActionButton
+                    onClick={() => handleViewOrder(order.id)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <FaEye /> View
+                  </ActionButton>
+                  <ActionButton
+                    onClick={() => {
+                      setPrintOrder(order);
+                      setPrintModalOpen(true);
+                    }}
+                    $variant="secondary"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <FaPrint /> Print
+                  </ActionButton>
+                </OrderActions>
+              </OrderCard>
+            ))}
+          </OrdersGrid>
         )}
       </AnimatePresence>
+      <PrintPreviewModal
+        isOpen={printModalOpen}
+        onClose={() => setPrintModalOpen(false)}
+        patientData={orderToPatientData(printOrder)}
+        selectedTests={Array.isArray(printOrder?.tests) ? printOrder.tests.map(t => typeof t === 'string' ? t : t.name) : []}
+        orderData={{
+          referringDoctor: printOrder?.referringDoctor || 'N/A',
+          priority: printOrder?.priority || 'Normal',
+          notes: printOrder?.notes || ''
+        }}
+      />
     </OrdersContainer>
   );
 };

@@ -15,6 +15,9 @@ interface NotificationContextType {
   clearAllNotifications: () => void;
   isConnected: boolean;
   reconnect: () => void;
+  // --- Added for global flash messages ---
+  currentNotification: Omit<Notification, 'id' | 'timestamp'> | null;
+  showNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -36,6 +39,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const { user } = useAuth();
+  const [currentNotification, setCurrentNotification] = useState<Omit<Notification, 'id' | 'timestamp'> | null>(null);
+  const notificationTimeout = React.useRef<NodeJS.Timeout | null>(null);
 
   // Initialize socket connection
   useEffect(() => {
@@ -204,6 +209,15 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }
   }, []);
 
+  // Show a global flash message
+  const showNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp'>) => {
+    setCurrentNotification(notification);
+    if (notificationTimeout.current) clearTimeout(notificationTimeout.current);
+    notificationTimeout.current = setTimeout(() => {
+      setCurrentNotification(null);
+    }, 5000);
+  }, []);
+
   // Add notification
   const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp'>) => {
     const newNotification: Notification = {
@@ -304,6 +318,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     clearAllNotifications,
     isConnected,
     reconnect,
+    // --- Added for global flash messages ---
+    currentNotification,
+    showNotification,
   };
 
   return (

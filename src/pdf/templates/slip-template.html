@@ -4,66 +4,221 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=198.43,height=280.63,initial-scale=1.0">
   <title>{{lang.slipTitle}}</title>
-  <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css?family=Source+Serif+Pro:400,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    body { background: #F9F9F9; margin: 0; padding: 0; }
-    .slip-card { width: 198.43px; height: 280.63px; background: #FFF; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 12px; display: flex; flex-direction: column; justify-content: space-between; }
-    .slip-header { font-family: 'Inter', sans-serif; font-weight: 600; color: #007AFF; font-size: 1.05rem; margin-bottom: 4px; }
-    .slip-section { margin-bottom: 6px; }
-    .slip-label { font-family: 'Inter', sans-serif; font-weight: 400; color: #666; font-size: 0.85rem; }
-    .slip-value { font-family: 'Source Serif Pro', serif; font-weight: 400; color: #222; font-size: 1rem; }
-    .slip-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
-    .slip-footer { border-top: 2px solid #007AFF; margin-top: 8px; padding-top: 6px; }
-    .checklist { font-family: 'Inter', sans-serif; font-size: 0.9rem; color: #222; display: flex; flex-direction: column; gap: 2px; }
-    .checklist-item { display: flex; align-items: center; gap: 4px; }
-    .barcode, .qrcode { margin-top: 4px; text-align: center; }
-    .barcode-label, .qrcode-label { font-size: 0.7rem; color: #666; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body { 
+      margin: 0; 
+      padding: 0; 
+      font-family: 'Inter', sans-serif;
+      background: #ffffff;
+    }
+    
+    .slip-card { 
+      width: 198.43px; 
+      height: 280.63px; 
+      background: #ffffff;
+      border: 2px solid #000000;
+      padding: 8px; 
+      display: flex; 
+      flex-direction: column; 
+      position: relative;
+      font-size: 8px;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      border-bottom: 1px solid #000;
+      padding-bottom: 4px;
+    }
+    
+    .hospital-name {
+      font-weight: 700;
+      font-size: 10px;
+      color: #000;
+    }
+    
+    .slip-type {
+      font-weight: 600;
+      font-size: 8px;
+      color: #000;
+      text-transform: uppercase;
+    }
+    
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin-bottom: 6px;
+    }
+    
+    .info-item {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .info-label {
+      font-weight: 600;
+      font-size: 6px;
+      color: #000;
+      text-transform: uppercase;
+      margin-bottom: 1px;
+    }
+    
+    .info-value {
+      font-weight: 400;
+      font-size: 7px;
+      color: #000;
+      line-height: 1.2;
+    }
+    
+    .barcode-section {
+      text-align: center;
+      margin: 6px 0;
+      padding: 4px;
+      border: 1px solid #000;
+    }
+    
+    .barcode-label {
+      font-weight: 600;
+      font-size: 6px;
+      color: #000;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    
+    .barcode-value {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 7px;
+      color: #000;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+    
+    .qr-section {
+      text-align: center;
+      margin: 6px 0;
+    }
+    
+    .qr-label {
+      font-weight: 600;
+      font-size: 6px;
+      color: #000;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    
+    .checklist {
+      margin-top: auto;
+      border-top: 1px solid #000;
+      padding-top: 4px;
+    }
+    
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 2px;
+      font-size: 7px;
+      color: #000;
+    }
+    
+    .checkbox {
+      width: 8px;
+      height: 8px;
+      border: 1px solid #000;
+      margin-right: 4px;
+      display: inline-block;
+    }
+    
+    .department-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #000;
+      color: #fff;
+      padding: 2px 4px;
+      font-size: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .priority-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: #000;
+      color: #fff;
+      padding: 2px 4px;
+      font-size: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
   </style>
 </head>
 <body>
   <div class="slip-card">
-    <div>
-      <div class="slip-header">{{lang.hospitalName}}</div>
-      <div class="slip-section">
-        <div class="slip-label">{{lang.patientNameLabel}}</div>
-        <div class="slip-value">{{patientInfo.name}}</div>
+    {{#if department}}
+    <div class="department-badge">{{department}}</div>
+    {{/if}}
+    {{#if priority}}
+    <div class="priority-badge">{{priority}}</div>
+    {{/if}}
+    
+    <div class="header">
+      <div class="hospital-name">{{lang.hospitalName}}</div>
+      <div class="slip-type">{{#if department}}{{department}} Slip{{else}}Master Slip{{/if}}</div>
+    </div>
+    
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">{{lang.patientNameLabel}}</div>
+        <div class="info-value">{{patientInfo.name}}</div>
       </div>
-      <div class="slip-section slip-row">
-        <div>
-          <div class="slip-label">{{lang.patientIdLabel}}</div>
-          <div class="slip-value">{{patientInfo.patientId}}</div>
-        </div>
-        <div>
-          <div class="slip-label">{{lang.ageGenderLabel}}</div>
-          <div class="slip-value">{{patientInfo.age}} / {{patientInfo.gender}}</div>
-        </div>
+      <div class="info-item">
+        <div class="info-label">{{lang.patientIdLabel}}</div>
+        <div class="info-value">{{patientInfo.patientId}}</div>
       </div>
-      <div class="slip-section slip-row">
-        <div>
-          <div class="slip-label">{{lang.visitIdLabel}}</div>
-          <div class="slip-value">{{visitInfo.visitId}}</div>
-        </div>
-        <div>
-          <div class="slip-label">{{lang.dateLabel}}</div>
-          <div class="slip-value">{{visitInfo.date}}</div>
-        </div>
+      <div class="info-item">
+        <div class="info-label">{{lang.ageGenderLabel}}</div>
+        <div class="info-value">{{patientInfo.age}} / {{patientInfo.gender}}</div>
       </div>
-      <div class="barcode">
-        <div class="barcode-label">{{lang.barcodeLabel}}</div>
-        <div>{{barcode}}</div>
+      <div class="info-item">
+        <div class="info-label">{{lang.visitIdLabel}}</div>
+        <div class="info-value">{{visitInfo.visitId}}</div>
       </div>
-      <div class="qrcode">
-        <div class="qrcode-label">{{lang.qrcodeLabel}}</div>
-        <img src="{{qrcode}}" alt="QR" width="48" height="48" />
+      <div class="info-item">
+        <div class="info-label">{{lang.dateLabel}}</div>
+        <div class="info-value">{{visitInfo.date}}</div>
       </div>
     </div>
-    <div class="slip-footer">
-      <div class="checklist">
-        <div class="checklist-item">[ ] {{lang.sampleReceived}}</div>
-        <div class="checklist-item">[ ] {{lang.sampleProcessed}}</div>
-        <div class="checklist-item">[ ] {{lang.analysisComplete}}</div>
+    
+    <div class="barcode-section">
+      <div class="barcode-label">{{lang.barcodeLabel}}</div>
+      <div class="barcode-value">{{barcode}}</div>
+    </div>
+    
+    <div class="qr-section">
+      <div class="qr-label">{{lang.qrcodeLabel}}</div>
+      <img src="{{qrcode}}" alt="QR" width="32" height="32" style="border: 1px solid #000;" />
+    </div>
+    
+    <div class="checklist">
+      <div class="checklist-item">
+        <div class="checkbox"></div>
+        {{lang.sampleReceived}}
+      </div>
+      <div class="checklist-item">
+        <div class="checkbox"></div>
+        {{lang.sampleProcessed}}
+      </div>
+      <div class="checklist-item">
+        <div class="checkbox"></div>
+        {{lang.analysisComplete}}
       </div>
     </div>
   </div>

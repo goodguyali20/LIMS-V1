@@ -7,7 +7,7 @@ import { db } from '../../firebase/config';
 import { logAuditEvent } from '../../utils/auditLogger';
 import { useNavigate } from 'react-router-dom';
 import RejectionModal from '../Modals/RejectionModal';
-import { FaUser, FaVial, FaClock, FaExclamationTriangle, FaPlay, FaBan, FaRedo } from 'react-icons/fa';
+import { FaUser, FaVial, FaClock, FaExclamationTriangle, FaPlay, FaBan, FaRedo, FaDownload } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import { useTestCatalog } from '../../contexts/TestContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -195,6 +195,14 @@ const RecollectButton = styled(ActionButton)`
   }
 `;
 
+const DownloadButton = styled(ActionButton)`
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  
+  &:hover {
+    background: linear-gradient(135deg, #2980b9, #3498db);
+  }
+`;
+
 const StatusBadge = styled(motion.span)`
   padding: 0.4rem 1rem;
   border-radius: 2rem;
@@ -231,7 +239,7 @@ const StatusBadge = styled(motion.span)`
   }};
 `;
 
-const OrderCard = ({ order }) => {
+const OrderCard = ({ order, onDownload }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const navigate = useNavigate();
@@ -375,6 +383,16 @@ const OrderCard = ({ order }) => {
                 <FaPlay />
                 {t('orderCard_process_button')}
               </ProcessButton>
+              {onDownload && (
+                <DownloadButton 
+                  onClick={() => onDownload(order)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <FaDownload />
+                  {t('orderCard_download_slip')}
+                </DownloadButton>
+              )}
             </>
           )}
         </Actions>

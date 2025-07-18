@@ -946,6 +946,9 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     mutationFn: async (patientData) => {
       const docRef = await addDoc(collection(db, "patients"), {
         ...patientData,
+        bloodCollectionStatus: 'ready_for_collection', // Set initial status for phlebotomist view
+        priority: patientData.priority || 'normal',
+        selectedTests: selectedTests, // Include selected tests for test order creation
         createdAt: new Date(),
         updatedAt: new Date()
       });

@@ -198,7 +198,7 @@ async function createWorkSlip(pdfDoc, data, slipType = 'master', department = nu
   });
   
   y -= 15;
-  page.drawText(`Name: ${data.patientInfo.name}`, {
+  page.drawText(`Name: ${data.patientInfo?.name || 'N/A'}`, {
     x: 10,
     y,
     size: SIZES.body,
@@ -207,7 +207,7 @@ async function createWorkSlip(pdfDoc, data, slipType = 'master', department = nu
   });
   
   y -= 12;
-  page.drawText(`ID: ${data.patientInfo.patientId}`, {
+  page.drawText(`ID: ${data.patientInfo?.patientId || 'N/A'}`, {
     x: 10,
     y,
     size: SIZES.body,
@@ -216,7 +216,7 @@ async function createWorkSlip(pdfDoc, data, slipType = 'master', department = nu
   });
   
   y -= 12;
-  page.drawText(`Age/Gender: ${data.patientInfo.age}Y / ${data.patientInfo.gender}`, {
+  page.drawText(`Age/Gender: ${data.patientInfo?.age}Y / ${data.patientInfo?.gender}`, {
     x: 10,
     y,
     size: SIZES.body,
@@ -225,7 +225,7 @@ async function createWorkSlip(pdfDoc, data, slipType = 'master', department = nu
   });
   
   y -= 12;
-  page.drawText(`Visit ID: ${data.visitInfo.visitId}`, {
+  page.drawText(`Visit ID: ${data.visitInfo?.visitId || 'N/A'}`, {
     x: 10,
     y,
     size: SIZES.body,
@@ -234,7 +234,7 @@ async function createWorkSlip(pdfDoc, data, slipType = 'master', department = nu
   });
   
   y -= 12;
-  page.drawText(`Date: ${new Date(data.visitInfo.registrationDate).toLocaleDateString()}`, {
+  page.drawText(`Date: ${new Date(data.visitInfo?.registrationDate).toLocaleDateString()}`, {
     x: 10,
     y,
     size: SIZES.body,
@@ -245,7 +245,7 @@ async function createWorkSlip(pdfDoc, data, slipType = 'master', department = nu
   y -= 25;
   
   // Barcode
-  const barcodeText = generateBarcode(data.visitInfo.visitId);
+  const barcodeText = generateBarcode(data.visitInfo?.visitId || 'N/A');
   page.drawText('Barcode:', {
     x: 10,
     y,
@@ -267,9 +267,9 @@ async function createWorkSlip(pdfDoc, data, slipType = 'master', department = nu
   
   // QR Code placeholder
   const qrData = JSON.stringify({
-    patientId: data.patientInfo.patientId,
-    visitId: data.visitInfo.visitId,
-    name: data.patientInfo.name,
+    patientId: data.patientInfo?.patientId || 'N/A',
+    visitId: data.visitInfo?.visitId || 'N/A',
+    name: data.patientInfo?.name || 'N/A',
   });
   
   page.drawText('QR Code:', {
@@ -433,7 +433,7 @@ async function createResultsReport(pdfDoc, data) {
   
   // Patient info (right column)
   y = height - 40;
-  page.drawText(`Patient: ${data.patientInfo.name}`, {
+  page.drawText(`Patient: ${data.patientInfo?.name || 'N/A'}`, {
     x: width - 250,
     y,
     size: SIZES.body,
@@ -442,7 +442,7 @@ async function createResultsReport(pdfDoc, data) {
   });
   
   y -= 15;
-  page.drawText(`ID: ${data.patientInfo.patientId}`, {
+  page.drawText(`ID: ${data.patientInfo?.patientId || 'N/A'}`, {
     x: width - 250,
     y,
     size: SIZES.body,
@@ -451,7 +451,7 @@ async function createResultsReport(pdfDoc, data) {
   });
   
   y -= 15;
-  page.drawText(`Age/Gender: ${data.patientInfo.age}Y / ${data.patientInfo.gender}`, {
+  page.drawText(`Age/Gender: ${data.patientInfo?.age}Y / ${data.patientInfo?.gender}`, {
     x: width - 250,
     y,
     size: SIZES.body,
@@ -460,7 +460,7 @@ async function createResultsReport(pdfDoc, data) {
   });
   
   y -= 15;
-  page.drawText(`Doctor: ${data.patientInfo.referringDoctor}`, {
+  page.drawText(`Doctor: ${data.patientInfo?.referringDoctor || 'N/A'}`, {
     x: width - 250,
     y,
     size: SIZES.body,
@@ -469,7 +469,7 @@ async function createResultsReport(pdfDoc, data) {
   });
   
   y -= 15;
-  page.drawText(`Collection: ${new Date(data.visitInfo.collectionDate).toLocaleDateString()}`, {
+  page.drawText(`Collection: ${new Date(data.visitInfo?.collectionDate).toLocaleDateString()}`, {
     x: width - 250,
     y,
     size: SIZES.body,
@@ -478,7 +478,7 @@ async function createResultsReport(pdfDoc, data) {
   });
   
   y -= 15;
-  page.drawText(`Report: ${new Date(data.visitInfo.reportDate).toLocaleDateString()}`, {
+  page.drawText(`Report: ${new Date(data.visitInfo?.reportDate).toLocaleDateString()}`, {
     x: width - 250,
     y,
     size: SIZES.body,
@@ -637,9 +637,9 @@ async function createResultsReport(pdfDoc, data) {
   // QR Code and page number
   y -= 40;
   const qrData = JSON.stringify({
-    visitId: data.visitInfo.visitId,
-    patientId: data.patientInfo.patientId,
-    reportDate: data.visitInfo.reportDate,
+    visitId: (data.visitInfo?.visitId || 'N/A'),
+    patientId: (data.patientInfo?.patientId || 'N/A'),
+    reportDate: data.visitInfo?.reportDate,
   });
   
   page.drawText('QR Code: ' + qrData.substring(0, 30) + '...', {
@@ -726,18 +726,45 @@ export async function generatePdfWithPuppeteer(documentType, data, lang = {}) {
  * (Scaffold) Generate lab slip PDF using Puppeteer and HTML/CSS template
  * TODO: Implement slip-template.html and CSS for slips (70x99mm)
  */
-export async function generateSlipWithPuppeteer(data, lang = {}) {
+export async function generateSlipWithPuppeteer(data, lang = {}, documentType = 'masterSlip') {
+  // Default language translations
+  const defaultLang = {
+    hospitalName: 'SmartLab',
+    patientNameLabel: 'Patient Name',
+    patientIdLabel: 'Patient ID',
+    ageGenderLabel: 'Age/Gender',
+    visitIdLabel: 'Visit ID',
+    dateLabel: 'Date',
+    barcodeLabel: 'Barcode',
+    qrcodeLabel: 'QR Code',
+    sampleReceived: 'Sample Received',
+    sampleProcessed: 'Sample Processed',
+    analysisComplete: 'Analysis Complete'
+  };
+  
+  // Merge with provided language data
+  const mergedLang = { ...defaultLang, ...lang };
   const fs = await import('fs/promises');
   const path = await import('path');
   const puppeteer = await import('puppeteer');
   const Handlebars = (await import('handlebars')).default;
+  
+  // Handle different data structures - support both visitInfo/patientInfo and direct order data
+  const visitId = data.visitInfo?.visitId || data.id || 'N/A';
+  const patientId = data.patientInfo?.patientId || data.patientId || 'N/A';
+  const name = data.patientInfo?.name || data.patientName || 'N/A';
+  
+  // Extract department from document type if it's a department slip
+  const department = documentType.startsWith('departmentSlip-') 
+    ? documentType.replace('departmentSlip-', '') 
+    : data.department || null;
   // Prepare barcode (as text)
-  const barcode = `*${data.visitInfo.visitId}*`;
+  const barcode = `*${visitId}*`;
   // Prepare QR code as data URL
   const qrData = JSON.stringify({
-    patientId: data.patientInfo.patientId,
-    visitId: data.visitInfo.visitId,
-    name: data.patientInfo.name,
+    patientId: patientId,
+    visitId: visitId,
+    name: name,
   });
   const qrcode = await new Promise((resolve, reject) => {
     QRCode.toDataURL(qrData, { width: 48, margin: 0 }, (err, url) => {
@@ -746,30 +773,71 @@ export async function generateSlipWithPuppeteer(data, lang = {}) {
   });
   // Read HTML template
   const templateFile = path.join(__dirname, '../pdf/templates/slip-template.html');
-  const templateHtml = await fs.readFile(templateFile, 'utf8');
+  let templateHtml;
+  try {
+    templateHtml = await fs.readFile(templateFile, 'utf8');
+  } catch (error) {
+    console.error('Error reading slip template:', error);
+    throw new Error('Slip template not found');
+  }
+  
   // Read CSS
   const cssFile = path.join(__dirname, '../pdf/templates/style.css');
-  const styleCss = await fs.readFile(cssFile, 'utf8');
-  // Prepare data for template
-  const templateData = { ...data, lang, barcode, qrcode };
+  let styleCss;
+  try {
+    styleCss = await fs.readFile(cssFile, 'utf8');
+  } catch (error) {
+    console.error('Error reading CSS file:', error);
+    styleCss = ''; // Use empty CSS if file not found
+  }
+  // Prepare data for template - format to match template expectations
+  const templateData = { 
+    lang: mergedLang, 
+    barcode, 
+    qrcode,
+    department,
+    isDepartmentSlip: !!department,
+    slipTitle: department ? `${department} Work Slip` : 'Master Work Slip',
+    patientInfo: {
+      name: name,
+      patientId: patientId,
+      age: data.age || data.patientInfo?.age || 'N/A',
+      gender: data.gender || data.patientInfo?.gender || 'N/A'
+    },
+    visitInfo: {
+      visitId: visitId,
+      date: data.createdAt || data.visitInfo?.date || new Date().toISOString().split('T')[0]
+    },
+    // Include original data for backward compatibility
+    ...data
+  };
   // Compile with Handlebars
   const template = Handlebars.compile(templateHtml);
   let html = template(templateData);
   // Inject CSS into <head>
   html = html.replace('</head>', `<style>${styleCss}</style></head>`);
   // Launch Puppeteer
-  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
-  // Set custom size for slip (70x99mm)
-  const pdfBuffer = await page.pdf({
-    width: '70mm',
-    height: '99mm',
-    printBackground: true,
-    pageRanges: '1',
-  });
-  await browser.close();
-  return pdfBuffer;
+  let browser;
+  try {
+    browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    // Set custom size for slip (70x99mm)
+    const pdfBuffer = await page.pdf({
+      width: '70mm',
+      height: '99mm',
+      printBackground: true,
+      pageRanges: '1',
+    });
+    return pdfBuffer;
+  } catch (error) {
+    console.error('Puppeteer error:', error);
+    throw new Error('Failed to generate PDF with Puppeteer');
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
 }
 
 /**
@@ -779,10 +847,10 @@ export async function generatePdf(documentType, data, lang = {}) {
   if (documentType === 'resultsReport' || documentType === 'auditSheet') {
     return await generatePdfWithPuppeteer(documentType, data, lang);
   }
-  if (documentType === 'labSlip' || documentType === 'masterSlip') {
-    return await generateSlipWithPuppeteer(data, lang);
+  if (documentType === 'labSlip' || documentType === 'masterSlip' || documentType.startsWith('departmentSlip-')) {
+    return await generateSlipWithPuppeteer(data, lang, documentType);
   }
-  throw new Error(`Unknown document type: ${documentType}`);
+  throw new Error(`Unknown or unsupported document type: ${documentType}`);
 }
 
 /**

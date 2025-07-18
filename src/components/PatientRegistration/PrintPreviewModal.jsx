@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -118,6 +118,7 @@ const ContentArea = styled.div`
 
 const PreviewContainer = styled.div`
   height: 100%;
+  max-height: 70vh;
   overflow-y: auto;
   padding: 2rem;
   background: #f8fafc;
@@ -196,6 +197,32 @@ const ActionButtons = styled.div`
   flex-wrap: wrap;
 `;
 
+// Add a new styled component for compact download buttons
+const DownloadButton = styled(GlowButton)`
+  background: transparent;
+  border: 2px solid ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.colors.primary};
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: none;
+  min-width: 0;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+  &:hover {
+    background: ${({ theme }) => theme.colors.primary + '10'};
+    color: ${({ theme }) => theme.colors.primary};
+    border-color: ${({ theme }) => theme.colors.primary};
+  }
+`;
+
+const DownloadButtonRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+`;
+
 const PrintPreviewModal = ({ 
   isOpen, 
   onClose, 
@@ -209,6 +236,17 @@ const PrintPreviewModal = ({
   const { labTests, departmentColors } = useTestCatalog();
   const [activeTab, setActiveTab] = useState('master');
   const downloadPdf = usePdfDownload();
+  const previewRef = useRef(null);
+  const modalContentRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        if (previewRef.current) previewRef.current.scrollTop = 0;
+        if (modalContentRef.current) modalContentRef.current.scrollTop = 0;
+      }, 50);
+    }
+  }, [isOpen]);
 
   // Group tests by department
   const testsByDepartment = useMemo(() => {
@@ -251,11 +289,54 @@ const PrintPreviewModal = ({
     notes: orderData?.notes || '',
   }), [orderSummary, patientData, orderData, selectedTests, labTests]);
 
+  // Add a print handler
+  const handlePrintMasterSlip = () => {
+    const printContents = document.getElementById('print-master');
+    if (!printContents) return;
+    const printWindow = window.open('', '', 'width=900,height=1200');
+    printWindow.document.write('<html><head><title>Print</title>');
+    Array.from(document.head.children).forEach(node => {
+      printWindow.document.write(node.outerHTML);
+    });
+    printWindow.document.write('</head><body>');
+    printWindow.document.write(printContents.innerHTML);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 300);
+  };
+
+  // Add a print all handler
+  const handlePrintAllSlips = () => {
+    const master = document.getElementById('print-master');
+    const deptIds = Object.keys(testsByDepartment).map(dept => `print-dept-${dept}`);
+    const depts = deptIds.map(id => document.getElementById(id));
+    const printWindow = window.open('', '', 'width=900,height=1200');
+    printWindow.document.write('<html><head><title>Print</title>');
+    Array.from(document.head.children).forEach(node => {
+      printWindow.document.write(node.outerHTML);
+    });
+    printWindow.document.write('</head><body>');
+    if (master) printWindow.document.write(master.innerHTML);
+    depts.forEach(el => { if (el) printWindow.document.write(el.innerHTML); });
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 300);
+  };
+
   if (!isOpen) return null;
 
   return (
     <ModalBackdrop onClick={onClose}>
       <ModalContent
+        ref={modalContentRef}
         onClick={(e) => e.stopPropagation()}
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -268,14 +349,16 @@ const PrintPreviewModal = ({
           </HeaderTitle>
           <HeaderActions>
             <GlowButton
-              onClick={async () => {
-                console.log('Download Master Slip clicked');
-                await downloadPdf('masterSlip', { patientData, selectedTests, orderData });
-                console.log('Download Master Slip finished');
-              }}
+              onClick={handlePrintMasterSlip}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
-              <FaPrint /> Download Master Slip
+              <FaPrint /> Print Master Slip
+            </GlowButton>
+            <GlowButton
+              onClick={handlePrintAllSlips}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <FaPrint /> Print All Slips
             </GlowButton>
             <GlowButton
               onClick={onClose}
@@ -314,23 +397,23 @@ const PrintPreviewModal = ({
             </SummaryItem>
           </SummaryGrid>
           
-          <ActionButtons>
-            <GlowButton
-              onClick={() => downloadPdf('masterSlip', { patientData, selectedTests, orderData })}
+          <DownloadButtonRow>
+            <DownloadButton
+              onClick={() => downloadPdf('masterSlip', mockOrder)}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
-              <FaPrint /> Download Master Slip
-            </GlowButton>
+              <FaPrint /> Master Slip
+            </DownloadButton>
             {Object.keys(testsByDepartment).map(dept => (
-              <GlowButton
+              <DownloadButton
                 key={dept}
-                onClick={() => downloadPdf(`departmentSlip-${dept}`, { patientData, selectedTests, orderData, department: dept })}
+                onClick={() => downloadPdf(`departmentSlip-${dept}`, { ...mockOrder, department: dept })}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
               >
-                <FaBuilding /> Download {dept} Slip
-              </GlowButton>
+                <FaBuilding /> {dept} Slip
+              </DownloadButton>
             ))}
-          </ActionButtons>
+          </DownloadButtonRow>
         </OrderSummary>
 
         <TabContainer>
@@ -355,7 +438,7 @@ const PrintPreviewModal = ({
         </TabContainer>
 
         <ContentArea>
-          <PreviewContainer>
+          <PreviewContainer ref={previewRef}>
             {/* Always render all print previews, hide inactive ones */}
             <div>
               <PrintPreview id="print-master" style={{ display: activeTab === 'master' ? undefined : 'none' }}>

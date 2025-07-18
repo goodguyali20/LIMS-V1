@@ -25,6 +25,7 @@ import DepartmentSlip from '../../components/Print/DepartmentSlip';
 import TubeIdSlip from '../../components/Print/TubeIdSlip';
 import { usePerformanceMonitor, useMemoWithPerformance, useCallbackWithPerformance } from '../../utils/performanceOptimizer';
 import { FixedSizeList as List } from 'react-window';
+import usePdfDownload from '../../components/Print/usePdfDownload';
 
 const PageContainer = styled(motion.div)`
   display: flex;
@@ -543,6 +544,7 @@ const WorkQueue = memo(() => {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [printType, setPrintType] = useState('report');
+  const downloadPdf = usePdfDownload();
 
   // Memoized query for orders
   const ordersQuery = useMemoWithPerformance(() => {
@@ -694,13 +696,13 @@ const WorkQueue = memo(() => {
 
   const handleDownloadPDF = useCallbackWithPerformance(async (order) => {
     try {
-      // PDF download logic
+      await downloadPdf('masterSlip', order, 'en');
       toast.success('PDF download started');
     } catch (error) {
       console.error('Error downloading PDF:', error);
       toast.error('Failed to download PDF');
     }
-  }, [], 'download_pdf');
+  }, [downloadPdf], 'download_pdf');
 
   // Memoized sort icon component
   const getSortIcon = useCallbackWithPerformance((field) => {

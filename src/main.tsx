@@ -5,6 +5,8 @@ import './i18n';
 import './styles/index.css';
 import { initializeErrorMonitoring, setupGlobalErrorHandling } from './utils/errorMonitoring.tsx';
 import { initializePerformanceMonitoring } from './utils/performanceOptimizer';
+import { NotificationProvider } from './contexts/NotificationContext';
+import { AuthProvider } from './contexts/AuthContext';
 
 // Initialize error monitoring
 initializeErrorMonitoring();
@@ -41,7 +43,11 @@ const initializeApp = () => {
   
   root.render(
     <React.StrictMode>
-      <App />
+      <AuthProvider>
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
+      </AuthProvider>
     </React.StrictMode>
   );
 };

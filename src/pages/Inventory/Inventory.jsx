@@ -26,6 +26,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { GlowCard, GlowButton, AnimatedModal, AnimatedNotification } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 // Styled Components
 const InventoryContainer = styled(motion.div)`
@@ -420,6 +421,7 @@ const EmptyDescription = styled.p`
 
 const Inventory = () => {
   const { t } = useTranslation();
+  const { showNotification } = useNotifications();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -427,7 +429,6 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [notification, setNotification] = useState(null);
 
   // Mock data
   useEffect(() => {
@@ -523,10 +524,9 @@ const Inventory = () => {
   const handleSubmit = (formData) => {
     if (editingItem) {
       setInventory(prev => prev.map(item => item.id === editingItem.id ? { ...item, ...formData } : item));
-      setNotification({
+      showNotification({
         type: 'success',
         message: t('inventory.itemUpdatedSuccessfully'),
-        icon: CheckCircle
       });
     } else {
       const newItem = {
@@ -537,10 +537,9 @@ const Inventory = () => {
         critical: formData.quantity <= formData.minQuantity
       };
       setInventory(prev => [newItem, ...prev]);
-      setNotification({
+      showNotification({
         type: 'success',
         message: t('inventory.itemAddedSuccessfully'),
-        icon: CheckCircle
       });
     }
     setShowModal(false);
@@ -549,10 +548,9 @@ const Inventory = () => {
 
   const handleDelete = (itemId) => {
     setInventory(prev => prev.filter(item => item.id !== itemId));
-    setNotification({
+    showNotification({
       type: 'success',
       message: t('inventory.itemDeletedSuccessfully'),
-      icon: CheckCircle
     });
   };
 
@@ -919,13 +917,7 @@ const Inventory = () => {
       </AnimatePresence>
 
       <AnimatePresence>
-        {notification && (
-          <AnimatedNotification
-            type={notification.type}
-            message={notification.message}
-            onClose={() => setNotification(null)}
-          />
-        )}
+        {/* Removed AnimatedNotification usage */}
       </AnimatePresence>
     </InventoryContainer>
   );

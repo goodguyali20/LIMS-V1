@@ -6,13 +6,14 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { OrderProvider } from './contexts/OrderContext';
 import { TestProvider } from './contexts/TestContext';
-import { NotificationProvider } from './contexts/NotificationContext';
+import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { GlobalStyles } from './styles/GlobalStyles';
 import PerformanceMonitor from './components/PerformanceMonitor';
 import AppRoutes from './AppRoutes';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import AnimatedNotification from './components/common/AnimatedNotification';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -136,6 +137,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 const AppContent = memo(() => {
   const { theme } = useTheme();
   const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false);
+  const { currentNotification, showNotification } = useNotifications();
 
   // Show performance monitor in development mode
   React.useEffect(() => {
@@ -171,6 +173,15 @@ const AppContent = memo(() => {
               <OrderProvider>
                 <SettingsProvider>
                   <GlobalStyles />
+                  {/* Global AnimatedNotification */}
+                  {currentNotification && (
+                    <AnimatedNotification
+                      type={currentNotification.type}
+                      message={currentNotification.message}
+                      onClose={() => showNotification(null)}
+                      duration={5000}
+                    />
+                  )}
                   <BrowserRouter
                     future={{
                       v7_startTransition: true,
