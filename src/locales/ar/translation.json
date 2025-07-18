@@ -81,7 +81,9 @@
     "collect": "جمع",
     "details": "تفاصيل",
     "urgent": "عاجل",
-    "notes": "ملاحظات"
+    "notes": "ملاحظات",
+    "patientAccepted": "تم قبول المريض لجمع العينة.",
+    "reassigned": "تم إعادة إسناد المريض لجمع العينة."
   },
   "qualityControl": "مراقبة الجودة",
     "inventory": "المخزون",

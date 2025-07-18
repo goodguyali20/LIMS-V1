@@ -175,7 +175,9 @@
     "collect": "Collect",
     "details": "Details",
     "urgent": "Urgent",
-    "notes": "Notes"
+    "notes": "Notes",
+    "patientAccepted": "Patient accepted for collection.",
+    "reassigned": "Patient reassigned for collection."
   },
   "qualityControl": "Quality Control",
   "inventory": {
