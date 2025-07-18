@@ -1402,7 +1402,7 @@ const Phlebotomist = () => {
               })}
             </PatientGrid>
           )}
-        </div>
+          </div>
       </GlowCard>
 
       {/* Collected Patients List */}
