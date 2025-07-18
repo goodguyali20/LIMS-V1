@@ -1202,9 +1202,9 @@ const Phlebotomist = () => {
           <FaSyringe /> {t('phlebotomistView.title')}
         </HeaderTitle>
         <HeaderActions>
-                                  <GlowButton onClick={() => navigate('/app/workqueue')}>
-              <FaEye /> View Work Queue
-            </GlowButton>
+          <GlowButton onClick={() => navigate('/app/workqueue')}>
+            <FaEye /> View Work Queue
+          </GlowButton>
         </HeaderActions>
       </Header>
 
