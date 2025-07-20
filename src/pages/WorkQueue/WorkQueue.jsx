@@ -154,7 +154,7 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-const PageContainer = styled(motion.div)`
+const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -713,15 +713,32 @@ const DraggableCard = styled.div`
   &:active {
     cursor: grabbing;
   }
+`;
+
+// Add global styles for draggable cards
+const GlobalDragStyles = styled.div`
+  .draggable-card {
+    margin-bottom: 1rem;
+    cursor: grab;
+    user-select: none;
+  }
+  
+  .draggable-card:active {
+    cursor: grabbing;
+  }
   
   /* Fix drag preview positioning */
-  &[data-rbd-draggable-state="dragging"] {
-    transform: translate(-100%, -50%) !important;
-    z-index: 1000 !important;
+  [data-rbd-draggable-state="dragging"] {
+    transform: none !important;
+    position: fixed !important;
+    z-index: 9999 !important;
+    pointer-events: none !important;
     opacity: 0.9 !important;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3) !important;
   }
 `;
+
+
 
 const KanbanContainer = styled.div`
   display: grid;
@@ -782,14 +799,12 @@ const DroppableArea = styled.div`
   ${({ $isDraggingOver }) => $isDraggingOver && `
     background: rgba(59, 130, 246, 0.1);
     border: 2px dashed rgba(59, 130, 246, 0.5);
-    transform: scale(1.02);
     
     &::before {
       content: 'Drop here';
       position: absolute;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%);
       background: rgba(59, 130, 246, 0.9);
       color: white;
       padding: 0.5rem 1rem;
@@ -800,6 +815,11 @@ const DroppableArea = styled.div`
       pointer-events: none;
     }
   `}
+  
+  /* Ensure proper drop zone behavior */
+  &[data-rbd-droppable-id] {
+    min-height: 500px;
+  }
 `;
 
 const kanbanColumns = [
@@ -1483,41 +1503,9 @@ const WorkQueue = memo(() => {
   };
 
   const handleDragEnd = async (result) => {
-    // Clean up visual feedback
-    const allColumns = document.querySelectorAll('[data-rbd-droppable-id]');
-    allColumns.forEach(column => {
-      column.style.background = 'transparent';
-      column.style.transform = 'scale(1)';
-      column.style.border = '2px solid transparent';
-      column.style.transition = 'all 0.2s ease';
-    });
-    
-    const draggedElement = document.querySelector(`[data-rbd-draggable-id="${result.draggableId}"]`);
-    if (draggedElement) {
-      draggedElement.style.zIndex = 'auto';
-    }
+    console.log('Drag end:', result);
     
     if (!result.destination) {
-      // Play a subtle sound for cancelled drag
-      try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
-        
-        gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.1);
-      } catch (error) {
-        // Audio not supported or blocked
-      }
       return;
     }
     
@@ -1528,102 +1516,37 @@ const WorkQueue = memo(() => {
       return;
     }
     
-    // Play a success sound
-    try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.1);
-      
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.1);
-    } catch (error) {
-      // Audio not supported or blocked
-    }
-    
     // Update order status
     const newStatus = destination.droppableId;
     await handleStatusChange(draggableId, newStatus);
   };
 
   const handleDragStart = (result) => {
-    // Fix drag preview positioning with JavaScript
+    console.log('Drag start:', result);
+    
+    // Fix drag preview positioning
     setTimeout(() => {
       const dragPreview = document.querySelector('[data-rbd-draggable-state="dragging"]');
-      if (dragPreview) {
-        dragPreview.style.transform = 'translate(-100px, -50px) !important';
-        dragPreview.style.pointerEvents = 'none';
+      if (dragPreview && result.clientX && result.clientY) {
+        // Position the preview at the mouse cursor
+        dragPreview.style.left = `${result.clientX}px`;
+        dragPreview.style.top = `${result.clientY}px`;
+        dragPreview.style.transform = 'translate(-50%, -50%)';
       }
-    }, 10);
-    
-    // Add a subtle sound effect (optional)
-    try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
-      
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.1);
-    } catch (error) {
-      // Audio not supported or blocked
-    }
+    }, 0);
   };
 
   const handleDragUpdate = (result) => {
-    // Clear all column highlights first
-    const allColumns = document.querySelectorAll('[data-rbd-droppable-id]');
-    allColumns.forEach(column => {
-      column.style.background = 'transparent';
-      column.style.transform = 'scale(1)';
-    });
+    console.log('Drag update:', result);
     
-    // Update visual feedback during drag
-    if (result.destination) {
-      // Highlight the destination column
-      const destinationColumn = document.querySelector(`[data-rbd-droppable-id="${result.destination.droppableId}"]`);
-      if (destinationColumn) {
-        destinationColumn.style.background = 'rgba(59, 130, 246, 0.1)';
-        destinationColumn.style.transform = 'scale(1.02)';
-        destinationColumn.style.transition = 'all 0.2s ease';
-      }
-    }
-    
-    // Add visual feedback for invalid drop zones
-    if (result.destination && result.destination.droppableId === result.source.droppableId) {
-      const destinationColumn = document.querySelector(`[data-rbd-droppable-id="${result.destination.droppableId}"]`);
-      if (destinationColumn) {
-        destinationColumn.style.background = 'rgba(239, 68, 68, 0.1)';
-        destinationColumn.style.border = '2px dashed rgba(239, 68, 68, 0.5)';
-      }
-    }
-    
-    // Maintain drag preview positioning
+    // Update drag preview position to follow mouse cursor
     const dragPreview = document.querySelector('[data-rbd-draggable-state="dragging"]');
-    if (dragPreview) {
-      dragPreview.style.transform = 'translate(-100px, -50px) !important';
-      dragPreview.style.pointerEvents = 'none';
+    if (dragPreview && result.clientX && result.clientY) {
+      // Keep the preview centered on the mouse cursor
+      dragPreview.style.left = `${result.clientX}px`;
+      dragPreview.style.top = `${result.clientY}px`;
+      dragPreview.style.transform = 'translate(-50%, -50%)';
     }
-    
-
-    
-
   };
 
 
@@ -1633,67 +1556,68 @@ const WorkQueue = memo(() => {
   };
 
       const renderKanbanBoard = () => (
-      <DragDropContext 
-        onDragEnd={handleDragEnd}
-        onDragStart={handleDragStart}
-        onDragUpdate={handleDragUpdate}
-      >
-      <KanbanContainer>
-        {activeKanbanColumns.map((column) => {
-          const orders = getOrdersByStatus(column.id);
-          return (
-            <KanbanColumn 
-              key={column.id} 
-              status={column.id}
-            >
-              <ColumnHeader>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ color: column.color }}>
-                    {column.icon}
-                  </div>
-                  <ColumnTitle color={column.color}>{column.title}</ColumnTitle>
-                </div>
-                <ColumnCount color={column.color}>{orders.length}</ColumnCount>
-              </ColumnHeader>
-              
-              <Droppable droppableId={column.id}>
-                {(provided, snapshot) => (
-                  <DroppableArea
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    $isDraggingOver={snapshot.isDraggingOver}
-                  >
-                    {orders.map((order, index) => (
-                      <Draggable key={order.id} draggableId={order.id} index={index}>
-                        {(provided, snapshot) => (
-                          <DraggableCard
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            style={provided.draggableProps.style}
-                          >
-                            <MemoizedOrderCard
-                              order={order}
-                              onStatusChange={handleStatusChange}
-                              onViewDetails={handleViewDetails}
-                              onPrint={handlePrint}
-                              onViewTimeline={handleViewTimeline}
-                              onDownload={handleDownloadPDF}
-                            />
-                          </DraggableCard>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </DroppableArea>
-                )}
-              </Droppable>
-            </KanbanColumn>
-          );
-        })}
-      </KanbanContainer>
-    </DragDropContext>
-  );
+        <DragDropContext 
+          onDragEnd={handleDragEnd}
+          onDragStart={handleDragStart}
+          onDragUpdate={handleDragUpdate}
+        >
+          <KanbanContainer>
+            {activeKanbanColumns.map((column) => {
+              const orders = getOrdersByStatus(column.id);
+              return (
+                <KanbanColumn 
+                  key={column.id} 
+                  status={column.id}
+                >
+                  <ColumnHeader>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ color: column.color }}>
+                        {column.icon}
+                      </div>
+                      <ColumnTitle color={column.color}>{column.title}</ColumnTitle>
+                    </div>
+                    <ColumnCount color={column.color}>{orders.length}</ColumnCount>
+                  </ColumnHeader>
+                  
+                  <Droppable droppableId={column.id}>
+                    {(provided, snapshot) => (
+                      <DroppableArea
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        $isDraggingOver={snapshot.isDraggingOver}
+                      >
+                        {orders.map((order, index) => (
+                          <Draggable key={order.id} draggableId={order.id} index={index}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                style={provided.draggableProps.style}
+                                className="draggable-card"
+                              >
+                                <MemoizedOrderCard
+                                  order={order}
+                                  onStatusChange={handleStatusChange}
+                                  onViewDetails={handleViewDetails}
+                                  onPrint={handlePrint}
+                                  onViewTimeline={handleViewTimeline}
+                                  onDownload={handleDownloadPDF}
+                                />
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </DroppableArea>
+                    )}
+                  </Droppable>
+                </KanbanColumn>
+              );
+            })}
+          </KanbanContainer>
+        </DragDropContext>
+      );
 
   const renderListView = () => (
     <>
@@ -1755,13 +1679,12 @@ const WorkQueue = memo(() => {
   const currentDepartmentTheme = departmentThemes[departmentFilter] || departmentThemes.all;
 
   return (
-    <PageContainer
-      key={departmentFilter} // This will trigger re-animation when department changes
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      $departmentTheme={currentDepartmentTheme}
-    >
+    <>
+      <GlobalDragStyles />
+      <PageContainer
+        key={departmentFilter} // This will trigger re-animation when department changes
+        $departmentTheme={currentDepartmentTheme}
+      >
 
 
       {/* Department Switcher at the top */}
@@ -2067,7 +1990,8 @@ const WorkQueue = memo(() => {
         </AnimatedModal>
               )}
       </PageContainer>
-    );
+    </>
+  );
 });
 
 WorkQueue.displayName = 'WorkQueue';
