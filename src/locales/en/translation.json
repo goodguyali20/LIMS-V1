@@ -256,6 +256,8 @@
   "equipment": "Equipment",
   "supplies": "Supplies",
   "chemicals": "Chemicals",
+  "serology": "Serology",
+  "virology": "Virology",
   "enterItemName": "Enter item name",
   "enterQuantity": "Enter quantity",
   "enterUnit": "e.g., ml, mg, pieces",
@@ -405,8 +407,11 @@
     "critical": "Critical",
     "allDepartments": "All Departments",
     "hematology": "Hematology",
-    "biochemistry": "Biochemistry",
+    "chemistry": "Chemistry",
+    "serology": "Serology",
+    "virology": "Virology",
     "microbiology": "Microbiology",
+    "biochemistry": "Biochemistry",
     "immunology": "Immunology",
     "loadMore": "Load More",
     "searchLabel": "Search orders by patient name, ID, or order number",
@@ -441,7 +446,8 @@
     "criticalValue": "Critical Value",
     "criticalValueDetected": "Critical value detected for order {{orderId}}",
     "newUrgentOrdersReceived": "{{count}} new urgent order{{plural}} received",
-    "newOrdersReceived": "{{count}} new order{{plural}} received"
+    "newOrdersReceived": "{{count}} new order{{plural}} received",
+    "parasitology": "Parasitology"
   },
   "lotManager": {
     "title": "Lot Manager",

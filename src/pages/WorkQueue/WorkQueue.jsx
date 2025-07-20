@@ -10,7 +10,7 @@ import {
   FaClock, FaPlay, FaCheckCircle, FaTimes, FaSearch, FaFilter, FaPrint, FaDownload, FaEye, 
   FaEdit, FaTrash, FaPlus, FaColumns, FaList, FaSync, FaSpinner, FaChartLine, FaCalendar, 
   FaUser, FaVial, FaThermometer, FaInfoCircle, FaSortUp, FaSortDown, FaRedo, 
-  FaPause, FaTicketAlt, FaIdCard, FaFlask, FaBarcode, FaClipboardList, FaBan, FaSave, FaCog
+  FaPause, FaTicketAlt, FaIdCard, FaFlask, FaBarcode, FaClipboardList, FaBan, FaSave, FaCog, FaBug
 } from 'react-icons/fa';
 import OrderCard from '../../components/WorkQueue/OrderCard';
 import GlowCard from '../../components/common/GlowCard';
@@ -64,53 +64,85 @@ const departmentThemes = {
     name: 'Hematology Lab',
     icon: 'FaVial'
   },
-  Biochemistry: {
-    primary: '#f59e0b',
-    accent: '#fbbf24',
+  Chemistry: {
+    primary: '#fbbf24',
+    accent: '#fde68a',
     background: '#0f172a',
     surface: '#1e293b',
     surfaceHover: '#334155',
     text: '#f8fafc',
     textSecondary: '#cbd5e1',
     border: '#334155',
-    borderHover: '#475569',
+    borderHover: '#fbbf24',
     shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
     shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+    gradient: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
     name: 'Chemistry Lab',
     icon: 'FaFlask'
   },
-  Microbiology: {
-    primary: '#10b981',
-    accent: '#34d399',
+  Serology: {
+    primary: '#22c55e',
+    accent: '#4ade80',
     background: '#0f172a',
     surface: '#1e293b',
     surfaceHover: '#334155',
     text: '#f8fafc',
     textSecondary: '#cbd5e1',
     border: '#334155',
-    borderHover: '#475569',
+    borderHover: '#22c55e',
     shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
     shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+    gradient: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
     name: 'Serology Lab',
     icon: 'FaThermometer'
   },
-  Immunology: {
-    primary: '#8b5cf6',
-    accent: '#a78bfa',
+  Virology: {
+    primary: '#2563eb',
+    accent: '#60a5fa',
     background: '#0f172a',
     surface: '#1e293b',
     surfaceHover: '#334155',
     text: '#f8fafc',
     textSecondary: '#cbd5e1',
     border: '#334155',
-    borderHover: '#475569',
+    borderHover: '#2563eb',
     shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
     shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+    gradient: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
     name: 'Virology Lab',
     icon: 'FaIdCard'
+  },
+  Microbiology: {
+    primary: '#a21caf',
+    accent: '#e879f9',
+    background: '#0f172a',
+    surface: '#1e293b',
+    surfaceHover: '#334155',
+    text: '#f8fafc',
+    textSecondary: '#cbd5e1',
+    border: '#334155',
+    borderHover: '#a21caf',
+    shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+    shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    gradient: 'linear-gradient(135deg, #a21caf 0%, #6d28d9 100%)',
+    name: 'Microbiology Lab',
+    icon: 'FaBacteria'
+  },
+  Parasitology: {
+    primary: '#f97316',
+    accent: '#fdba74',
+    background: '#0f172a',
+    surface: '#1e293b',
+    surfaceHover: '#334155',
+    text: '#f8fafc',
+    textSecondary: '#cbd5e1',
+    border: '#334155',
+    borderHover: '#f97316',
+    shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+    shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    gradient: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+    name: 'Parasitology Lab',
+    icon: 'FaBug'
   }
 };
 
@@ -986,6 +1018,7 @@ const WorkQueue = memo(() => {
 
     // Apply department filter FIRST (by test department)
     if (departmentFilter !== 'all') {
+      // Only show orders with at least one test relevant to the selected department
       filtered = filtered.filter(order =>
         order.tests && order.tests.some(test => test.department === departmentFilter)
       );
@@ -1470,9 +1503,11 @@ const WorkQueue = memo(() => {
     department: [
       { value: 'all', label: t('workQueue.allDepartments') },
       { value: 'Hematology', label: t('workQueue.hematology') },
-      { value: 'Biochemistry', label: t('workQueue.biochemistry') },
+      { value: 'Chemistry', label: t('workQueue.chemistry') },
+      { value: 'Serology', label: t('workQueue.serology') },
+      { value: 'Virology', label: t('workQueue.virology') },
       { value: 'Microbiology', label: t('workQueue.microbiology') },
-      { value: 'Immunology', label: t('workQueue.immunology') }
+      { value: 'Parasitology', label: t('workQueue.parasitology') }
     ]
   }), [t]);
 
@@ -1707,9 +1742,11 @@ const WorkQueue = memo(() => {
             >
               {option.value === 'all' && <FaClipboardList />}
               {option.value === 'Hematology' && <FaVial />}
-              {option.value === 'Biochemistry' && <FaFlask />}
-              {option.value === 'Microbiology' && <FaThermometer />}
-              {option.value === 'Immunology' && <FaIdCard />}
+              {option.value === 'Chemistry' && <FaFlask />}
+              {option.value === 'Serology' && <FaThermometer />}
+              {option.value === 'Virology' && <FaIdCard />}
+              {option.value === 'Microbiology' && <FaBarcode />}
+              {option.value === 'Parasitology' && <FaBug />}
               {option.label}
             </DepartmentButton>
           );
@@ -1728,7 +1765,7 @@ const WorkQueue = memo(() => {
               transition={{ delay: 0.3 }}
               $departmentTheme={currentDepartmentTheme}
             >
-              {currentDepartmentTheme.name}
+              {currentDepartmentLabel}
             </DepartmentIndicator>
           )}
         </div>

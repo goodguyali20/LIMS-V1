@@ -200,9 +200,11 @@
     "urgent": "عاجل",
     "critical": "حرج",
     "allDepartments": "جميع الأقسام",
-    "hematology": "أمراض الدم",
-    "biochemistry": "الكيمياء الحيوية",
-    "microbiology": "الأحياء الدقيقة",
+    "hematology": "علم الدم",
+    "chemistry": "الكيمياء الحيوية",
+    "serology": "المصلية",
+    "virology": "الفيروسات",
+    "microbiology": "علم الأحياء الدقيقة",
     "immunology": "المناعة",
     "loadMore": "تحميل المزيد",
     "noOrdersMessage": "جرب تعديل الفلاتر أو مصطلحات البحث",
@@ -229,7 +231,8 @@
     "criticalValue": "قيمة حرجة",
     "criticalValueDetected": "تم اكتشاف قيمة حرجة للطلب {{orderId}}",
     "newUrgentOrdersReceived": "تم استلام {{count}} طلب عاجل جديد{{plural}}",
-    "newOrdersReceived": "تم استلام {{count}} طلب جديد{{plural}}"
+    "newOrdersReceived": "تم استلام {{count}} طلب جديد{{plural}}",
+    "parasitology": "الطفيليات"
   },
   "qualityControl": {
     "title": "مراقبة الجودة",
@@ -498,7 +501,9 @@
     "critical": "حرج",
     "allDepartments": "جميع الأقسام",
     "hematology": "علم الدم",
-    "biochemistry": "الكيمياء الحيوية",
+    "chemistry": "الكيمياء الحيوية",
+    "serology": "المصلية",
+    "virology": "الفيروسات",
     "microbiology": "علم الأحياء الدقيقة",
     "immunology": "علم المناعة",
     "loadMore": "تحميل المزيد",
@@ -996,5 +1001,8 @@
     "customArea": "أدخل منطقة أو قرية مخصصة",
     "enterCustomDistrict": "اكتب اسم القضاء أو القرية",
     "enterCustomArea": "اكتب اسم المنطقة أو القرية"
-  }
+  },
+  "chemistry": "الكيمياء الحيوية",
+  "serology": "المصلية",
+  "virology": "الفيروسات"
 }
