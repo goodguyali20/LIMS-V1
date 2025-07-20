@@ -14,7 +14,7 @@ import { GlowButton } from '../common';
 import { showFlashMessage } from '../../contexts/NotificationContext';
 import AnimatedModal from '../common/AnimatedModal';
 
-const Card = styled(motion.div)`
+const Card = styled.div`
   background: ${({ status }) => {
     switch (status) {
       case 'Sample Collected': return '#1f2937';
@@ -373,9 +373,6 @@ const OrderCard = ({ order, onDownload, onViewDetails, onPrint, onViewTimeline }
         status={order.status} 
         priority={order.priority}
         $isOptimistic={order._isOptimistic}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2 }}
         data-order-card
         tabIndex={0}
         role="article"

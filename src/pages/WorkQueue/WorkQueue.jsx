@@ -709,17 +709,23 @@ const DraggableCard = styled.div`
   margin-bottom: 1rem;
   cursor: grab;
   user-select: none;
+  position: relative;
   
   &:active {
     cursor: grabbing;
   }
   
-  /* Fix drag preview positioning */
+  /* Fix drag preview positioning - ensures cursor aligns with card during drag */
   &[data-rbd-draggable-state="dragging"] {
-    transform: translate(-100%, -50%) !important;
     z-index: 1000 !important;
     opacity: 0.9 !important;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3) !important;
+    pointer-events: none !important;
+  }
+  
+  /* Ensure proper cursor positioning during drag - prevents child elements from interfering */
+  &[data-rbd-draggable-state="dragging"] * {
+    pointer-events: none !important;
   }
 `;
 
@@ -800,6 +806,11 @@ const DroppableArea = styled.div`
       pointer-events: none;
     }
   `}
+  
+  /* Ensure proper positioning for drag preview */
+  &[data-rbd-droppable-id] {
+    position: relative;
+  }
 `;
 
 const kanbanColumns = [
@@ -1555,15 +1566,6 @@ const WorkQueue = memo(() => {
   };
 
   const handleDragStart = (result) => {
-    // Fix drag preview positioning with JavaScript
-    setTimeout(() => {
-      const dragPreview = document.querySelector('[data-rbd-draggable-state="dragging"]');
-      if (dragPreview) {
-        dragPreview.style.transform = 'translate(-100px, -50px) !important';
-        dragPreview.style.pointerEvents = 'none';
-      }
-    }, 10);
-    
     // Add a subtle sound effect (optional)
     try {
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -1592,6 +1594,7 @@ const WorkQueue = memo(() => {
     allColumns.forEach(column => {
       column.style.background = 'transparent';
       column.style.transform = 'scale(1)';
+      column.style.border = '2px solid transparent';
     });
     
     // Update visual feedback during drag
@@ -1613,17 +1616,6 @@ const WorkQueue = memo(() => {
         destinationColumn.style.border = '2px dashed rgba(239, 68, 68, 0.5)';
       }
     }
-    
-    // Maintain drag preview positioning
-    const dragPreview = document.querySelector('[data-rbd-draggable-state="dragging"]');
-    if (dragPreview) {
-      dragPreview.style.transform = 'translate(-100px, -50px) !important';
-      dragPreview.style.pointerEvents = 'none';
-    }
-    
-
-    
-
   };
 
 

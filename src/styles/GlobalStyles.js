@@ -443,4 +443,18 @@ export const GlobalStyles = createGlobalStyle`
       backdrop-filter: none !important;
     }
   }
+
+  /* Fix drag and drop cursor positioning */
+  [data-rbd-draggable-state="dragging"] {
+    cursor: grabbing !important;
+  }
+  
+  [data-rbd-draggable-state="dragging"] * {
+    cursor: grabbing !important;
+  }
+  
+  /* Ensure drag preview follows cursor correctly */
+  [data-rbd-draggable-context-id] {
+    position: relative;
+  }
 `;
