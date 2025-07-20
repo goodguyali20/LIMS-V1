@@ -395,7 +395,7 @@
     "printOrder": "Print Order",
     "loading": "Loading work queue...",
     "allStatuses": "All Statuses",
-    "pending": "Pending",
+    "pending": "Pending Collection",
     "inProgress": "In Progress",
     "completed": "Completed",
     "cancelled": "Cancelled",

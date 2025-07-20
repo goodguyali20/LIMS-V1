@@ -1,17 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, limit, startAfter } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, limit, startAfter, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
-  FaSpinner, FaFilter, FaSort, FaClock, FaCheckCircle, FaExclamationTriangle,
-  FaSearch, FaTimes, FaEye, FaPrint, FaDownload, FaUpload, FaCog, FaBell,
-  FaChartLine, FaCalendar, FaUser, FaVial, FaThermometer, FaInfoCircle,
-  FaSortUp, FaSortDown, FaFilter as FaFilterIcon, FaRedo, FaPlay, FaPause,
-  FaTicketAlt, FaIdCard, FaFlask, FaBarcode, FaList, FaSync, FaClipboardList, FaBan, FaColumns, FaSave
+  FaClock, FaPlay, FaCheckCircle, FaTimes, FaSearch, FaFilter, FaPrint, FaDownload, FaEye, 
+  FaEdit, FaTrash, FaPlus, FaColumns, FaList, FaSync, FaSpinner, FaChartLine, FaCalendar, 
+  FaUser, FaVial, FaThermometer, FaInfoCircle, FaSortUp, FaSortDown, FaRedo, 
+  FaPause, FaTicketAlt, FaIdCard, FaFlask, FaBarcode, FaClipboardList, FaBan, FaSave, FaCog
 } from 'react-icons/fa';
 import OrderCard from '../../components/WorkQueue/OrderCard';
 import GlowCard from '../../components/common/GlowCard';
@@ -28,6 +27,8 @@ import usePdfDownload from '../../components/Print/usePdfDownload';
 import { showFlashMessage } from '../../contexts/NotificationContext';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import AnimatedModal from '../../components/common/AnimatedModal';
+
+
 
 // Department Theme System - Premium & State-of-the-Art
 const departmentThemes = {
@@ -704,12 +705,21 @@ const MemoizedOrderCard = memo(({ order, onStatusChange, onViewDetails, onPrint,
 
 MemoizedOrderCard.displayName = 'MemoizedOrderCard';
 
-const DraggableCard = styled(motion.div)`
+const DraggableCard = styled.div`
   margin-bottom: 1rem;
   cursor: grab;
+  user-select: none;
   
   &:active {
     cursor: grabbing;
+  }
+  
+  /* Fix drag preview positioning */
+  &[data-rbd-draggable-state="dragging"] {
+    transform: translate(-100%, -50%) !important;
+    z-index: 1000 !important;
+    opacity: 0.9 !important;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3) !important;
   }
 `;
 
@@ -720,15 +730,20 @@ const KanbanContainer = styled.div`
   margin-top: 2rem;
 `;
 
-const KanbanColumn = styled(motion.div)`
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.1) 0%, 
-    rgba(255, 255, 255, 0.05) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
+const KanbanColumn = styled.div`
+  background: ${({ theme }) => theme.colors.surface};
+  border-radius: 12px;
   padding: 1.5rem;
-  min-height: 600px;
-  backdrop-filter: blur(20px);
+  min-height: 400px;
+  border: 2px solid ${({ status }) => {
+    switch (status) {
+      case 'pending_collection': return '#ef4444';
+      case 'in_progress': return '#f97316';
+      case 'completed': return '#22c55e';
+      case 'cancelled': return '#6b7280';
+      default: return '#374151';
+    }
+  }};
 `;
 
 const ColumnHeader = styled.div`
@@ -759,14 +774,42 @@ const ColumnCount = styled.span`
 const DroppableArea = styled.div`
   min-height: 500px;
   padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  position: relative;
+  
+  ${({ $isDraggingOver }) => $isDraggingOver && `
+    background: rgba(59, 130, 246, 0.1);
+    border: 2px dashed rgba(59, 130, 246, 0.5);
+    transform: scale(1.02);
+    
+    &::before {
+      content: 'Drop here';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(59, 130, 246, 0.9);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      z-index: 1000;
+      pointer-events: none;
+    }
+  `}
 `;
 
 const kanbanColumns = [
-  { id: 'Pending', title: 'Pending', color: '#ef4444', icon: <FaClock /> },
+  { id: 'Sample Collected', title: 'Pending Collection', color: '#ef4444', icon: <FaClock /> },
   { id: 'In Progress', title: 'In Progress', color: '#f59e0b', icon: <FaPlay /> },
   { id: 'Completed', title: 'Completed', color: '#10b981', icon: <FaCheckCircle /> },
   { id: 'Cancelled', title: 'Cancelled', color: '#6b7280', icon: <FaTimes /> }
 ];
+
+
 
 const WorkQueue = memo(() => {
   usePerformanceMonitor('WorkQueue');
@@ -789,8 +832,6 @@ const WorkQueue = memo(() => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [printType, setPrintType] = useState('report');
   const downloadPdf = usePdfDownload();
-  const [lastDoc, setLastDoc] = useState(null);
-  const [hasMore, setHasMore] = useState(true);
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
@@ -806,7 +847,99 @@ const WorkQueue = memo(() => {
   const [lastUrgentCount, setLastUrgentCount] = useState(0);
   const [focusedElement, setFocusedElement] = useState(null);
   const [showCancelledColumn, setShowCancelledColumn] = useState(false);
+  const [isCreatingMissingOrders, setIsCreatingMissingOrders] = useState(false);
 
+
+
+  // Remove all custom CSS and handlers - let react-beautiful-dnd handle everything
+
+  // Function to create missing test orders for existing collected samples
+  const createMissingTestOrders = async () => {
+    setIsCreatingMissingOrders(true);
+    try {
+      // Get all patients with sample_collected status
+      const patientsQuery = query(
+        collection(db, 'patients'),
+        where('bloodCollectionStatus', '==', 'sample_collected')
+      );
+      
+      const patientsSnapshot = await getDocs(patientsQuery);
+      const collectedPatients = [];
+      
+      patientsSnapshot.forEach(doc => {
+        collectedPatients.push({ id: doc.id, ...doc.data() });
+      });
+      
+      console.log(`Found ${collectedPatients.length} patients with collected samples`);
+      
+      // Get existing test orders to avoid duplicates
+      const testOrdersQuery = query(collection(db, 'testOrders'));
+      const testOrdersSnapshot = await getDocs(testOrdersQuery);
+      const existingTestOrders = new Set();
+      
+      testOrdersSnapshot.forEach(doc => {
+        const order = doc.data();
+        // Create a unique key based on patient ID and collection time
+        const key = `${order.patientId}_${order.collectionTime?.toDate?.() || order.collectionTime}`;
+        existingTestOrders.add(key);
+      });
+      
+      // Create test orders for patients that don't have them
+      let createdCount = 0;
+      let skippedCount = 0;
+      
+      for (const patient of collectedPatients) {
+        // Create a unique key for this patient
+        const key = `${patient.patientId}_${patient.collectionTime?.toDate?.() || patient.collectionTime}`;
+        
+        if (existingTestOrders.has(key)) {
+          skippedCount++;
+          continue;
+        }
+        
+        // Create test order data
+        const testOrderData = {
+          patientId: patient.patientId,
+          patientName: patient.patientName || `${patient.firstName || ''} ${patient.lastName || ''}`.trim(),
+          patientAge: patient.age,
+          patientGender: patient.gender,
+          referringDoctor: patient.referringDoctor || 'N/A',
+          orderDate: patient.createdAt?.toDate?.() || new Date(patient.createdAt),
+          status: 'Sample Collected',
+          priority: patient.priority || 'Normal',
+          tests: patient.selectedTests || [],
+          totalPrice: 0,
+          notes: patient.phlebotomistNotes || '',
+          createdBy: 'Phlebotomist',
+          createdAt: patient.createdAt?.toDate?.() || new Date(patient.createdAt),
+          collectionTime: patient.collectionTime?.toDate?.() || new Date(patient.collectionTime),
+          collectedBy: patient.collectedBy || 'Phlebotomist',
+          tubeVolumes: patient.tubeVolumes || {}
+        };
+        
+        // Add the test order
+        await addDoc(collection(db, 'testOrders'), testOrderData);
+        createdCount++;
+      }
+      
+      showFlashMessage({ 
+        type: 'success', 
+        title: 'Success', 
+        message: `Created ${createdCount} missing test orders. Skipped ${skippedCount} existing ones.` 
+      });
+      
+    } catch (error) {
+      console.error('Error creating missing test orders:', error);
+      showFlashMessage({ 
+        type: 'error', 
+        title: 'Error', 
+        message: 'Failed to create missing test orders' 
+      });
+    } finally {
+      setIsCreatingMissingOrders(false);
+    }
+  };
+  
   // Dynamic kanban columns based on showCancelledColumn state
   const activeKanbanColumns = useMemo(() => {
     return kanbanColumns.filter(column => 
@@ -924,7 +1057,7 @@ const WorkQueue = memo(() => {
   const stats = useMemoWithPerformance(() => {
     const ordersWithOptimisticUpdates = orders.map(getOrderWithOptimisticUpdates);
     const total = ordersWithOptimisticUpdates.length;
-    const pending = ordersWithOptimisticUpdates.filter(o => o.status === 'Pending').length;
+    const pending = ordersWithOptimisticUpdates.filter(o => o.status === 'Sample Collected').length;
     const inProgress = ordersWithOptimisticUpdates.filter(o => o.status === 'In Progress').length;
     const completed = ordersWithOptimisticUpdates.filter(o => o.status === 'Completed').length;
     const cancelled = ordersWithOptimisticUpdates.filter(o => o.status === 'Cancelled').length;
@@ -965,6 +1098,10 @@ const WorkQueue = memo(() => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
+
+
+
+
 
   // Announce changes to screen readers
   const announceToScreenReader = useCallback((message) => {
@@ -1153,8 +1290,7 @@ const WorkQueue = memo(() => {
   const ordersQuery = useMemoWithPerformance(() => {
     const baseQuery = query(
       collection(db, 'testOrders'),
-      orderBy('createdAt', 'desc'),
-      limit(30)
+      orderBy('createdAt', 'desc')
     );
     if (statusFilter !== 'all') {
       return query(baseQuery, where('status', '==', statusFilter));
@@ -1171,8 +1307,6 @@ const WorkQueue = memo(() => {
         ...doc.data()
       }));
       setOrders(ordersData);
-      setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1] || null);
-      setHasMore(querySnapshot.docs.length === 30);
       setLoading(false);
     }, (error) => {
       console.error('Error fetching orders:', error);
@@ -1181,34 +1315,6 @@ const WorkQueue = memo(() => {
     });
     return () => unsubscribe();
   }, [ordersQuery]);
-
-  // Load more orders
-  const loadMoreOrders = useCallbackWithPerformance(() => {
-    if (!lastDoc || !hasMore) return;
-    const nextQuery = statusFilter !== 'all'
-      ? query(
-          collection(db, 'testOrders'),
-          orderBy('createdAt', 'desc'),
-          where('status', '==', statusFilter),
-          startAfter(lastDoc),
-          limit(30)
-        )
-      : query(
-          collection(db, 'testOrders'),
-          orderBy('createdAt', 'desc'),
-          startAfter(lastDoc),
-          limit(30)
-        );
-    onSnapshot(nextQuery, (querySnapshot) => {
-      const newOrders = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setOrders(prev => [...prev, ...newOrders]);
-      setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1] || null);
-      setHasMore(querySnapshot.docs.length === 30);
-    });
-  }, [lastDoc, hasMore, statusFilter]);
 
   // Optimistic status update
   const handleOptimisticStatusChange = async (orderId, newStatus) => {
@@ -1330,7 +1436,7 @@ const WorkQueue = memo(() => {
   const filterOptions = useMemo(() => ({
     status: [
       { value: 'all', label: t('workQueue.allStatuses') },
-      { value: 'Pending', label: t('workQueue.pending') },
+      { value: 'Sample Collected', label: t('workQueue.pending') },
       { value: 'In Progress', label: t('workQueue.inProgress') },
       { value: 'Completed', label: t('workQueue.completed') },
       { value: 'Cancelled', label: t('workQueue.cancelled') }
@@ -1377,7 +1483,43 @@ const WorkQueue = memo(() => {
   };
 
   const handleDragEnd = async (result) => {
-    if (!result.destination) return;
+    // Clean up visual feedback
+    const allColumns = document.querySelectorAll('[data-rbd-droppable-id]');
+    allColumns.forEach(column => {
+      column.style.background = 'transparent';
+      column.style.transform = 'scale(1)';
+      column.style.border = '2px solid transparent';
+      column.style.transition = 'all 0.2s ease';
+    });
+    
+    const draggedElement = document.querySelector(`[data-rbd-draggable-id="${result.draggableId}"]`);
+    if (draggedElement) {
+      draggedElement.style.zIndex = 'auto';
+    }
+    
+    if (!result.destination) {
+      // Play a subtle sound for cancelled drag
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
+        
+        gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.1);
+      } catch (error) {
+        // Audio not supported or blocked
+      }
+      return;
+    }
     
     const { source, destination, draggableId } = result;
     
@@ -1386,22 +1528,124 @@ const WorkQueue = memo(() => {
       return;
     }
     
+    // Play a success sound
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.1);
+      
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.1);
+    } catch (error) {
+      // Audio not supported or blocked
+    }
+    
     // Update order status
     const newStatus = destination.droppableId;
     await handleStatusChange(draggableId, newStatus);
   };
 
+  const handleDragStart = (result) => {
+    // Fix drag preview positioning with JavaScript
+    setTimeout(() => {
+      const dragPreview = document.querySelector('[data-rbd-draggable-state="dragging"]');
+      if (dragPreview) {
+        dragPreview.style.transform = 'translate(-100px, -50px) !important';
+        dragPreview.style.pointerEvents = 'none';
+      }
+    }, 10);
+    
+    // Add a subtle sound effect (optional)
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+      
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.1);
+    } catch (error) {
+      // Audio not supported or blocked
+    }
+  };
+
+  const handleDragUpdate = (result) => {
+    // Clear all column highlights first
+    const allColumns = document.querySelectorAll('[data-rbd-droppable-id]');
+    allColumns.forEach(column => {
+      column.style.background = 'transparent';
+      column.style.transform = 'scale(1)';
+    });
+    
+    // Update visual feedback during drag
+    if (result.destination) {
+      // Highlight the destination column
+      const destinationColumn = document.querySelector(`[data-rbd-droppable-id="${result.destination.droppableId}"]`);
+      if (destinationColumn) {
+        destinationColumn.style.background = 'rgba(59, 130, 246, 0.1)';
+        destinationColumn.style.transform = 'scale(1.02)';
+        destinationColumn.style.transition = 'all 0.2s ease';
+      }
+    }
+    
+    // Add visual feedback for invalid drop zones
+    if (result.destination && result.destination.droppableId === result.source.droppableId) {
+      const destinationColumn = document.querySelector(`[data-rbd-droppable-id="${result.destination.droppableId}"]`);
+      if (destinationColumn) {
+        destinationColumn.style.background = 'rgba(239, 68, 68, 0.1)';
+        destinationColumn.style.border = '2px dashed rgba(239, 68, 68, 0.5)';
+      }
+    }
+    
+    // Maintain drag preview positioning
+    const dragPreview = document.querySelector('[data-rbd-draggable-state="dragging"]');
+    if (dragPreview) {
+      dragPreview.style.transform = 'translate(-100px, -50px) !important';
+      dragPreview.style.pointerEvents = 'none';
+    }
+    
+
+    
+
+  };
+
+
+
   const getOrdersByStatus = (status) => {
     return processedOrders.filter(order => order.status === status);
   };
 
-  const renderKanbanBoard = () => (
-    <DragDropContext onDragEnd={handleDragEnd}>
+      const renderKanbanBoard = () => (
+      <DragDropContext 
+        onDragEnd={handleDragEnd}
+        onDragStart={handleDragStart}
+        onDragUpdate={handleDragUpdate}
+      >
       <KanbanContainer>
         {activeKanbanColumns.map((column) => {
-          const columnOrders = getOrdersByStatus(column.id);
+          const orders = getOrdersByStatus(column.id);
           return (
-            <KanbanColumn key={column.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <KanbanColumn 
+              key={column.id} 
+              status={column.id}
+            >
               <ColumnHeader>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <div style={{ color: column.color }}>
@@ -1409,7 +1653,7 @@ const WorkQueue = memo(() => {
                   </div>
                   <ColumnTitle color={column.color}>{column.title}</ColumnTitle>
                 </div>
-                <ColumnCount color={column.color}>{columnOrders.length}</ColumnCount>
+                <ColumnCount color={column.color}>{orders.length}</ColumnCount>
               </ColumnHeader>
               
               <Droppable droppableId={column.id}>
@@ -1417,23 +1661,16 @@ const WorkQueue = memo(() => {
                   <DroppableArea
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    style={{
-                      background: snapshot.isDraggingOver ? `${column.color}10` : 'transparent',
-                      borderRadius: '12px',
-                      transition: 'background 0.2s ease'
-                    }}
+                    $isDraggingOver={snapshot.isDraggingOver}
                   >
-                    {columnOrders.map((order, index) => (
+                    {orders.map((order, index) => (
                       <Draggable key={order.id} draggableId={order.id} index={index}>
                         {(provided, snapshot) => (
                           <DraggableCard
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            style={{
-                              ...provided.draggableProps.style,
-                              transform: snapshot.isDragging ? provided.draggableProps.style?.transform : 'none'
-                            }}
+                            style={provided.draggableProps.style}
                           >
                             <MemoizedOrderCard
                               order={order}
@@ -1496,11 +1733,7 @@ const WorkQueue = memo(() => {
               }}
             </List>
           </div>
-          {hasMore && (
-            <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
-              <GlowButton onClick={loadMoreOrders}>{t('workQueue.loadMore')}</GlowButton>
-            </div>
-          )}
+          {/* Removed loadMoreOrders button as pagination is removed */}
         </>
       )}
     </>
@@ -1529,6 +1762,8 @@ const WorkQueue = memo(() => {
       transition={{ duration: 0.5 }}
       $departmentTheme={currentDepartmentTheme}
     >
+
+
       {/* Department Switcher at the top */}
       <DepartmentSwitcher
         initial={{ opacity: 0, y: -20 }}
@@ -1575,6 +1810,25 @@ const WorkQueue = memo(() => {
           )}
         </div>
 
+        <HeaderActions>
+          <GlowButton
+            onClick={() => setViewMode(viewMode === 'kanban' ? 'list' : 'kanban')}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {viewMode === 'kanban' ? <FaList /> : <FaColumns />}
+            {viewMode === 'kanban' ? 'List View' : 'Kanban View'}
+          </GlowButton>
+          <GlowButton
+            onClick={createMissingTestOrders}
+            disabled={isCreatingMissingOrders}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {isCreatingMissingOrders ? <FaSpinner className="fa-spin" /> : <FaSync />}
+            {isCreatingMissingOrders ? 'Creating...' : 'Sync Missing Orders'}
+          </GlowButton>
+        </HeaderActions>
       </PageHeader>
 
 
@@ -1717,7 +1971,7 @@ const WorkQueue = memo(() => {
               title={option.label}
             >
               {option.value === 'all' && <FaClipboardList style={{ color: '#3b82f6' }} />}
-              {option.value === 'Pending' && <FaClock style={{ color: '#ef4444' }} />}
+              {option.value === 'Sample Collected' && <FaClock style={{ color: '#ef4444' }} />}
               {option.value === 'In Progress' && <FaPlay style={{ color: '#f59e0b' }} />}
               {option.value === 'Completed' && <FaCheckCircle style={{ color: '#10b981' }} />}
               {option.value === 'Cancelled' && <FaTimes style={{ color: '#6b7280' }} />}
@@ -1767,7 +2021,7 @@ const WorkQueue = memo(() => {
           <span>{selectedOrderIds.length} selected</span>
           <GlowButton onClick={() => handleBatchStatusChange('Completed')}>Mark as Completed</GlowButton>
           <GlowButton onClick={() => handleBatchStatusChange('In Progress')}>Mark as In Progress</GlowButton>
-          <GlowButton onClick={() => handleBatchStatusChange('Pending')}>Mark as Pending</GlowButton>
+          <GlowButton onClick={() => handleBatchStatusChange('Sample Collected')}>Mark as Sample Collected</GlowButton>
           <GlowButton onClick={handleBatchPrint}><FaPrint /> Print Selected</GlowButton>
           <GlowButton onClick={handleBatchDownload}><FaDownload /> Download Selected</GlowButton>
           <GlowButton $variant="secondary" onClick={() => setSelectedOrderIds([])}>Clear</GlowButton>
@@ -1811,9 +2065,9 @@ const WorkQueue = memo(() => {
             </div>
           </div>
         </AnimatedModal>
-      )}
-    </PageContainer>
-  );
+              )}
+      </PageContainer>
+    );
 });
 
 WorkQueue.displayName = 'WorkQueue';

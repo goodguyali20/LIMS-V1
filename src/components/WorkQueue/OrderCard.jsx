@@ -17,7 +17,7 @@ import AnimatedModal from '../common/AnimatedModal';
 const Card = styled(motion.div)`
   background: ${({ status }) => {
     switch (status) {
-      case 'Pending': return '#1f2937';
+      case 'Sample Collected': return '#1f2937';
       case 'In Progress': return '#1f2937';
       case 'Completed': return '#1f2937';
       case 'Cancelled': return '#1f2937';
@@ -26,7 +26,7 @@ const Card = styled(motion.div)`
   }};
   border: 1px solid ${({ status }) => {
     switch (status) {
-      case 'Pending': return '#ef4444';
+      case 'Sample Collected': return '#ef4444';
       case 'In Progress': return '#f59e0b';
       case 'Completed': return '#10b981';
       case 'Cancelled': return '#6b7280';
@@ -50,7 +50,7 @@ const Card = styled(motion.div)`
     height: 3px;
     background: ${({ status }) => {
       switch (status) {
-        case 'Pending': return '#ef4444';
+        case 'Sample Collected': return '#ef4444';
         case 'In Progress': return '#f59e0b';
         case 'Completed': return '#10b981';
         case 'Cancelled': return '#6b7280';
@@ -311,19 +311,21 @@ const OrderCard = ({ order, onDownload, onViewDetails, onPrint, onViewTimeline }
     const diffMs = currentTime - startTime;
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const diffSeconds = Math.floor((diffMs % (1000 * 60)) / 1000);
     
-    // Format as HH:MM
+    // Format as HH:MM:SS
     const hours = diffHours.toString().padStart(2, '0');
     const minutes = diffMinutes.toString().padStart(2, '0');
+    const seconds = diffSeconds.toString().padStart(2, '0');
     
-    return `${hours}:${minutes}`;
+    return `${hours}:${minutes}:${seconds}`;
   };
 
-  // Update timer every minute
+  // Update timer every second
   React.useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // Update every minute
+    }, 1000); // Update every second
 
     return () => clearInterval(timer);
   }, []);

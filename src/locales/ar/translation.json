@@ -191,7 +191,7 @@
     "printOrder": "طباعة الطلب",
     "loading": "جاري تحميل قائمة العمل...",
     "allStatuses": "جميع الحالات",
-    "pending": "قيد الانتظار",
+    "pending": "في انتظار الجمع",
     "inProgress": "قيد التنفيذ",
     "completed": "مكتمل",
     "cancelled": "ملغى",

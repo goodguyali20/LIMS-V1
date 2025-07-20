@@ -1249,7 +1249,29 @@ const Phlebotomist = () => {
         updatedAt: new Date(),
         phlebotomistNotes: note // Save the note
       });
-      // Also add note to test order if needed (optional, see handleCollectSample)
+      
+      // Create a test order for the collected sample
+      const testOrderData = {
+        patientId: modalPatient.patientId,
+        patientName: modalPatient.patientName,
+        patientAge: modalPatient.age,
+        patientGender: modalPatient.gender,
+        referringDoctor: modalPatient.referringDoctor || 'N/A',
+        orderDate: new Date(),
+        status: 'Sample Collected',
+        priority: modalPatient.priority || 'Normal',
+        tests: modalPatient.selectedTests || [],
+        totalPrice: 0, // Calculate based on tests
+        notes: note || '',
+        createdBy: 'Phlebotomist',
+        createdAt: new Date(),
+        collectionTime: new Date(),
+        collectedBy: 'Current Phlebotomist',
+        tubeVolumes
+      };
+      
+      await addDoc(collection(db, 'testOrders'), testOrderData);
+      
       showFlashMessage({ type: 'success', title: t('phlebotomyView.success', { defaultValue: 'Success' }), message: t('phlebotomyView.sampleCollectedSuccess', { patientName: modalPatient.patientName }) });
       setModalPatient(null);
       setTubeVolumes({});
