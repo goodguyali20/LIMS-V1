@@ -23,6 +23,7 @@ export const SettingsProvider = ({ children }) => {
     notifications: true,
     multiLanguage: true,
     soundEffects: false,
+    showWorkflowJourney: true,
     // Security settings
     twoFactorAuth: false,
     sessionTimeout: true,

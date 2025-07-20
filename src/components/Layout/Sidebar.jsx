@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { 
   Home, 
   FileText, 
@@ -410,6 +411,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
+  const { settings } = useSettings();
   const [particles, setParticles] = useState([]);
 
   const handleLogout = async () => {
@@ -605,43 +607,45 @@ const Sidebar = () => {
         })}
       </NavSection>
 
-      <JourneyGroup>
-        <motion.h3
-          style={{
-            color: 'white',
-            fontSize: '1.1rem',
-            fontWeight: '600',
-            margin: '0 0 1rem 0',
-            textAlign: 'center'
-          }}
-          variants={itemVariants}
-        >
-          Workflow Journey
-        </motion.h3>
-        
-        {journeySteps.map((step) => (
-          <JourneyStep
-            key={step.path}
-            to={step.path}
-            className={location.pathname === step.path ? 'active' : ''}
+      {settings.showWorkflowJourney && (
+        <JourneyGroup>
+          <motion.h3
+            style={{
+              color: 'white',
+              fontSize: '1.1rem',
+              fontWeight: '600',
+              margin: '0 0 1rem 0',
+              textAlign: 'center'
+            }}
             variants={itemVariants}
-            whileHover={{ x: 4 }}
-            whileTap={{ scale: 0.98 }}
           >
-            <JourneyIcon>
-              <step.icon size={20} />
-            </JourneyIcon>
-            <JourneyContent>
-              <JourneyTitle>{step.title}</JourneyTitle>
-              <JourneyDescription>{step.description}</JourneyDescription>
-            </JourneyContent>
-            <JourneyBadge $variant={step.status}>
-              {step.status === 'completed' ? '✓' : 
-               step.status === 'urgent' ? '!' : '⏳'}
-            </JourneyBadge>
-          </JourneyStep>
-        ))}
-      </JourneyGroup>
+            Workflow Journey
+          </motion.h3>
+          
+          {journeySteps.map((step) => (
+            <JourneyStep
+              key={step.path}
+              to={step.path}
+              className={location.pathname === step.path ? 'active' : ''}
+              variants={itemVariants}
+              whileHover={{ x: 4 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <JourneyIcon>
+                <step.icon size={20} />
+              </JourneyIcon>
+              <JourneyContent>
+                <JourneyTitle>{step.title}</JourneyTitle>
+                <JourneyDescription>{step.description}</JourneyDescription>
+              </JourneyContent>
+              <JourneyBadge $variant={step.status}>
+                {step.status === 'completed' ? '✓' : 
+                 step.status === 'urgent' ? '!' : '⏳'}
+              </JourneyBadge>
+            </JourneyStep>
+          ))}
+        </JourneyGroup>
+      )}
 
       <LogoutButton
         onClick={handleLogout}

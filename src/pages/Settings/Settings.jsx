@@ -743,6 +743,26 @@ const Settings = () => {
           <span></span>
         </ToggleSwitch>
       </ToggleContainer>
+      
+      <ToggleContainer>
+        <ToggleLabel>
+          <GlobeIcon size={16} />
+          <div>
+            <strong>{t('settings.system.workflowJourney')}</strong>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
+              {t('settings.system.workflowJourneyDescription')}
+            </p>
+          </div>
+        </ToggleLabel>
+        <ToggleSwitch>
+          <input 
+            type="checkbox" 
+            checked={settings.showWorkflowJourney}
+            onChange={(e) => updateSettings({ showWorkflowJourney: e.target.checked })}
+          />
+          <span></span>
+        </ToggleSwitch>
+      </ToggleContainer>
     </Section>
   );
 
