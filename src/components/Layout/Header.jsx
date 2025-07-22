@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 // import { useTheme } from '../../contexts/ThemeContext'; // Unused import
-import { Bell, Settings, Search, User, LogOut, Sun, Moon, Barcode } from 'lucide-react';
+import { Bell, Settings, Search, User, LogOut, Sun, Moon, Barcode, LayoutGrid } from 'lucide-react';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 import { logAuditEvent } from '../../utils/auditLogger';
 
@@ -284,6 +284,8 @@ const Header = () => {
   const [particles, setParticles] = useState([]);
   const [searchValue, setSearchValue] = useState('');
   const searchInputRef = useRef(null);
+  // Modern theme toggle state
+  const [isModern, setIsModern] = useState(() => typeof window !== 'undefined' && document.body.classList.contains('theme-modern'));
 
   const handleBarcodeScan = () => {
     // Navigate to a dedicated scanner page or open modal
@@ -299,6 +301,19 @@ const Header = () => {
     if (e.key === 'Enter' && searchValue.trim()) {
       navigate(`/app/search?q=${encodeURIComponent(searchValue.trim())}`);
       logAuditEvent('search_performed', { query: searchValue.trim() });
+    }
+  };
+
+  const handleModernToggle = () => {
+    if (typeof window !== 'undefined') {
+      const body = document.body;
+      if (body.classList.contains('theme-modern')) {
+        body.classList.remove('theme-modern');
+        setIsModern(false);
+      } else {
+        body.classList.add('theme-modern');
+        setIsModern(true);
+      }
     }
   };
 
@@ -448,6 +463,27 @@ const Header = () => {
                 <Settings size={20} />
               </motion.button>
             </HeaderSwitcher>
+
+            <motion.button
+              onClick={handleModernToggle}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                padding: '0.5rem',
+                border: 'none',
+                background: isModern ? 'var(--accent-color)' : 'none',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                color: isModern ? '#fff' : 'var(--text-color)',
+                boxShadow: isModern ? '0 0 0 2px var(--accent-color)' : undefined,
+                transition: 'all 0.2s',
+                marginRight: '0.5rem'
+              }}
+              title={isModern ? 'Switch to Classic Sidebar' : 'Switch to Modern Navigation Rail'}
+              aria-label={isModern ? 'Switch to Classic Sidebar' : 'Switch to Modern Navigation Rail'}
+            >
+              <LayoutGrid size={20} />
+            </motion.button>
 
             <motion.div
               whileHover={{ scale: 1.05 }}

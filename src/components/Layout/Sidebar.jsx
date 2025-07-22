@@ -519,144 +519,162 @@ const Sidebar = () => {
   };
 
   return (
-    <SidebarContainer
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* Floating particles */}
-      {particles.map(particle => (
-        <FloatingParticle
-          key={particle.id}
-          color={particle.color}
-          style={{
-            left: particle.x,
-            top: particle.y
-          }}
-          initial={{ 
-            opacity: 0,
-            scale: 0
-          }}
-          animate={{ 
-            opacity: [0, 1, 0],
-            scale: [0, 1, 0],
-            y: -100
-          }}
-          transition={{
-            duration: particle.duration,
-            delay: particle.delay,
-            ease: "easeOut"
-          }}
-        />
-      ))}
-
-      <SidebarHeader variants={itemVariants}>
-        <Logo
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <div className="logo-icon">🧪</div>
-          SmartLab
-        </Logo>
-      </SidebarHeader>
-
-      <NavSection variants={itemVariants}>
-        {navItems.map((item) => {
-          const isGradient =
-            item.path === '/app/register' ||
-            item.path === '/app/phlebotomy' ||
-            item.path === '/app/work-queue';
-          return (
-            <NavItem
-              key={item.path}
-              to={item.path}
-              className={location.pathname === item.path ? 'active' : ''}
-              variants={itemVariants}
-              whileHover={{ x: 4 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <item.icon size={20} />
-              {isGradient ? (
-                <AnimatedGradientText>{item.label}</AnimatedGradientText>
-              ) : (
-                <span>{item.label}</span>
-              )}
-              {item.badge && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  style={{
-                    background: '#ef4444',
-                    color: 'white',
-                    borderRadius: '50%',
-                    width: '20px',
-                    height: '20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    marginLeft: 'auto'
-                  }}
-                >
-                  {item.badge}
-                </motion.span>
-              )}
-            </NavItem>
-          );
-        })}
-      </NavSection>
-
-      {settings.showWorkflowJourney && (
-        <JourneyGroup>
-          <motion.h3
-            style={{
-              color: 'white',
-              fontSize: '1.1rem',
-              fontWeight: '600',
-              margin: '0 0 1rem 0',
-              textAlign: 'center'
-            }}
-            variants={itemVariants}
-          >
-            Workflow Journey
-          </motion.h3>
-          
-          {journeySteps.map((step) => (
-            <JourneyStep
-              key={step.path}
-              to={step.path}
-              className={location.pathname === step.path ? 'active' : ''}
-              variants={itemVariants}
-              whileHover={{ x: 4 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <JourneyIcon>
-                <step.icon size={20} />
-              </JourneyIcon>
-              <JourneyContent>
-                <JourneyTitle>{step.title}</JourneyTitle>
-                <JourneyDescription>{step.description}</JourneyDescription>
-              </JourneyContent>
-              <JourneyBadge $variant={step.status}>
-                {step.status === 'completed' ? '✓' : 
-                 step.status === 'urgent' ? '!' : '⏳'}
-              </JourneyBadge>
-            </JourneyStep>
-          ))}
-        </JourneyGroup>
-      )}
-
-      <LogoutButton
-        onClick={handleLogout}
-        variants={itemVariants}
-        whileHover={{ x: 4 }}
-        whileTap={{ scale: 0.98 }}
+    <>
+      <SidebarContainer className="sidebar"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
       >
-        <LogOut size={20} />
-        <span>{t('sidebar.logout')}</span>
-      </LogoutButton>
-    </SidebarContainer>
+        {/* Floating particles */}
+        {particles.map(particle => (
+          <FloatingParticle
+            key={particle.id}
+            color={particle.color}
+            style={{
+              left: particle.x,
+              top: particle.y
+            }}
+            initial={{ 
+              opacity: 0,
+              scale: 0
+            }}
+            animate={{ 
+              opacity: [0, 1, 0],
+              scale: [0, 1, 0],
+              y: -100
+            }}
+            transition={{
+              duration: particle.duration,
+              delay: particle.delay,
+              ease: "easeOut"
+            }}
+          />
+        ))}
+
+        <SidebarHeader variants={itemVariants}>
+          <Logo
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <div className="logo-icon">🧪</div>
+            SmartLab
+          </Logo>
+        </SidebarHeader>
+
+        <NavSection variants={itemVariants}>
+          {navItems.map((item) => {
+            const isGradient =
+              item.path === '/app/register' ||
+              item.path === '/app/phlebotomy' ||
+              item.path === '/app/work-queue';
+            return (
+              <NavItem
+                key={item.path}
+                to={item.path}
+                className={location.pathname === item.path ? 'active' : ''}
+                variants={itemVariants}
+                whileHover={{ x: 4 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <item.icon size={20} />
+                {isGradient ? (
+                  <AnimatedGradientText>{item.label}</AnimatedGradientText>
+                ) : (
+                  <span>{item.label}</span>
+                )}
+                {item.badge && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    style={{
+                      background: '#ef4444',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '20px',
+                      height: '20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      marginLeft: 'auto'
+                    }}
+                  >
+                    {item.badge}
+                  </motion.span>
+                )}
+              </NavItem>
+            );
+          })}
+        </NavSection>
+
+        {settings.showWorkflowJourney && (
+          <JourneyGroup>
+            <motion.h3
+              style={{
+                color: 'white',
+                fontSize: '1.1rem',
+                fontWeight: '600',
+                margin: '0 0 1rem 0',
+                textAlign: 'center'
+              }}
+              variants={itemVariants}
+            >
+              Workflow Journey
+            </motion.h3>
+            
+            {journeySteps.map((step) => (
+              <JourneyStep
+                key={step.path}
+                to={step.path}
+                className={location.pathname === step.path ? 'active' : ''}
+                variants={itemVariants}
+                whileHover={{ x: 4 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <JourneyIcon>
+                  <step.icon size={20} />
+                </JourneyIcon>
+                <JourneyContent>
+                  <JourneyTitle>{step.title}</JourneyTitle>
+                  <JourneyDescription>{step.description}</JourneyDescription>
+                </JourneyContent>
+                <JourneyBadge $variant={step.status}>
+                  {step.status === 'completed' ? '✓' : 
+                   step.status === 'urgent' ? '!' : '⏳'}
+                </JourneyBadge>
+              </JourneyStep>
+            ))}
+          </JourneyGroup>
+        )}
+
+        <LogoutButton
+          onClick={handleLogout}
+          variants={itemVariants}
+          whileHover={{ x: 4 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <LogOut size={20} />
+          <span>{t('sidebar.logout')}</span>
+        </LogoutButton>
+      </SidebarContainer>
+      <nav className="c-navigation-rail">
+        <ul>
+          {navItems.map((item) => (
+            <li key={item.path}>
+              <a
+                href={item.path}
+                className={location.pathname === item.path ? 'is-active' : ''}
+                aria-label={item.label}
+                title={item.label}
+              >
+                <item.icon size={24} />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </>
   );
 };
 
