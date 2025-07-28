@@ -207,7 +207,7 @@ const RequisitionForm = ({ order, user, settings }) => {
           <tbody>
             {order?.tests?.map((test, idx) => (
               <tr key={idx}>
-                <td>{test}</td>
+                <td>{typeof test === 'string' ? test : (test?.name || test?.id || 'Unknown Test')}</td>
                 <td>General</td>
                 <td style={{color: '#10b981', fontWeight: 700}}>REQUESTED</td>
                 <td>—</td>

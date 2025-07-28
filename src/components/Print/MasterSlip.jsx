@@ -209,7 +209,7 @@ const MasterSlip = ({ order, user, settings }) => {
           <tbody>
             {order?.tests?.map((test, idx) => (
               <tr key={idx}>
-                <td>{typeof test === 'object' ? test.name : test}</td>
+                <td>{typeof test === 'string' ? test : (test?.name || test?.id || 'Unknown Test')}</td>
                 <td>{typeof test === 'object' ? test.department || 'General' : 'General'}</td>
                 <td style={{color: '#10b981', fontWeight: 700}}>{t('pendingStatus')}</td>
                 <td>{t('emptyDash')}</td>

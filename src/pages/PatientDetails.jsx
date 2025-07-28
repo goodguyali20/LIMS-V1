@@ -218,7 +218,7 @@ const PatientDetails = () => {
               <SectionTitle theme={theme}><FaFlask /> {t('testsLabel')}</SectionTitle>
               <TestsList>
                 {patient.selectedTests.map((test, idx) => (
-                  <TestItem key={idx} theme={theme}><FaFlask /> {typeof test === 'string' ? test : test.name || test.id}</TestItem>
+                  <TestItem key={idx} theme={theme}><FaFlask /> {typeof test === 'string' ? test : (test?.name || test?.id || 'Unknown Test')}</TestItem>
                 ))}
               </TestsList>
             </Section>

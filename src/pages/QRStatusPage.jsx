@@ -412,7 +412,7 @@ const QRStatusPage = () => {
               <TestItem key={index}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Flask size={16} />
-                  <span>{test}</span>
+                  <span>{typeof test === 'string' ? test : (test?.name || test?.id || 'Unknown Test')}</span>
                 </div>
                 <TestStatus status={order.status === 'Completed' ? 'completed' : 'pending'}>
                   {order.status === 'Completed' ? t('qrStatus.completed') : t('qrStatus.pending')}

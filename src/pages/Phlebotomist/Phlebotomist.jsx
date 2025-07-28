@@ -1636,7 +1636,7 @@ const Phlebotomist = () => {
                         </PatientCardHeader>
                         <PatientTags>
                           {(Array.isArray(patient.selectedTests) ? patient.selectedTests : []).map((test, idx) => (
-                            <PatientTag key={idx} color={color}><FaTag size={12} style={{marginRight: 6}} />{typeof test === 'string' ? test : test.name || test.id}</PatientTag>
+                            <PatientTag key={idx} color={color}><FaTag size={12} style={{marginRight: 6}} />{typeof test === 'string' ? test : (test?.name || test?.id || 'Unknown Test')}</PatientTag>
                           ))}
                         </PatientTags>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
@@ -1749,7 +1749,7 @@ const Phlebotomist = () => {
                     </div>
                     <PatientTags style={{ marginTop: 12 }}>
                       {(Array.isArray(patient.selectedTests) ? patient.selectedTests : []).map((test, idx) => (
-                        <PatientTag key={idx} color={theme.colors.success}><FaTag size={12} />{typeof test === 'string' ? test : test.name || test.id}</PatientTag>
+                        <PatientTag key={idx} color={theme.colors.success}><FaTag size={12} />{typeof test === 'string' ? test : (test?.name || test?.id || 'Unknown Test')}</PatientTag>
                       ))}
                     </PatientTags>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
@@ -1802,7 +1802,7 @@ const Phlebotomist = () => {
                 <div style={{ marginBottom: 8, fontWeight: 600 }}>{t('testsLabel', { defaultValue: 'Tests' })}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                   {(Array.isArray(modalPatient.selectedTests) ? modalPatient.selectedTests : []).map((test, idx) => (
-                    <TestTag key={idx} theme={theme}>{typeof test === 'string' ? test : test.name || test.id}</TestTag>
+                    <TestTag key={idx} theme={theme}>{typeof test === 'string' ? test : (test?.name || test?.id || 'Unknown Test')}</TestTag>
                   ))}
                 </div>
               </ModalSection>

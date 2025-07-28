@@ -13,7 +13,12 @@ import { logAuditEvent } from '../../utils/auditLogger';
 const HeaderContainer = styled.header`
   position: fixed;
   top: 0;
-  left: 0;
+  left: ${({ $sidebarType, $isSidebarOpen }) => {
+    if (!$isSidebarOpen) return '0';
+    if ($sidebarType === 'new') return '90px';
+    if ($sidebarType === 'default') return '280px';
+    return '0';
+  }};
   right: 0;
   z-index: 1000;
   background: ${({ theme }) => theme.colors.surface};
@@ -28,6 +33,7 @@ const HeaderContainer = styled.header`
   height: 80px;
   min-height: 80px;
   contain: layout style paint;
+  transition: left 0.3s ease-in-out;
   
   @media (max-width: 768px) {
     padding: 1rem;
@@ -275,7 +281,8 @@ const BarcodeButton = styled(motion.button)`
   }
 `;
 
-const Header = () => {
+// Add prop types
+const Header = ({ onSidebarToggle, onSidebarStyleToggle, sidebarType, isSidebarOpen }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
@@ -380,7 +387,7 @@ const Header = () => {
       initial="hidden"
       animate="visible"
     >
-      <HeaderContainer>
+      <HeaderContainer $sidebarType={sidebarType} $isSidebarOpen={isSidebarOpen}>
         {/* Particles */}
         {particles.map(particle => (
           <Particle
@@ -447,6 +454,25 @@ const Header = () => {
             
             <LanguageSwitcher />
             
+            <motion.button
+              onClick={onSidebarStyleToggle}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                padding: '0.5rem',
+                border: 'none',
+                background: 'none',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                color: 'var(--text-color)',
+                marginRight: '0.5rem'
+              }}
+              title={'Toggle Sidebar Style'}
+              aria-label={'Toggle Sidebar Style'}
+            >
+              <LayoutGrid size={20} />
+            </motion.button>
+
             <HeaderSwitcher>
               <motion.button
                 onClick={() => navigate('/app/settings')}
@@ -463,27 +489,6 @@ const Header = () => {
                 <Settings size={20} />
               </motion.button>
             </HeaderSwitcher>
-
-            <motion.button
-              onClick={handleModernToggle}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                padding: '0.5rem',
-                border: 'none',
-                background: isModern ? 'var(--accent-color)' : 'none',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                color: isModern ? '#fff' : 'var(--text-color)',
-                boxShadow: isModern ? '0 0 0 2px var(--accent-color)' : undefined,
-                transition: 'all 0.2s',
-                marginRight: '0.5rem'
-              }}
-              title={isModern ? 'Switch to Classic Sidebar' : 'Switch to Modern Navigation Rail'}
-              aria-label={isModern ? 'Switch to Classic Sidebar' : 'Switch to Modern Navigation Rail'}
-            >
-              <LayoutGrid size={20} />
-            </motion.button>
 
             <motion.div
               whileHover={{ scale: 1.05 }}

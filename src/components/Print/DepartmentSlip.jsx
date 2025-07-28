@@ -190,7 +190,7 @@ const DepartmentSlip = ({ order, department, tests, user, settings }) => {
           <tbody>
             {tests?.map((test, idx) => (
               <tr key={idx}>
-                <td>{typeof test === 'object' ? test.name : test}</td>
+                <td>{typeof test === 'string' ? test : (test?.name || test?.id || 'Unknown Test')}</td>
                 <td style={{color: '#10b981', fontWeight: 700}}>PENDING</td>
                 <td>—</td>
               </tr>

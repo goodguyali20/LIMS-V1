@@ -750,7 +750,7 @@ const Orders = () => {
                   <h4>Tests:</h4>
                   <ul>
                     {order.tests?.map((test, idx) => (
-                      <li key={idx}>{test}</li>
+                      <li key={idx}>{typeof test === 'string' ? test : (test?.name || test?.id || 'Unknown Test')}</li>
                     ))}
                   </ul>
                 </TestList>
@@ -786,7 +786,7 @@ const Orders = () => {
         isOpen={printModalOpen}
         onClose={() => setPrintModalOpen(false)}
         patientData={orderToPatientData(printOrder)}
-        selectedTests={Array.isArray(printOrder?.tests) ? printOrder.tests.map(t => typeof t === 'string' ? t : t.name) : []}
+        selectedTests={Array.isArray(printOrder?.tests) ? printOrder.tests.map(t => typeof t === 'string' ? t : (t?.name || t?.id || 'Unknown Test')) : []}
         orderData={{
           referringDoctor: printOrder?.referringDoctor || 'N/A',
           priority: printOrder?.priority || 'Normal',

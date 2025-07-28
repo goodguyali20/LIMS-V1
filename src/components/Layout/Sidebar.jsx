@@ -405,7 +405,8 @@ const AnimatedGradientText = styled.span`
   }
 `;
 
-const Sidebar = () => {
+const Sidebar = ({ isSidebarOpen }) => {
+  if (isSidebarOpen === false) return null;
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
