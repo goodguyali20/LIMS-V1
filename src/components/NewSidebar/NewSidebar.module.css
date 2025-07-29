@@ -4,16 +4,55 @@
   top: 0;
   left: 0;
   height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+}
+
+.sidebar_content {
+  height: auto;
+  max-height: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+  position: relative;
   width: 90px;
   background-color: #161b22;
   color: #a0aec0;
-  padding: 40px 0;
+  padding: 5px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   transition: transform 0.3s ease-in-out;
   z-index: 100;
-  clip-path: path('M 0 0 L 70 0 C 90 150, 90 850, 70 1000 L 0 1000 Z');
+  border-top-right-radius: 32px;
+  border-bottom-right-radius: 32px;
+}
+
+/* Decorative red lines above and below the sidebar */
+.sidebar_content::before,
+.sidebar_content::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 100px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #ff0000 20%, #ff0000 80%, transparent 100%);
+  border-radius: 1px;
+}
+
+.sidebar_content::before {
+  top: -20px;
+  transform: rotate(-15deg);
+}
+
+.sidebar_content::after {
+  bottom: -20px;
+  transform: rotate(15deg);
+
 }
 
 .open {
@@ -37,8 +76,8 @@
 }
 
 .logoContainer {
-  height: 60px;
-  margin-bottom: 20px;
+  height: 20px;
+  margin-bottom: 10px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -131,3 +170,6 @@
   background-color: #2d3748;
   color: #ffffff;
 } 
+
+
+

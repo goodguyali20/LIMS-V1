@@ -17,14 +17,21 @@ import {
   Cell,
   Legend
 } from 'recharts';
-import { format, subDays } from 'date-fns';
-import { useQuery } from '@tanstack/react-query';
+import { format, subDays, startOfDay, isToday } from 'date-fns';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import GlowButton from '../../components/common/GlowButton';
 import EmptyState from '../../components/common/EmptyState';
 import { trackEvent } from '../../utils/errorMonitoring';
 import { usePerformanceMonitor } from '../../utils/performanceOptimizer';
+import { 
+  getCachedData, 
+  setCachedData, 
+  clearCache, 
+  getCacheStats,
+  hasTodayData 
+} from '../../utils/dashboardCache';
 import { 
   SkeletonCard, 
   SkeletonGrid, 
@@ -37,22 +44,10 @@ import {
 // Lazy load heavy components with proper cleanup
 const AdvancedAnalytics = lazy(() => import('../../components/Analytics/AdvancedAnalytics'));
 
-// Optimized chart components with cleanup
+// Simplified chart components with minimal cleanup
 const MemoizedLineChart = React.memo(({ data }) => {
-  const chartRef = useRef(null);
-  
-  useEffect(() => {
-    return () => {
-      // Cleanup chart resources
-      if (chartRef.current) {
-        // Force garbage collection of chart data
-        chartRef.current = null;
-      }
-    };
-  }, []);
-  
   return (
-    <ResponsiveContainer width="100%" height="100%" ref={chartRef}>
+    <ResponsiveContainer width="100%" height="100%">
       <LineChart 
         data={data}
         margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
@@ -66,13 +61,6 @@ const MemoizedLineChart = React.memo(({ data }) => {
             <stop offset="5%" stopColor="#764ba2" stopOpacity={0.8}/>
             <stop offset="95%" stopColor="#764ba2" stopOpacity={0.1}/>
           </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-            <feMerge> 
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
         </defs>
         <CartesianGrid 
           strokeDasharray="3 3" 
@@ -110,8 +98,7 @@ const MemoizedLineChart = React.memo(({ data }) => {
             fill: '#667eea', 
             strokeWidth: 2, 
             stroke: '#fff',
-            r: 6,
-            filter: 'url(#glow)'
+            r: 6
           }}
           activeDot={{ 
             r: 8, 
@@ -131,8 +118,7 @@ const MemoizedLineChart = React.memo(({ data }) => {
             fill: '#764ba2', 
             strokeWidth: 2, 
             stroke: '#fff',
-            r: 6,
-            filter: 'url(#glow)'
+            r: 6
           }}
           activeDot={{ 
             r: 8, 
@@ -148,19 +134,8 @@ const MemoizedLineChart = React.memo(({ data }) => {
 });
 
 const MemoizedPieChart = React.memo(({ data }) => {
-  const chartRef = useRef(null);
-  
-  useEffect(() => {
-    return () => {
-      // Cleanup chart resources
-      if (chartRef.current) {
-        chartRef.current = null;
-      }
-    };
-  }, []);
-  
   return (
-    <ResponsiveContainer width="100%" height="100%" ref={chartRef}>
+    <ResponsiveContainer width="100%" height="100%">
       <PieChart>
         <Pie
           data={data}
@@ -188,16 +163,10 @@ const MemoizedPieChart = React.memo(({ data }) => {
   );
 });
 
-// Optimized activity feed component with layout shift prevention
+// Simplified activity feed component
 const MemoizedActivityFeed = React.memo(() => (
   <PreventLayoutShiftContainer>
-    <RecentActivityCard
-      whileHover={{ 
-        scale: 1.02,
-        boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
-      }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-    >
+    <RecentActivityCard>
       <ActivityHeader>
         <ActivityTitle>
           <ActivityIcon>
@@ -219,12 +188,6 @@ const MemoizedActivityFeed = React.memo(() => (
             <ActivityText>New order <strong>#1234</strong> received from <strong>Dr. Smith</strong></ActivityText>
             <ActivityTime>2 minutes ago</ActivityTime>
           </ActivityContent>
-          <ActivityIconSmall>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
-            </svg>
-          </ActivityIconSmall>
         </ActivityItem>
         
         <ActivityItem>
@@ -233,12 +196,6 @@ const MemoizedActivityFeed = React.memo(() => (
             <ActivityText>Test results completed for <strong>patient #5678</strong></ActivityText>
             <ActivityTime>5 minutes ago</ActivityTime>
           </ActivityContent>
-          <ActivityIconSmall>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
-            </svg>
-          </ActivityIconSmall>
         </ActivityItem>
         
         <ActivityItem>
@@ -247,12 +204,6 @@ const MemoizedActivityFeed = React.memo(() => (
             <ActivityText>Quality control passed for <strong>batch #9012</strong></ActivityText>
             <ActivityTime>8 minutes ago</ActivityTime>
           </ActivityContent>
-          <ActivityIconSmall>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
-            </svg>
-          </ActivityIconSmall>
         </ActivityItem>
       </ActivityList>
     </RecentActivityCard>
@@ -279,7 +230,6 @@ const SkeletonActivityFeed = React.memo(() => (
               <SkeletonBox $width="80%" $height="16px" $borderRadius="4px" style={{ marginBottom: '0.5rem' }} />
               <SkeletonBox $width="40%" $height="14px" $borderRadius="4px" />
             </div>
-            <SkeletonBox $width="16px" $height="16px" $borderRadius="4px" />
           </ActivityItem>
         ))}
       </ActivityList>
@@ -287,16 +237,56 @@ const SkeletonActivityFeed = React.memo(() => (
   </PreventLayoutShiftContainer>
 ));
 
-const DashboardContainer = styled(motion.div)`
+// Cache status indicator component
+const CacheStatusIndicator = React.memo(({ timeRange, isCached, lastUpdateTime }) => {
+  const getStatusColor = () => {
+    if (!isCached) return '#ef4444'; // Red for no cache
+    if (hasTodayData(timeRange)) return '#10b981'; // Green for today's data
+    return '#f59e0b'; // Yellow for old data
+  };
+
+  const getStatusText = () => {
+    if (!isCached) return 'No Cache';
+    if (hasTodayData(timeRange)) return 'Today\'s Data';
+    return 'Cached';
+  };
+
+  const getStatusIcon = () => {
+    if (!isCached) return '❌';
+    if (hasTodayData(timeRange)) return '✅';
+    return '⏰';
+  };
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      fontSize: '0.75rem',
+      color: getStatusColor(),
+      fontWeight: '600'
+    }}>
+      <span>{getStatusIcon()}</span>
+      <span>{getStatusText()}</span>
+      {lastUpdateTime && (
+        <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontWeight: '400' }}>
+          ({format(new Date(lastUpdateTime), 'HH:mm')})
+        </span>
+      )}
+    </div>
+  );
+});
+
+// Simplified styled components with reduced complexity
+const DashboardContainer = styled.div`
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
   min-height: 100vh;
   background: ${({ theme }) => theme.colors.background};
-  contain: layout style paint;
 `;
 
-const DashboardHeader = styled(motion.div)`
+const DashboardHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -304,24 +294,18 @@ const DashboardHeader = styled(motion.div)`
   padding-bottom: 1rem;
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   height: 80px;
-  min-height: 80px;
-  contain: layout style paint;
   
   h1 {
     font-size: 2rem;
     font-weight: 700;
     color: ${({ theme }) => theme.colors.text};
     margin: 0;
-    min-height: 2.5rem;
-    line-height: 1.2;
   }
   
   .header-actions {
     display: flex;
     gap: 1rem;
     align-items: center;
-    min-width: 200px;
-    height: 40px;
   }
 `;
 
@@ -330,27 +314,20 @@ const StatsGrid = styled.div`
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
-  contain: layout style paint;
-  min-height: 200px;
 `;
 
-const StatCard = styled(motion.div)`
+const StatCard = styled.div`
   background: linear-gradient(145deg, 
     rgba(255, 255, 255, 0.1) 0%, 
     rgba(255, 255, 255, 0.05) 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   padding: 1.5rem;
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.1),
-    0 8px 16px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
   transition: all 0.2s ease;
-  min-height: 160px;
-  contain: layout style paint;
   
   &::before {
     content: '';
@@ -368,25 +345,6 @@ const StatCard = styled(motion.div)`
     border-radius: 20px 20px 0 0;
   }
   
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.05) 0%, transparent 50%);
-    pointer-events: none;
-  }
-  
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 
-      0 20px 40px rgba(0, 0, 0, 0.12),
-      0 8px 16px rgba(0, 0, 0, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  }
-  
   .stat-header {
     display: flex;
     justify-content: space-between;
@@ -394,8 +352,6 @@ const StatCard = styled(motion.div)`
     margin-bottom: 1rem;
     position: relative;
     z-index: 1;
-    height: 40px;
-    min-height: 40px;
   }
   
   .stat-title {
@@ -404,8 +360,6 @@ const StatCard = styled(motion.div)`
     color: ${({ theme }) => theme.colors.textSecondary};
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    min-height: 1.2em;
-    line-height: 1.2;
   }
   
   .stat-icon {
@@ -417,7 +371,6 @@ const StatCard = styled(motion.div)`
     justify-content: center;
     font-size: 1.25rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    flex-shrink: 0;
   }
   
   .stat-value {
@@ -427,8 +380,6 @@ const StatCard = styled(motion.div)`
     margin-bottom: 0.5rem;
     position: relative;
     z-index: 1;
-    min-height: 2.5rem;
-    line-height: 1.2;
   }
   
   .stat-change {
@@ -438,8 +389,6 @@ const StatCard = styled(motion.div)`
     gap: 0.25rem;
     position: relative;
     z-index: 1;
-    min-height: 1.2em;
-    line-height: 1.2;
   }
   
   .stat-change.positive {
@@ -456,31 +405,23 @@ const ChartsGrid = styled.div`
   grid-template-columns: 2fr 1fr;
   gap: 2rem;
   margin-bottom: 2rem;
-  contain: layout style paint;
-  min-height: 400px;
   
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
-    min-height: 600px;
   }
 `;
 
-const ChartCard = styled(motion.div)`
+const ChartCard = styled.div`
   background: linear-gradient(145deg, 
     rgba(255, 255, 255, 0.1) 0%, 
     rgba(255, 255, 255, 0.05) 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   padding: 2.5rem;
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.1),
-    0 8px 16px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
-  min-height: 400px;
-  contain: layout style paint;
   
   &::before {
     content: '';
@@ -496,18 +437,6 @@ const ChartCard = styled(motion.div)`
       #f5576c 75%, 
       #4facfe 100%);
     border-radius: 20px 20px 0 0;
-  }
-  
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
-    pointer-events: none;
   }
   
   h3 {
@@ -520,8 +449,6 @@ const ChartCard = styled(motion.div)`
     gap: 1rem;
     position: relative;
     z-index: 1;
-    min-height: 2rem;
-    line-height: 1.2;
     
     &::before {
       content: '';
@@ -530,37 +457,18 @@ const ChartCard = styled(motion.div)`
       background: linear-gradient(180deg, #667eea, #764ba2);
       border-radius: 3px;
       box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-      flex-shrink: 0;
     }
   }
   
   .chart-container {
     position: relative;
     height: 320px;
-    min-height: 320px;
     z-index: 1;
-    contain: layout style paint;
   }
 `;
 
-const LoadingSpinner = styled(motion.div)`
-  width: 40px;
-  height: 40px;
-  border: 3px solid ${({ theme }) => theme.colors.border};
-  border-top: 3px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-
-
-
-// Premium Recent Activity Components
-const RecentActivityCard = styled(motion.div)`
+// Simplified activity components
+const RecentActivityCard = styled.div`
   background: linear-gradient(145deg, 
     rgba(255, 255, 255, 0.1) 0%, 
     rgba(255, 255, 255, 0.05) 100%);
@@ -568,15 +476,10 @@ const RecentActivityCard = styled(motion.div)`
   border-radius: 20px;
   padding: 2.5rem;
   margin-top: 2rem;
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.1),
-    0 8px 16px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(20px);
   position: relative;
   overflow: hidden;
-  min-height: 300px;
-  contain: layout style paint;
   
   &::before {
     content: '';
@@ -593,18 +496,6 @@ const RecentActivityCard = styled(motion.div)`
       #4facfe 100%);
     border-radius: 20px 20px 0 0;
   }
-  
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
-    pointer-events: none;
-  }
 `;
 
 const ActivityHeader = styled.div`
@@ -614,9 +505,6 @@ const ActivityHeader = styled.div`
   margin-bottom: 2rem;
   position: relative;
   z-index: 1;
-  height: 60px;
-  min-height: 60px;
-  contain: layout style paint;
 `;
 
 const ActivityTitle = styled.h3`
@@ -627,8 +515,6 @@ const ActivityTitle = styled.h3`
   display: flex;
   align-items: center;
   gap: 1rem;
-  min-height: 2rem;
-  line-height: 1.2;
 `;
 
 const ActivityIcon = styled.div`
@@ -641,7 +527,6 @@ const ActivityIcon = styled.div`
   justify-content: center;
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-  flex-shrink: 0;
 `;
 
 const ActivityBadge = styled.span`
@@ -654,21 +539,6 @@ const ActivityBadge = styled.span`
   text-transform: uppercase;
   letter-spacing: 0.5px;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  animation: pulse 2s infinite;
-  min-width: 60px;
-  text-align: center;
-  flex-shrink: 0;
-  
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.8;
-      transform: scale(1.05);
-    }
-  }
 `;
 
 const ActivityList = styled.div`
@@ -677,8 +547,6 @@ const ActivityList = styled.div`
   gap: 1.5rem;
   position: relative;
   z-index: 1;
-  min-height: 200px;
-  contain: layout style paint;
 `;
 
 const ActivityItem = styled.div`
@@ -690,8 +558,6 @@ const ActivityItem = styled.div`
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.2s ease;
-  min-height: 60px;
-  contain: layout style paint;
   
   &:hover {
     background: rgba(255, 255, 255, 0.1);
@@ -704,14 +570,12 @@ const ActivityDot = styled.div`
   height: 8px;
   border-radius: 50%;
   background: ${({ color }) => color};
-  flex-shrink: 0;
   margin-top: 0.5rem;
 `;
 
 const ActivityContent = styled.div`
   flex: 1;
   min-width: 0;
-  contain: layout style paint;
 `;
 
 const ActivityText = styled.p`
@@ -719,7 +583,6 @@ const ActivityText = styled.p`
   font-size: 0.875rem;
   margin: 0 0 0.5rem 0;
   line-height: 1.4;
-  min-height: 1.4em;
   
   strong {
     color: ${({ theme }) => theme.colors.text};
@@ -731,19 +594,9 @@ const ActivityTime = styled.span`
   color: ${({ theme }) => theme.colors.textSecondary};
   font-size: 0.75rem;
   font-weight: 500;
-  min-height: 1em;
-  line-height: 1;
 `;
 
-const ActivityIconSmall = styled.div`
-  width: 16px;
-  height: 16px;
-  color: ${({ theme }) => theme.colors.textSecondary};
-  flex-shrink: 0;
-  margin-top: 0.25rem;
-`;
-
-// Custom tooltip component for premium look
+// Simplified tooltip components
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
@@ -752,8 +605,7 @@ const CustomTooltip = ({ active, payload, label }) => {
         border: '1px solid rgba(255, 255, 255, 0.3)',
         borderRadius: '16px',
         padding: '16px',
-        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1)',
-        backdropFilter: 'blur(20px)',
+        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
         fontSize: '13px',
         fontWeight: '600',
         minWidth: '200px'
@@ -803,7 +655,6 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-// Custom pie chart tooltip
 const CustomPieTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const data = payload[0];
@@ -813,8 +664,7 @@ const CustomPieTooltip = ({ active, payload }) => {
         border: '1px solid rgba(255, 255, 255, 0.3)',
         borderRadius: '16px',
         padding: '16px',
-        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1)',
-        backdropFilter: 'blur(20px)',
+        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
         fontSize: '13px',
         fontWeight: '600',
         minWidth: '180px'
@@ -856,30 +706,13 @@ const CustomPieTooltip = ({ active, payload }) => {
             {data.value}
           </span>
         </div>
-        <div style={{ 
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginTop: '4px'
-        }}>
-          <span style={{ color: '#6b7280', fontWeight: '600' }}>
-            Percentage
-          </span>
-          <span style={{ 
-            color: data.payload.fill, 
-            fontWeight: '700',
-            fontSize: '16px'
-          }}>
-            {((data.payload.percent || 0) * 100).toFixed(1)}%
-          </span>
-        </div>
       </div>
     );
   }
   return null;
 };
 
-// Mock data functions
+// Mock data functions with caching
 const generateMockData = () => {
   const today = new Date();
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -903,6 +736,28 @@ const generateMockData = () => {
   return { last7Days, testTypes };
 };
 
+// Enhanced data fetching function with caching
+const fetchDashboardData = async (timeRange) => {
+  // Check cache first
+  const cached = getCachedData(timeRange);
+  if (cached) {
+    return cached.data;
+  }
+
+  // Simulate API call with delay
+  console.log('🔄 Fetching fresh dashboard data for', timeRange);
+  const data = await new Promise(resolve => {
+    setTimeout(() => {
+      resolve(generateMockData());
+    }, 1000);
+  });
+
+  // Cache the data
+  setCachedData(timeRange, data, '1.0');
+  
+  return data;
+};
+
 const ManagerDashboard = () => {
   // Performance monitoring with cleanup
   usePerformanceMonitor('ManagerDashboard');
@@ -911,40 +766,51 @@ const ManagerDashboard = () => {
   const { user } = useAuth();
   const [timeRange, setTimeRange] = useState('7d');
   const hasTrackedView = useRef(false);
-  
-  // Cleanup refs for chart components
-  const chartRefs = useRef(new Set());
-  
-  // Cleanup function for chart resources
-  const cleanupCharts = useCallback(() => {
-    chartRefs.current.forEach(ref => {
-      if (ref && ref.current) {
-        ref.current = null;
-      }
-    });
-    chartRefs.current.clear();
-  }, []);
-  
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      cleanupCharts();
-    };
-  }, [cleanupCharts]);
+  const queryClient = useQueryClient();
+  const [cacheStats, setCacheStats] = useState(null);
 
-  // Mock data query
-  const { data: dashboardData, isLoading, error } = useQuery({
+  // Enhanced data query with caching
+  const { data: dashboardData, isLoading, error, dataUpdatedAt } = useQuery({
     queryKey: ['dashboard', timeRange],
-    queryFn: () => {
-      // Simulate API delay
-      return new Promise(resolve => {
-        setTimeout(() => {
-          resolve(generateMockData());
-        }, 1000);
-      });
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    queryFn: () => fetchDashboardData(timeRange),
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours - data is fresh for a full day
+    cacheTime: 24 * 60 * 60 * 1000, // 24 hours - keep in memory for a full day
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: false, // Don't refetch when component mounts if data exists
+    refetchOnReconnect: false, // Don't refetch on network reconnect
   });
+
+  // Update cache stats periodically
+  useEffect(() => {
+    const updateCacheStats = () => {
+      const stats = getCacheStats();
+      setCacheStats(stats);
+    };
+
+    updateCacheStats();
+    const interval = setInterval(updateCacheStats, 30000); // Update every 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Force refresh function
+  const handleForceRefresh = useCallback(() => {
+    // Clear cache for current time range
+    clearCache(timeRange);
+    
+    // Invalidate and refetch
+    queryClient.invalidateQueries(['dashboard', timeRange]);
+    console.log('🔄 Force refreshed dashboard data for', timeRange);
+  }, [timeRange, queryClient]);
+
+  // Clear all cache function
+  const handleClearAllCache = useCallback(() => {
+    // This would clear all dashboard cache
+    // For now, just clear current time range
+    clearCache(timeRange);
+    queryClient.invalidateQueries(['dashboard']);
+    console.log('🗑️ Cleared all dashboard cache');
+  }, [timeRange, queryClient]);
 
   // Memoize expensive computations
   const stats = useMemo(() => [
@@ -982,30 +848,6 @@ const ManagerDashboard = () => {
     }
   ], [t]);
 
-  // Memoize animation variants
-  const containerVariants = useMemo(() => ({
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        duration: 0.3, // Reduced from 0.5
-        staggerChildren: 0.05 // Reduced from 0.1
-      }
-    }
-  }), []);
-
-  const itemVariants = useMemo(() => ({
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.3, // Reduced from 0.5
-        ease: "easeOut"
-      }
-    }
-  }), []);
-
   // Memoize event tracking callback
   const handleTimeRangeChange = useCallback((e) => {
     setTimeRange(e.target.value);
@@ -1039,12 +881,8 @@ const ManagerDashboard = () => {
   }
 
   return (
-    <DashboardContainer
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <DashboardHeader variants={itemVariants}>
+    <DashboardContainer>
+      <DashboardHeader>
         <h1>{t('dashboard.title')}</h1>
         <div className="header-actions">
           <select 
@@ -1062,6 +900,21 @@ const ManagerDashboard = () => {
             <option value="30d">{t('dashboard.last30Days')}</option>
             <option value="90d">{t('dashboard.last90Days')}</option>
           </select>
+          
+          <CacheStatusIndicator 
+            timeRange={timeRange}
+            isCached={!!getCachedData(timeRange)}
+            lastUpdateTime={dataUpdatedAt}
+          />
+          
+          <GlowButton 
+            $variant="primary" 
+            onClick={handleForceRefresh}
+            style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
+          >
+            🔄 Refresh
+          </GlowButton>
+          
           <GlowButton $variant="primary">
             {t('dashboard.exportReport')}
           </GlowButton>
@@ -1071,12 +924,7 @@ const ManagerDashboard = () => {
       <PreventLayoutShiftContainer>
         <StatsGrid>
           {stats.map((stat) => (
-            <StatCard
-              key={stat.title}
-              variants={itemVariants}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
+            <StatCard key={stat.title}>
               <div className="stat-header">
                 <span className="stat-title">{stat.title}</span>
                 <div 
@@ -1119,28 +967,14 @@ const ManagerDashboard = () => {
       ) : (
         <PreventLayoutShiftContainer>
           <ChartsGrid>
-            <ChartCard
-              variants={itemVariants}
-              whileHover={{ 
-                scale: 1.02,
-                boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
-              }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
+            <ChartCard>
               <h3>{t('dashboard.ordersTestsTrend')}</h3>
               <FixedAspectRatioContainer $ratio={16/9}>
                 <MemoizedLineChart data={dashboardData?.last7Days} />
               </FixedAspectRatioContainer>
             </ChartCard>
 
-            <ChartCard
-              variants={itemVariants}
-              whileHover={{ 
-                scale: 1.02,
-                boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15), 0 12px 24px rgba(0, 0, 0, 0.1)'
-              }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
+            <ChartCard>
               <h3>{t('dashboard.testTypesDistribution')}</h3>
               <FixedAspectRatioContainer $ratio={1}>
                 <MemoizedPieChart data={dashboardData?.testTypes} />

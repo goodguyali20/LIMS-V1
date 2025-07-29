@@ -67,13 +67,18 @@ export class PerformanceOptimizer {
       this.metrics.get(name)!.shift();
     }
 
-    // Log slow operations (throttled to avoid console spam)
-    if (duration > 100) {
+    // Log slow operations (reduced threshold from 100ms to 50ms)
+    if (duration > 50) {
       const currentTime = Date.now();
       if (currentTime - this.lastWarningTime > this.warningThrottleMs) {
         console.warn(`Slow operation detected: ${name} took ${duration.toFixed(2)}ms`);
         this.lastWarningTime = currentTime;
       }
+    }
+    
+    // Log very slow operations immediately
+    if (duration > 1000) {
+      console.error(`Very slow operation detected: ${name} took ${duration.toFixed(2)}ms - this may indicate a performance issue`);
     }
   }
 
@@ -697,8 +702,14 @@ export const usePerformanceMonitor = (componentName: string) => {
       const endTime = performance.now();
       const duration = endTime - startTime;
       
-      if (duration > 100) {
+      // Reduced threshold from 100ms to 50ms for earlier detection
+      if (duration > 50) {
         console.warn(`Slow component unmount: ${componentName} took ${duration.toFixed(2)}ms`);
+      }
+      
+      // Log very slow operations immediately
+      if (duration > 1000) {
+        console.error(`Very slow component unmount: ${componentName} took ${duration.toFixed(2)}ms - this may indicate a memory leak or cleanup issue`);
       }
       
       PerformanceOptimizer.getInstance().recordMetric(`${componentName}_unmount`, duration);
