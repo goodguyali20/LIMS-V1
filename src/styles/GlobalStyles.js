@@ -19,9 +19,6 @@ export const GlobalStyles = createGlobalStyle`
   html {
     font-size: 16px;
     scroll-behavior: smooth;
-    /* Premium scrollbar styling */
-    scrollbar-width: thin;
-    scrollbar-color: ${({ theme }) => theme.colors.primary} transparent;
   }
 
   body {
@@ -50,47 +47,7 @@ export const GlobalStyles = createGlobalStyle`
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
   }
 
-  /* Premium scrollbar for dark mode */
-  body.dark-mode::-webkit-scrollbar {
-    width: 10px;
-  }
 
-  body.dark-mode::-webkit-scrollbar-track {
-    background: linear-gradient(180deg, #1e1e1e 0%, #2d2d2d 100%);
-    border-radius: 5px;
-  }
-
-  body.dark-mode::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
-    border-radius: 5px;
-    border: 2px solid #1e1e1e;
-  }
-
-  body.dark-mode::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-  }
-
-  /* Premium light mode scrollbar */
-  ::-webkit-scrollbar {
-    width: 10px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
-    border-radius: 5px;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
-    border-radius: 5px;
-    border: 2px solid #f1f5f9;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
-  }
 
   /* Premium focus styles for accessibility */
   *:focus {

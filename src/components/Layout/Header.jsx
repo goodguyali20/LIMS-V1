@@ -5,40 +5,23 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
-// import { useTheme } from '../../contexts/ThemeContext'; // Unused import
-import { Bell, Settings, Search, User, LogOut, Sun, Moon, Barcode, LayoutGrid } from 'lucide-react';
+import { Bell, Settings, Search, User, LogOut, Sun, Moon, Barcode, LayoutGrid, Plus } from 'lucide-react';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 import { logAuditEvent } from '../../utils/auditLogger';
 
 const HeaderContainer = styled.header`
-  position: fixed;
-  top: 0;
-  left: ${({ $sidebarType, $isSidebarOpen }) => {
-    if (!$isSidebarOpen) return '0';
-    if ($sidebarType === 'new') return '90px';
-    if ($sidebarType === 'default') return '280px';
-    return '0';
-  }};
-  right: 0;
-  z-index: 1000;
-  background: ${({ theme }) => theme.colors.surface};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  padding: 1rem 2rem;
-  display: flex;
+  position: relative;
+  background: transparent;
+  padding: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 2rem;
-  height: 80px;
+  gap: 1.5rem;
   min-height: 80px;
   contain: layout style paint;
-  transition: left 0.3s ease-in-out;
   
   @media (max-width: 768px) {
-    padding: 1rem;
     gap: 1rem;
-    height: 70px;
     min-height: 70px;
   }
 `;
@@ -48,33 +31,36 @@ const LogoSection = styled.div`
   align-items: center;
   gap: 1rem;
   flex-shrink: 0;
+  min-width: 0;
 `;
 
 const Logo = styled(motion.div)`
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: ${({ theme }) => theme.colors.text};
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   
   .logo-icon {
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 1.25rem;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   }
 `;
 
 const SearchSection = styled.div`
-  flex: 1;
   max-width: 500px;
   position: relative;
+  justify-self: center;
+  min-width: 0;
   
   @media (max-width: 768px) {
     max-width: none;
@@ -83,18 +69,19 @@ const SearchSection = styled.div`
 
 const SearchInput = styled.input`
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 3rem;
+  padding: 0.875rem 1rem 0.875rem 3rem;
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 12px;
+  border-radius: 16px;
   background: ${({ theme }) => theme.colors.surface};
   color: ${({ theme }) => theme.colors.text};
   font-size: 1rem;
   outline: none;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   
   &:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
   }
   
   &::placeholder {
@@ -114,20 +101,78 @@ const SearchIcon = styled.div`
 const ActionsSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  justify-self: end;
+  transform: translateX(-1rem);
+  min-width: 0;
 `;
 
-const HeaderSwitcher = styled.div`
+const ActionButton = styled(motion.button)`
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  color: ${({ theme }) => theme.colors.text};
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.surface};
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    transform: translateY(-1px);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    transition: all 0.3s ease;
+  }
+`;
+
+const PrimaryButton = styled(motion.button)`
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    transition: all 0.3s ease;
+  }
 `;
 
 const Avatar = styled(Link)`
   width: 48px;
   height: 48px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -137,74 +182,18 @@ const Avatar = styled(Link)`
   text-decoration: none;
   position: relative;
   overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(10px);
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: conic-gradient(from 0deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    animation: spin 10s linear infinite;
-  }
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 
   &:hover {
     transform: scale(1.05);
-    border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
   }
 `;
 
-const NotificationButton = styled.button`
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.4);
-    transform: scale(1.05);
-    
-    &::before {
-      opacity: 1;
-    }
-    
-    svg {
-      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
-    }
-  }
-
-  svg {
-    font-size: 1.25rem;
-    transition: all 0.3s ease;
-  }
-
+const NotificationButton = styled(ActionButton)`
   ${({ $hasNotifications }) => $hasNotifications && `
     &::after {
       content: '';
@@ -236,69 +225,14 @@ const NotificationButton = styled.button`
   }
 `;
 
-// Particle component for background effects
-const Particle = styled(motion.div)`
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: ${({ theme }) => theme.colors.primary};
-  border-radius: 50%;
-  pointer-events: none;
-`;
-
-const WelcomeCard = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  background: rgba(255, 255, 255, 0.08);
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(30, 41, 59, 0.04);
-  margin-bottom: 0.5rem;
-`;
-
-const BarcodeButton = styled(motion.button)`
-  background: ${({ theme }) => theme.colors.primary};
-  color: white;
-  border: none;
-  border-radius: ${({ theme }) => theme.shapes.squircle};
-  padding: 0.75rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  box-shadow: ${({ theme }) => theme.shadows.main};
-  
-  &:hover {
-    background: ${({ theme }) => theme.colors.primary + 'dd'};
-    transform: translateY(-1px);
-    box-shadow: ${({ theme }) => theme.shadows.hover};
-  }
-  
-  &:active {
-    transform: translateY(0);
-  }
-`;
-
 // Add prop types
 const Header = ({ onSidebarToggle, onSidebarStyleToggle, sidebarType, isSidebarOpen }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
-  // const [currentTime, setCurrentTime] = useState(''); // Unused variable, comment out or remove
-  const [particles, setParticles] = useState([]);
   const [searchValue, setSearchValue] = useState('');
   const searchInputRef = useRef(null);
-  // Modern theme toggle state
-  const [isModern, setIsModern] = useState(() => typeof window !== 'undefined' && document.body.classList.contains('theme-modern'));
-
-  const handleBarcodeScan = () => {
-    // Navigate to a dedicated scanner page or open modal
-    navigate('/app/scanner');
-    logAuditEvent('barcode_scanner_opened');
-  };
 
   const handleSearchChange = (e) => {
     setSearchValue(e.target.value);
@@ -310,52 +244,6 @@ const Header = ({ onSidebarToggle, onSidebarStyleToggle, sidebarType, isSidebarO
       logAuditEvent('search_performed', { query: searchValue.trim() });
     }
   };
-
-  const handleModernToggle = () => {
-    if (typeof window !== 'undefined') {
-      const body = document.body;
-      if (body.classList.contains('theme-modern')) {
-        body.classList.remove('theme-modern');
-        setIsModern(false);
-      } else {
-        body.classList.add('theme-modern');
-        setIsModern(true);
-      }
-    }
-  };
-
-  // Particle effect
-  useEffect(() => {
-    const createParticle = () => {
-      const particle = {
-        id: Date.now() + Math.random(),
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * 100,
-        vx: (Math.random() - 0.5) * 2,
-        vy: Math.random() * 2 + 1,
-        life: 1
-      };
-      setParticles(prev => [...prev, particle]);
-
-      setTimeout(() => {
-        setParticles(prev => prev.filter(p => p.id !== particle.id));
-      }, 3000);
-    };
-
-    const interval = setInterval(createParticle, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Update current time
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      // setCurrentTime(now.toLocaleTimeString()); // Unused variable, comment out or remove
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0, y: -20 },
@@ -387,28 +275,7 @@ const Header = ({ onSidebarToggle, onSidebarStyleToggle, sidebarType, isSidebarO
       initial="hidden"
       animate="visible"
     >
-      <HeaderContainer $sidebarType={sidebarType} $isSidebarOpen={isSidebarOpen}>
-        {/* Particles */}
-        {particles.map(particle => (
-          <Particle
-            key={particle.id}
-            style={{
-              left: particle.x,
-              top: particle.y
-            }}
-            animate={{
-              x: particle.vx * 100,
-              y: particle.vy * 100,
-              opacity: [1, 0],
-              scale: [1, 0]
-            }}
-            transition={{
-              duration: 3,
-              ease: "easeOut"
-            }}
-          />
-        ))}
-
+      <HeaderContainer>
         <motion.div variants={itemVariants}>
           <LogoSection>
             <Logo
@@ -426,7 +293,7 @@ const Header = ({ onSidebarToggle, onSidebarStyleToggle, sidebarType, isSidebarO
             <SearchInput
               ref={searchInputRef}
               type="text"
-              placeholder={t('header.searchPlaceholder')}
+              placeholder="Search or type command..."
               value={searchValue}
               onChange={handleSearchChange}
               onKeyDown={handleSearchKeyDown}
@@ -439,77 +306,37 @@ const Header = ({ onSidebarToggle, onSidebarStyleToggle, sidebarType, isSidebarO
 
         <motion.div variants={itemVariants}>
           <ActionsSection>
-            <motion.div
+            <PrimaryButton
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/app/patient-registration')}
+              title="Add new patient"
             >
-              <BarcodeButton
-                onClick={handleBarcodeScan}
-                title={t('header.scanBarcode')}
-                aria-label={t('header.scanBarcode')}
-              >
-                <Barcode size={20} />
-              </BarcodeButton>
-            </motion.div>
+              <Plus size={20} />
+            </PrimaryButton>
             
             <LanguageSwitcher />
-            
-            <motion.button
-              onClick={onSidebarStyleToggle}
+
+            <ActionButton
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              style={{
-                padding: '0.5rem',
-                border: 'none',
-                background: 'none',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                color: 'var(--text-color)',
-                marginRight: '0.5rem'
-              }}
-              title={'Toggle Sidebar Style'}
-              aria-label={'Toggle Sidebar Style'}
+              onClick={() => navigate('/app/settings')}
+              title="Settings"
             >
-              <LayoutGrid size={20} />
-            </motion.button>
+              <Settings size={20} />
+            </ActionButton>
 
-            <HeaderSwitcher>
-              <motion.button
-                onClick={() => navigate('/app/settings')}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                style={{
-                  padding: '0.5rem',
-                  border: 'none',
-                  background: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-color)'
-                }}
-              >
-                <Settings size={20} />
-              </motion.button>
-            </HeaderSwitcher>
-
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <NotificationButton
+              $hasNotifications={unreadCount > 0}
+              onClick={() => navigate('/app/notifications')}
+              title="Notifications"
             >
-              <NotificationButton
-                $hasNotifications={unreadCount > 0}
-                onClick={() => navigate('/app/notifications')}
-              >
-                <Bell size={20} />
-              </NotificationButton>
-            </motion.div>
+              <Bell size={20} />
+            </NotificationButton>
 
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Avatar to="/app/profile">
-                {user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
-              </Avatar>
-            </motion.div>
+            <Avatar to="/app/profile">
+              {user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+            </Avatar>
           </ActionsSection>
         </motion.div>
       </HeaderContainer>

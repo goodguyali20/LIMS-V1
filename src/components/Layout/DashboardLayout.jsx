@@ -21,22 +21,34 @@ const MainContent = styled.main`
   transition: margin-left 0.3s ease-in-out;
   margin-left: ${({ $sidebarType, $isSidebarOpen }) => {
     if (!$isSidebarOpen) return '0';
-    if ($sidebarType === 'new') return '90px';
+    if ($sidebarType === 'new') return '120px';
     if ($sidebarType === 'default') return '280px';
     return '0';
   }};
   width: ${({ $sidebarType, $isSidebarOpen }) => {
     if (!$isSidebarOpen) return '100%';
-    if ($sidebarType === 'new') return 'calc(100% - 90px)';
+    if ($sidebarType === 'new') return 'calc(100% - 120px)';
     if ($sidebarType === 'default') return 'calc(100% - 280px)';
     return '100%';
   }};
+  
+  /* Hide default scrollbar */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  
+  /* Hide default scrollbar for webkit browsers */
+  &::-webkit-scrollbar {
+    display: none;
+  }
 `;
 
 const ContentArea = styled.div`
     padding: 2rem;
-    padding-top: calc(80px + 2rem);
+    padding-top: 1rem;
     flex-grow: 1;
+    overflow-x: hidden;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 `;
 
 const DashboardLayout = () => {

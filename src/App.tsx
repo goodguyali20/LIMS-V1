@@ -137,7 +137,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 const AppContent = memo(() => {
   const { theme } = useTheme();
   const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false);
-  const { currentNotification, showNotification } = useNotifications();
 
   // Show performance monitor in development mode
   React.useEffect(() => {
@@ -170,58 +169,7 @@ const AppContent = memo(() => {
         <AuthProvider>
           <TestProvider>
             <NotificationProvider>
-              <OrderProvider>
-                <SettingsProvider>
-                  <GlobalStyles />
-                  {/* Global AnimatedNotification */}
-                  {currentNotification && (
-                    <FlashMessageWrapper>
-                      <FlashMessage
-                        type={currentNotification.type}
-                        title={currentNotification.title || currentNotification.type.charAt(0).toUpperCase() + currentNotification.type.slice(1)}
-                        message={currentNotification.message}
-                        onClose={() => showNotification(null)}
-                      />
-                    </FlashMessageWrapper>
-                  )}
-                  <BrowserRouter
-                    future={{
-                      v7_startTransition: true,
-                      v7_relativeSplatPath: true
-                    }}
-                  >
-                    <Suspense fallback={<LoadingFallback />}>
-                      <Routes>
-                        <Route path="/status/:orderId" element={<QRStatusPage />} />
-                        <Route path="/test-visuals" element={<TestVisualEffects />} />
-                        <Route path="/*" element={<AppRoutes />} />
-                      </Routes>
-                    </Suspense>
-                  </BrowserRouter>
-                  
-                  {/* Performance Monitor for Development */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <PerformanceMonitor
-                      isVisible={showPerformanceMonitor}
-                      onClose={() => setShowPerformanceMonitor(false)}
-                    />
-                  )}
-                  
-                  {/* Toast Container */}
-                  <ToastContainer
-                    position="top-right"
-                    autoClose={5000}
-                    hideProgressBar={false}
-                    newestOnTop={false}
-                    closeOnClick
-                    rtl={true}
-                    pauseOnFocusLoss
-                    draggable
-                    pauseOnHover
-                    theme="light"
-                  />
-                </SettingsProvider>
-              </OrderProvider>
+              <NotificationContent showPerformanceMonitor={showPerformanceMonitor} setShowPerformanceMonitor={setShowPerformanceMonitor} />
             </NotificationProvider>
           </TestProvider>
         </AuthProvider>
@@ -231,6 +179,71 @@ const AppContent = memo(() => {
 });
 
 AppContent.displayName = 'AppContent';
+
+// Separate component that uses notifications (inside NotificationProvider)
+const NotificationContent = memo(({ showPerformanceMonitor, setShowPerformanceMonitor }: { 
+  showPerformanceMonitor: boolean; 
+  setShowPerformanceMonitor: (show: boolean) => void; 
+}) => {
+  const { currentNotification, showNotification } = useNotifications();
+
+  return (
+    <OrderProvider>
+      <SettingsProvider>
+        <GlobalStyles />
+        {/* Global AnimatedNotification */}
+        {currentNotification && (
+          <FlashMessageWrapper>
+            <FlashMessage
+              type={currentNotification.type}
+              title={currentNotification.title || currentNotification.type.charAt(0).toUpperCase() + currentNotification.type.slice(1)}
+              message={currentNotification.message}
+              onClose={() => showNotification(null)}
+            />
+          </FlashMessageWrapper>
+        )}
+        <BrowserRouter
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true
+          }}
+        >
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/status/:orderId" element={<QRStatusPage />} />
+              <Route path="/test-visuals" element={<TestVisualEffects />} />
+              <Route path="/*" element={<AppRoutes />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+        
+        {/* Performance Monitor for Development */}
+        {process.env.NODE_ENV === 'development' && (
+          <PerformanceMonitor
+            isVisible={showPerformanceMonitor}
+            onClose={() => setShowPerformanceMonitor(false)}
+          />
+        )}
+        
+        {/* Toast Container */}
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={true}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
+      </SettingsProvider>
+    </OrderProvider>
+  );
+});
+
+NotificationContent.displayName = 'NotificationContent';
 
 // Main App component with performance optimizations
 const App = memo(() => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { auth } from '../firebase/config.js';
-import { onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config.js';
 import { AuthContext } from './AuthContextBase.js';
 
@@ -142,6 +142,37 @@ export const AuthProvider = ({ children }) => {
     return userRoles.includes(user.role);
   }, [user]);
 
+  // Update user display name
+  const updateUserDisplayName = useCallback(async (newDisplayName) => {
+    if (!user) throw new Error('No user logged in');
+    
+    try {
+      const currentUser = auth.currentUser;
+      
+      // Update Firebase Auth profile
+      await updateProfile(currentUser, {
+        displayName: newDisplayName.trim()
+      });
+
+      // Update Firestore user document
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userDocRef, {
+        displayName: newDisplayName.trim()
+      });
+
+      // Update local user state
+      setUser(prevUser => ({
+        ...prevUser,
+        displayName: newDisplayName.trim()
+      }));
+
+      return true;
+    } catch (error) {
+      console.error('Error updating display name:', error);
+      throw error;
+    }
+  }, [user]);
+
   // Memoize the context value to prevent unnecessary re-renders
   const value = useMemo(() => ({
     user,
@@ -150,7 +181,8 @@ export const AuthProvider = ({ children }) => {
     signOut,
     hasPermission,
     hasRole,
-  }), [user, isLoading, login, signOut, hasPermission, hasRole]);
+    updateUserDisplayName,
+  }), [user, isLoading, login, signOut, hasPermission, hasRole, updateUserDisplayName]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

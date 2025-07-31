@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 import { showFlashMessage } from '../../contexts/NotificationContext';
 import { advancedVariants } from '../../styles/animations';
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, updateProfile } from 'firebase/auth';
 import { auth } from '../../firebase/config';
 import { useTranslation } from 'react-i18next'; // Import useTranslation
 import { motion, AnimatePresence } from 'framer-motion';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 
 const PageContainer = styled.div`
   animation: ${advancedVariants.fadeIn} 0.5s ease-in-out;
@@ -117,12 +119,44 @@ const SubmitButton = styled(motion.button)`
 
 const Profile = () => {
   const { t } = useTranslation(); // <-- Add this
-  const { user } = useAuth();
+  const { user, updateUserDisplayName } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // New state for display name editing
+  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
+
+  // Update displayName state when user changes
+  useEffect(() => {
+    setDisplayName(user?.displayName || '');
+  }, [user?.displayName]);
+
+  // Handle display name update
+  const handleUpdateDisplayName = async (e) => {
+    e.preventDefault();
+    if (!displayName.trim()) {
+      showFlashMessage({ type: 'error', title: 'Error', message: "Display name cannot be empty." });
+      return;
+    }
+
+    setIsUpdatingName(true);
+    
+    try {
+      await updateUserDisplayName(displayName.trim());
+      showFlashMessage({ type: 'success', title: 'Success', message: "Display name updated successfully!" });
+      setIsEditingName(false);
+    } catch (error) {
+      console.error('Error updating display name:', error);
+      showFlashMessage({ type: 'error', title: 'Error', message: "Failed to update display name. Please try again." });
+    } finally {
+      setIsUpdatingName(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
@@ -171,7 +205,76 @@ const Profile = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <strong>{t('profile_displayName')}:</strong> <span>{user.displayName}</span>
+            <strong>{t('profile_displayName')}:</strong> 
+            {isEditingName ? (
+              <form onSubmit={handleUpdateDisplayName} style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center', marginLeft: '0.5rem' }}>
+                <Input 
+                  type="text" 
+                  value={displayName} 
+                  onChange={e => setDisplayName(e.target.value)}
+                  style={{ width: '200px', margin: 0 }}
+                  autoFocus
+                />
+                <motion.button
+                  type="submit"
+                  disabled={isUpdatingName}
+                  style={{
+                    padding: '0.3rem 0.8rem',
+                    border: 'none',
+                    borderRadius: '8px',
+                    background: '#667eea',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem'
+                  }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {isUpdatingName ? 'Saving...' : 'Save'}
+                </motion.button>
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    setIsEditingName(false);
+                    setDisplayName(user?.displayName || '');
+                  }}
+                  style={{
+                    padding: '0.3rem 0.8rem',
+                    border: '1px solid #ccc',
+                    borderRadius: '8px',
+                    background: 'transparent',
+                    color: '#666',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem'
+                  }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Cancel
+                </motion.button>
+              </form>
+            ) : (
+              <span>
+                {user.displayName || 'Not set'} 
+                <motion.button
+                  onClick={() => setIsEditingName(true)}
+                  style={{
+                    marginLeft: '0.5rem',
+                    padding: '0.2rem 0.5rem',
+                    border: '1px solid #667eea',
+                    borderRadius: '6px',
+                    background: 'transparent',
+                    color: '#667eea',
+                    cursor: 'pointer',
+                    fontSize: '0.7rem'
+                  }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Edit
+                </motion.button>
+              </span>
+            )}
           </motion.p>
           <motion.p
             initial={{ opacity: 0, y: 10 }}

@@ -13,6 +13,8 @@ export { default as AnimatedDataTable } from './AnimatedDataTable';
 export { default as AnimatedModal } from './AnimatedModal';
 export { default as AnimatedNotification } from './AnimatedNotification';
 export { default as PrintCenter } from './PrintCenter';
+export { default as WelcomeSection } from './WelcomeSection';
+
 
 // Premium Components
 export { default as AnimatedRoadmap } from './AnimatedRoadmap';

@@ -759,7 +759,7 @@ export const initializePerformanceMonitoring = () => {
   
   // Start monitoring
   optimizer.startLongTaskMonitoring();
-  optimizer.startLayoutShiftMonitoring();
+  // optimizer.startLayoutShiftMonitoring(); // Disabled to reduce console clutter
   optimizer.startFirstInputDelayMonitoring();
   optimizer.startMemoryMonitoring();
   optimizer.startPeriodicCleanup();

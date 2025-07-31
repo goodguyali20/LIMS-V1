@@ -23,6 +23,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import GlowButton from '../../components/common/GlowButton';
 import EmptyState from '../../components/common/EmptyState';
+import WelcomeSection from '../../components/common/WelcomeSection';
+
 import { trackEvent } from '../../utils/errorMonitoring';
 import { usePerformanceMonitor } from '../../utils/performanceOptimizer';
 import { 
@@ -284,6 +286,9 @@ const DashboardContainer = styled.div`
   margin: 0 auto;
   min-height: 100vh;
   background: ${({ theme }) => theme.colors.background};
+  overflow-x: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 `;
 
 const DashboardHeader = styled.div`
@@ -882,18 +887,21 @@ const ManagerDashboard = () => {
 
   return (
     <DashboardContainer>
-      <DashboardHeader>
-        <h1>{t('dashboard.title')}</h1>
-        <div className="header-actions">
+      <WelcomeSection 
+        title={`Good morning, ${user?.displayName || user?.email?.split('@')[0] || 'User'}!`}
+        subtitle="Here's what's happening in your lab today. You have 45 patients waiting for treatment and 3 pending test results."
+      >
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '-5rem' }}>
           <select 
             value={timeRange} 
             onChange={handleTimeRangeChange}
             style={{
-              padding: '0.5rem',
+              padding: '0.5rem 1rem',
               border: '1px solid var(--border-color)',
-              borderRadius: '6px',
+              borderRadius: '12px',
               background: 'var(--surface-color)',
-              color: 'var(--text-color)'
+              color: 'var(--text-color)',
+              fontSize: '0.875rem'
             }}
           >
             <option value="7d">{t('dashboard.last7Days')}</option>
@@ -919,7 +927,7 @@ const ManagerDashboard = () => {
             {t('dashboard.exportReport')}
           </GlowButton>
         </div>
-      </DashboardHeader>
+      </WelcomeSection>
 
       <PreventLayoutShiftContainer>
         <StatsGrid>

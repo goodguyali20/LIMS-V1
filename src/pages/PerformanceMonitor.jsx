@@ -217,7 +217,7 @@ const PerformanceMonitor = () => {
     
     // Start all monitoring
     optimizer.startMemoryMonitoring();
-    optimizer.startLayoutShiftMonitoring();
+    // optimizer.startLayoutShiftMonitoring(); // Disabled to reduce console clutter
     optimizer.startFirstInputDelayMonitoring();
     optimizer.startLongTaskMonitoring();
     optimizer.startSlowOperationMonitoring();
