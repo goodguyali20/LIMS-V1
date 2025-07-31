@@ -152,12 +152,16 @@ const NewSidebar: React.FC<NewSidebarProps> = ({ isOpen }) => {
             className={styles.top_svg}
           >
             <path 
-              d="M0,0 L0,60 L90,60 Z" 
+              d="M0,-10 L0,60 L80,70 Z" 
               fill="#161b22" 
-              stroke="red"
+              stroke="rgba(59, 130, 246, 0.6)"
               strokeWidth="2"
             />
-            {/* Labels for triangle sides */}
+            {/* Corner numbers */}
+            <text x="10" y="10" fill="yellow" fontSize="12">1</text>
+            <text x="10" y="50" fill="yellow" fontSize="12">2</text>
+            <text x="80" y="50" fill="yellow" fontSize="12">3</text>
+            {/* Side letters */}
             <text x="5" y="30" fill="white" fontSize="12">A</text>
             <text x="45" y="55" fill="white" fontSize="12">B</text>
             <text x="85" y="30" fill="white" fontSize="12">C</text>
@@ -191,10 +195,14 @@ const NewSidebar: React.FC<NewSidebarProps> = ({ isOpen }) => {
             <path 
               d="M0,0 L90,0 L0,60 Z" 
               fill="#161b22" 
-              stroke="red"
+              stroke="rgba(59, 130, 246, 0.6)"
               strokeWidth="2"
             />
-            {/* Labels for triangle sides */}
+            {/* Corner numbers */}
+            <text x="10" y="10" fill="yellow" fontSize="12">1</text>
+            <text x="80" y="10" fill="yellow" fontSize="12">2</text>
+            <text x="10" y="50" fill="yellow" fontSize="12">3</text>
+            {/* Side letters */}
             <text x="45" y="15" fill="white" fontSize="12">A</text>
             <text x="85" y="30" fill="white" fontSize="12">B</text>
             <text x="5" y="30" fill="white" fontSize="12">C</text>

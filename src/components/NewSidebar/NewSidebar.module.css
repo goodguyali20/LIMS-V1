@@ -21,7 +21,6 @@
   width: 90px;
   background-color: #161b22;
   color: #a0aec0;
-  padding: 5px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -29,6 +28,8 @@
   z-index: 100;
   border-top-right-radius: 32px;
   border-bottom-right-radius: 32px;
+  outline: 2px solid rgba(59, 130, 246, 0.6);
+  outline-offset: -2px;
 }
 
 /* SVG Container Styles */
@@ -46,6 +47,7 @@
   left: 0;
   width: 100%;
   z-index: -1;
+  transform: translateY(5px);
 }
 
 .top_svg,

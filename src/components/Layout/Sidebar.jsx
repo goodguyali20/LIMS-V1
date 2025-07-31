@@ -73,6 +73,8 @@ const SidebarContainer = styled(motion.create('aside'))`
   height: 100vh;
   background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
+  outline: 2px solid rgba(59, 130, 246, 0.6);
+  outline-offset: -2px;
   display: flex;
   flex-direction: column;
   position: fixed;
