@@ -7,129 +7,7 @@ interface NewSidebarProps {
 }
 
 const NewSidebar: React.FC<NewSidebarProps> = ({ isOpen }) => {
-  const topSvgRef = useRef<SVGSVGElement>(null);
-  const bottomSvgRef = useRef<SVGSVGElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Debug SVG positioning and dimensions
-    if (topSvgRef.current && bottomSvgRef.current && sidebarRef.current) {
-      const topSvg = topSvgRef.current;
-      const bottomSvg = bottomSvgRef.current;
-      const sidebar = sidebarRef.current;
-      
-      console.log('=== DETAILED DEBUG INFO ===');
-      
-      // Sidebar positioning
-      const sidebarRect = sidebar.getBoundingClientRect();
-      console.log('Sidebar positioning:', {
-        left: sidebarRect.left,
-        right: sidebarRect.right,
-        width: sidebarRect.width,
-        top: sidebarRect.top,
-        bottom: sidebarRect.bottom,
-        height: sidebarRect.height
-      });
-      
-      // SVG container positioning
-      const topContainer = topSvg.parentElement;
-      const bottomContainer = bottomSvg.parentElement;
-      
-      if (topContainer && bottomContainer) {
-        const topContainerRect = topContainer.getBoundingClientRect();
-        const bottomContainerRect = bottomContainer.getBoundingClientRect();
-        
-        console.log('Top SVG container positioning:', {
-          left: topContainerRect.left,
-          right: topContainerRect.right,
-          width: topContainerRect.width,
-          top: topContainerRect.top,
-          bottom: topContainerRect.bottom,
-          height: topContainerRect.height
-        });
-        
-        console.log('Bottom SVG container positioning:', {
-          left: bottomContainerRect.left,
-          right: bottomContainerRect.right,
-          width: bottomContainerRect.width,
-          top: bottomContainerRect.top,
-          bottom: bottomContainerRect.bottom,
-          height: bottomContainerRect.height
-        });
-        
-        // Check computed styles
-        const topStyles = getComputedStyle(topContainer);
-        const bottomStyles = getComputedStyle(bottomContainer);
-        
-        console.log('Top container computed styles:', {
-          position: topStyles.position,
-          top: topStyles.top,
-          left: topStyles.left,
-          width: topStyles.width,
-          zIndex: topStyles.zIndex,
-          transform: topStyles.transform
-        });
-        
-        console.log('Bottom container computed styles:', {
-          position: bottomStyles.position,
-          bottom: bottomStyles.bottom,
-          left: bottomStyles.left,
-          width: bottomStyles.width,
-          zIndex: bottomStyles.zIndex,
-          transform: bottomStyles.transform
-        });
-      }
-      
-      // SVG element details
-      console.log('Top SVG element:', {
-        width: topSvg.clientWidth,
-        height: topSvg.clientHeight,
-        viewBox: {
-          x: topSvg.viewBox.baseVal.x,
-          y: topSvg.viewBox.baseVal.y,
-          width: topSvg.viewBox.baseVal.width,
-          height: topSvg.viewBox.baseVal.height
-        },
-        boundingRect: {
-          x: topSvg.getBoundingClientRect().x,
-          y: topSvg.getBoundingClientRect().y,
-          width: topSvg.getBoundingClientRect().width,
-          height: topSvg.getBoundingClientRect().height
-        }
-      });
-      
-      console.log('Bottom SVG element:', {
-        width: bottomSvg.clientWidth,
-        height: bottomSvg.clientHeight,
-        viewBox: {
-          x: bottomSvg.viewBox.baseVal.x,
-          y: bottomSvg.viewBox.baseVal.y,
-          width: bottomSvg.viewBox.baseVal.width,
-          height: bottomSvg.viewBox.baseVal.height
-        },
-        boundingRect: {
-          x: bottomSvg.getBoundingClientRect().x,
-          y: bottomSvg.getBoundingClientRect().y,
-          width: bottomSvg.getBoundingClientRect().width,
-          height: bottomSvg.getBoundingClientRect().height
-        }
-      });
-      
-      // Viewport calculations
-      console.log('Viewport calculations:', {
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight,
-        expectedTriangleWidth: window.innerWidth - 90,
-        sidebarWidth: 90
-      });
-      
-      // Path analysis
-      console.log('=== PATH ANALYSIS ===');
-      console.log('Top SVG path: M0,60 L100,60 L100,0 Z');
-      console.log('Bottom SVG path: M0,0 L100,0 L100,60 Z');
-      console.log('Expected: Triangles should start from sidebar edge (x=90) and extend to viewport edge (x=viewportWidth)');
-    }
-  }, []);
 
   const menuItems = [
     { icon: <LayoutDashboard size={24} />, name: 'Dashboard' },
@@ -143,30 +21,20 @@ const NewSidebar: React.FC<NewSidebarProps> = ({ isOpen }) => {
   return (
     <aside className={`${styles.sidebar} ${isOpen ? styles.open : styles.closed}`}>
       <div ref={sidebarRef} className={styles.sidebar_content}>
-        {/* Top SVG Shape */}
-        <div className={styles.top_svg_container}>
-          <svg 
-            ref={topSvgRef}
-            viewBox="0 0 90 60" 
-            preserveAspectRatio="none" 
-            className={styles.top_svg}
-          >
-            <path 
-              d="M0,-10 L0,60 L80,70 Z" 
-              fill="#161b22" 
-              stroke="rgba(59, 130, 246, 0.6)"
-              strokeWidth="2"
-            />
-            {/* Corner numbers */}
-            <text x="10" y="10" fill="yellow" fontSize="12">1</text>
-            <text x="10" y="50" fill="yellow" fontSize="12">2</text>
-            <text x="80" y="50" fill="yellow" fontSize="12">3</text>
-            {/* Side letters */}
-            <text x="5" y="30" fill="white" fontSize="12">A</text>
-            <text x="45" y="55" fill="white" fontSize="12">B</text>
-            <text x="85" y="30" fill="white" fontSize="12">C</text>
-          </svg>
-        </div>
+        {/* New Adobe Illustrator SVG Shape */}
+        <svg 
+          viewBox="0 0 120 500" 
+          preserveAspectRatio="none" 
+          className={styles.sidebar_svg}
+        >
+          <path 
+            className="cls-1"
+            d="M0,459.51V0c5.6,14.81,17.76,25.14,31.25,32.69,24.6,13.79,50.36,16.64,50.75,50.59,1.14,97.94,0.24,196,0.56,293.99-0.64,27.3-30.71,35.24-50.3,46.5-15,8.64-26.26,19.09-32.26,35.75Z"
+            fill="#161b22" 
+            stroke="rgba(59, 130, 246, 0.6)"
+            strokeWidth="2"
+          />
+        </svg>
 
         <div className={styles.logoContainer}>
           {/* You can add a small logo icon here */}
@@ -183,31 +51,6 @@ const NewSidebar: React.FC<NewSidebarProps> = ({ isOpen }) => {
             ))}
           </ul>
         </nav>
-
-        {/* Bottom SVG Shape */}
-        <div className={styles.bottom_svg_container}>
-          <svg 
-            ref={bottomSvgRef}
-            viewBox="0 0 90 60" 
-            preserveAspectRatio="none" 
-            className={styles.bottom_svg}
-          >
-            <path 
-              d="M0,0 L90,0 L0,60 Z" 
-              fill="#161b22" 
-              stroke="rgba(59, 130, 246, 0.6)"
-              strokeWidth="2"
-            />
-            {/* Corner numbers */}
-            <text x="10" y="10" fill="yellow" fontSize="12">1</text>
-            <text x="80" y="10" fill="yellow" fontSize="12">2</text>
-            <text x="10" y="50" fill="yellow" fontSize="12">3</text>
-            {/* Side letters */}
-            <text x="45" y="15" fill="white" fontSize="12">A</text>
-            <text x="85" y="30" fill="white" fontSize="12">B</text>
-            <text x="5" y="30" fill="white" fontSize="12">C</text>
-          </svg>
-        </div>
       </div>
     </aside>
   );
