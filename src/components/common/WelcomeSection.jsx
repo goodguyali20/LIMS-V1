@@ -3,7 +3,9 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
-import { FiClock, FiCalendar, FiCloud, FiSun, FiCloudRain, FiCloudSnow, FiZap, FiBattery } from 'react-icons/fi';
+import { FiClock, FiCalendar, FiCloud, FiSun, FiCloudRain, FiCloudSnow, FiUsers } from 'react-icons/fi';
+import { getWeatherData, getWeatherIcon } from '../../utils/weatherService';
+import { getTodayPatients, getPatientStatus } from '../../utils/patientMetrics';
 
 const WelcomeContainer = styled(motion.div)`
   display: flex;
@@ -192,6 +194,7 @@ const RightBottom = styled.div`
   align-items: flex-start;
   padding: 0.5rem;
   position: relative;
+  margin-right: 1rem;
 `;
 
 const WeatherBlock = styled.div`
@@ -250,7 +253,7 @@ const DayInfo = styled.div`
   letter-spacing: 0.5px;
 `;
 
-const BatteryInfo = styled.div`
+const PatientInfo = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -323,21 +326,72 @@ const WelcomeSection = ({ title, subtitle, children }) => {
   const { user } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [weather, setWeather] = useState({ temp: 22, condition: 'sunny', city: 'Baghdad' });
+  const [patientCount, setPatientCount] = useState(getTodayPatients());
 
-  // Update time every second
+  // Update time every minute
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000);
+    }, 60000); // Update every minute
 
     return () => clearInterval(timer);
   }, []);
 
+  // Fetch weather data
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        const weatherData = await getWeatherData();
+        setWeather(weatherData);
+      } catch (error) {
+        // Silent error handling
+        const mockWeatherData = {
+          temp: Math.floor(Math.random() * 20) + 15,
+          condition: ['sunny', 'cloudy', 'rainy', 'partly-cloudy'][Math.floor(Math.random() * 4)],
+          city: 'Error Loading',
+          humidity: Math.floor(Math.random() * 20) + 40,
+          windSpeed: Math.floor(Math.random() * 20) + 5,
+          description: 'Partly cloudy'
+        };
+        setWeather(mockWeatherData);
+      }
+    };
+
+    fetchWeather();
+    // Update weather every 30 minutes
+    const weatherTimer = setInterval(fetchWeather, 30 * 60 * 1000);
+    
+    return () => clearInterval(weatherTimer);
+  }, []);
+
+  // Update patient count every 30 seconds
+  useEffect(() => {
+    const updatePatientCount = () => {
+      setPatientCount(getTodayPatients());
+    };
+    
+    // Update immediately
+    updatePatientCount();
+    
+    // Update every 30 seconds
+    const interval = setInterval(updatePatientCount, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   // Format time for smartwatch display
   const formatTime = (date) => {
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return { hours, minutes };
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    
+    // Convert to 12-hour format
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = minutes.toString().padStart(2, '0');
+    
+    return {
+      hours: displayHours.toString().padStart(2, '0'),
+      minutes: displayMinutes
+    };
   };
 
   // Format date for smartwatch display
@@ -352,15 +406,9 @@ const WelcomeSection = ({ title, subtitle, children }) => {
     return date.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
   };
 
-  // Get weather icon
-  const getWeatherIcon = (condition) => {
-    switch (condition) {
-      case 'sunny': return <FiSun />;
-      case 'cloudy': return <FiCloud />;
-      case 'rainy': return <FiCloudRain />;
-      case 'snowy': return <FiCloudSnow />;
-      default: return <FiSun />;
-    }
+  // Get weather icon using the imported function
+  const getWeatherIconLocal = (condition) => {
+    return getWeatherIcon(condition);
   };
 
   const containerVariants = {
@@ -467,21 +515,21 @@ const WelcomeSection = ({ title, subtitle, children }) => {
           <BottomRow>
             <LeftBottom>
               <TimeNumbers>
-                <TimeNumber>14</TimeNumber>
-                <TimeNumber>50</TimeNumber>
+                <TimeNumber>{formatTime(currentTime).hours}</TimeNumber>
+                <TimeNumber>{formatTime(currentTime).minutes}</TimeNumber>
               </TimeNumbers>
             </LeftBottom>
             <RightBottom>
               <WeatherBlock>
                 <WeatherInfo>
-                  <FiSun />
-                  <span>48°</span>
+                  {getWeatherIconLocal(weather.condition)}
+                  <span>{weather.temp}°</span>
                 </WeatherInfo>
                 <DayInfo>{formatDay(currentTime)}</DayInfo>
-                <BatteryInfo>
-                  <FiZap />
-                  <span>95%</span>
-                </BatteryInfo>
+                <PatientInfo>
+                  <FiUsers />
+                  <span>{patientCount}</span>
+                </PatientInfo>
               </WeatherBlock>
             </RightBottom>
             <BPMBox>

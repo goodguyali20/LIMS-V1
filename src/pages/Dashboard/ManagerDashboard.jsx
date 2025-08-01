@@ -24,6 +24,7 @@ import { useNotifications } from '../../contexts/NotificationContext';
 import GlowButton from '../../components/common/GlowButton';
 import EmptyState from '../../components/common/EmptyState';
 import WelcomeSection from '../../components/common/WelcomeSection';
+import AdvancedDateRangeFilter from '../../components/common/AdvancedDateRangeFilter';
 
 import { trackEvent } from '../../utils/errorMonitoring';
 import { usePerformanceMonitor } from '../../utils/performanceOptimizer';
@@ -770,6 +771,7 @@ const ManagerDashboard = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [timeRange, setTimeRange] = useState('7d');
+  const [selectedDateRange, setSelectedDateRange] = useState({ startDate: new Date(), endDate: new Date() });
   const hasTrackedView = useRef(false);
   const queryClient = useQueryClient();
   const [cacheStats, setCacheStats] = useState(null);
@@ -858,6 +860,18 @@ const ManagerDashboard = () => {
     setTimeRange(e.target.value);
   }, []);
 
+  // Handle date range filter change
+  const handleDateRangeChange = useCallback((dateRange) => {
+    setSelectedDateRange(dateRange);
+    // You can add additional logic here to filter data based on the selected date range
+    console.log('Date range filter changed:', dateRange);
+  }, []);
+
+  // Handle refresh from date filter
+  const handleDateFilterRefresh = useCallback(() => {
+    handleForceRefresh();
+  }, []);
+
   useEffect(() => {
     if (!hasTrackedView.current) {
       trackEvent('dashboard_viewed', { 
@@ -891,24 +905,7 @@ const ManagerDashboard = () => {
         title={`Good morning, ${user?.displayName || user?.email?.split('@')[0] || 'User'}!`}
         subtitle="Here's what's happening in your lab today. You have 45 patients waiting for treatment and 3 pending test results."
       >
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '-5rem' }}>
-          <select 
-            value={timeRange} 
-            onChange={handleTimeRangeChange}
-            style={{
-              padding: '0.5rem 1rem',
-              border: '1px solid var(--border-color)',
-              borderRadius: '12px',
-              background: 'var(--surface-color)',
-              color: 'var(--text-color)',
-              fontSize: '0.875rem'
-            }}
-          >
-            <option value="7d">{t('dashboard.last7Days')}</option>
-            <option value="30d">{t('dashboard.last30Days')}</option>
-            <option value="90d">{t('dashboard.last90Days')}</option>
-          </select>
-          
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '-5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <CacheStatusIndicator 
             timeRange={timeRange}
             isCached={!!getCachedData(timeRange)}
@@ -923,9 +920,21 @@ const ManagerDashboard = () => {
             🔄 Refresh
           </GlowButton>
           
-          <GlowButton $variant="primary">
+          <GlowButton 
+            $variant="primary"
+            style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
+          >
             {t('dashboard.exportReport')}
           </GlowButton>
+          
+          <AdvancedDateRangeFilter
+            value={selectedDateRange}
+            onChange={handleDateRangeChange}
+            onRefresh={handleDateFilterRefresh}
+            placeholder="Select date range"
+            showRefresh={true}
+            showFunnelSelect={false}
+          />
         </div>
       </WelcomeSection>
 

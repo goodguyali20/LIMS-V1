@@ -12,7 +12,7 @@ import { logAuditEvent } from '../../utils/auditLogger';
 const HeaderContainer = styled.header`
   position: relative;
   background: transparent;
-  padding: 0;
+  padding: 0 5rem 0 4rem;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -23,6 +23,7 @@ const HeaderContainer = styled.header`
   @media (max-width: 768px) {
     gap: 1rem;
     min-height: 70px;
+    padding: 0 2rem 0 2rem;
   }
 `;
 
@@ -32,6 +33,10 @@ const LogoSection = styled.div`
   gap: 1rem;
   flex-shrink: 0;
   min-width: 0;
+  justify-self: start;
+  margin-left: 0rem;
+  position: relative;
+  z-index: 10;
 `;
 
 const Logo = styled(motion.div)`
@@ -293,7 +298,7 @@ const Header = ({ onSidebarToggle, onSidebarStyleToggle, sidebarType, isSidebarO
             <SearchInput
               ref={searchInputRef}
               type="text"
-              placeholder="Search or type command..."
+              placeholder="Search patient name"
               value={searchValue}
               onChange={handleSearchChange}
               onKeyDown={handleSearchKeyDown}
