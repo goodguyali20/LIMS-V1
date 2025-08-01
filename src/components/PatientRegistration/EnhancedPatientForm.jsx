@@ -26,6 +26,8 @@ import { useTestCatalog } from '../../contexts/TestContext';
 import { useTestSelectionStore } from './TestSelectionPanel';
 import { LinearProgress } from '@mui/material';
 import { showFlashMessage } from '../../contexts/NotificationContext';
+import AutoCompleteInput from '../common/AutoCompleteInput';
+import { useFirstNameSuggestions, useLastNameSuggestions, useFatherNameSuggestions, useGrandfatherNameSuggestions } from '../../hooks/useIraqiNames';
 
 // Utility functions for field rendering
 const shouldRenderField = (fields, section, fieldName) => {
@@ -1189,6 +1191,62 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
           {errorPath && <ErrorMessage>{errorPath.message}</ErrorMessage>}
           {fieldName === 'patientId' && (
             <FieldTip>{t('patientRegistration.patientIdTip')}</FieldTip>
+          )}
+        </InputGroup>
+      );
+    }
+
+    // Use AutoCompleteInput for name fields
+    if (['firstName', 'lastName', 'fathersName', 'grandFathersName'].includes(fieldName)) {
+      const watchedGender = watch('gender');
+      const watchedValue = watch(fieldPath);
+      
+      let suggestions = [];
+      let isLoading = false;
+      
+      if (fieldName === 'firstName') {
+        const { suggestions: firstNameSuggestions, isLoading: firstNameLoading } = useFirstNameSuggestions(watchedValue, watchedGender);
+        suggestions = firstNameSuggestions;
+        isLoading = firstNameLoading;
+      } else if (fieldName === 'lastName') {
+        const { suggestions: lastNameSuggestions, isLoading: lastNameLoading } = useLastNameSuggestions(watchedValue);
+        suggestions = lastNameSuggestions;
+        isLoading = lastNameLoading;
+      } else if (fieldName === 'fathersName') {
+        const { suggestions: fatherSuggestions, isLoading: fatherLoading } = useFatherNameSuggestions(watchedValue);
+        suggestions = fatherSuggestions;
+        isLoading = fatherLoading;
+      } else if (fieldName === 'grandFathersName') {
+        const { suggestions: grandfatherSuggestions, isLoading: grandfatherLoading } = useGrandfatherNameSuggestions(watchedValue);
+        suggestions = grandfatherSuggestions;
+        isLoading = grandfatherLoading;
+      }
+
+      return (
+        <InputGroup key={fieldPath}>
+          <Label htmlFor={fieldPath}>
+            {t(fieldLabel)} {isRequired && '*'}
+          </Label>
+          <Controller
+            name={fieldPath}
+            control={control}
+            render={({ field }) => (
+              <AutoCompleteInput
+                {...field}
+                id={fieldPath}
+                name={fieldPath}
+                placeholder={`Enter ${t(fieldLabel.toLowerCase())}`}
+                suggestions={suggestions}
+                isLoading={isLoading}
+                error={errorPath?.message}
+                autoComplete="off"
+                value={field.value ?? ''}
+              />
+            )}
+          />
+          {errorPath && <ErrorMessage>{errorPath.message}</ErrorMessage>}
+          {fieldName === 'firstName' && (
+            <FieldTip>{t('patientRegistration.firstNameTip') || 'Start typing for name suggestions'}</FieldTip>
           )}
         </InputGroup>
       );

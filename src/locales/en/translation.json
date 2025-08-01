@@ -98,6 +98,15 @@
     "reset": "Reset Form",
     "cancel": "Cancel",
     "save": "Save",
+    "firstNameTip": "Start typing for name suggestions",
+    "lastNameTip": "Start typing for name suggestions", 
+    "fathersNameTip": "Start typing for name suggestions",
+    "grandFathersNameTip": "Start typing for name suggestions",
+    "autoComplete": {
+      "noSuggestions": "No suggestions found",
+      "loading": "Loading suggestions...",
+      "startTyping": "Start typing for suggestions"
+    },
     "saving": "Saving...",
     "previous": "Previous",
     "next": "Next",

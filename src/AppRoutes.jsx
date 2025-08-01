@@ -35,6 +35,7 @@ import PdfTestPage from './components/Print/PdfTestPage.jsx';
 import LayoutShiftDebug from './pages/LayoutShiftDebug.jsx';
 import PerformanceMonitor from './pages/PerformanceMonitor.jsx';
 import PatientDetails from './pages/PatientDetails.jsx';
+import AutoCompleteDemoPage from './pages/AutoCompleteDemo.jsx';
 
 // Wrapper component that uses theme context
 const AppContent = () => {
@@ -78,6 +79,7 @@ const AppContent = () => {
           <Route path="layout-debug" element={<LayoutShiftDebug />} />
           <Route path="performance" element={<PerformanceMonitor />} />
           <Route path="patient/:patientId" element={<PatientDetails />} />
+          <Route path="auto-complete-demo" element={<AutoCompleteDemoPage />} />
   
           <Route path="settings" element={<Settings />}>
             <Route index element={<Navigate to="general" replace />} />
