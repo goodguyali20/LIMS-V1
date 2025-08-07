@@ -12,10 +12,7 @@ export const iraqiNames = {
     'Fatima', 'Aisha', 'Zainab', 'Mariam', 'Huda', 'Noor', 'Layla', 'Rania', 'Sara', 'Amina'
   ],
   
-  // Common Iraqi last names
-  lastNames: [
-    'Al-Maliki', 'Al-Hashimi', 'Al-Sadr', 'Al-Hakim', 'Al-Kadhimi', 'Al-Abadi', 'Al-Jaafari', 'Al-Allawi', 'Al-Zarqawi', 'Al-Baghdadi'
-  ],
+
   
   // Common Iraqi father names
   fatherNames: [

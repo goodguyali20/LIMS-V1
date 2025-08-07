@@ -105,7 +105,12 @@ const ModernContainer = styled.div`
 
 // Search Section
 const SearchSection = styled.div`
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.12) 0%, 
+    rgba(255, 255, 255, 0.08) 25%, 
+    rgba(255, 255, 255, 0.06) 50%, 
+    rgba(255, 255, 255, 0.04) 75%, 
+    rgba(255, 255, 255, 0.05) 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 1.5rem;
@@ -182,7 +187,12 @@ const ContentArea = styled.div`
 // Tests List
 const TestsList = styled.div`
   flex: 1;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.12) 0%, 
+    rgba(255, 255, 255, 0.08) 25%, 
+    rgba(255, 255, 255, 0.06) 50%, 
+    rgba(255, 255, 255, 0.04) 75%, 
+    rgba(255, 255, 255, 0.05) 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 1rem;
@@ -199,7 +209,12 @@ const DepartmentHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.12) 0%, 
+    rgba(255, 255, 255, 0.08) 25%, 
+    rgba(255, 255, 255, 0.06) 50%, 
+    rgba(255, 255, 255, 0.04) 75%, 
+    rgba(255, 255, 255, 0.05) 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   margin-bottom: 1rem;
@@ -207,7 +222,12 @@ const DepartmentHeader = styled.div`
   transition: all 0.3s ease;
   
   &:hover {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.18) 0%, 
+      rgba(255, 255, 255, 0.12) 25%, 
+      rgba(255, 255, 255, 0.08) 50%, 
+      rgba(255, 255, 255, 0.06) 75%, 
+      rgba(255, 255, 255, 0.08) 100%);
     border-color: rgba(255, 255, 255, 0.2);
   }
 `;
@@ -461,7 +481,12 @@ const TestPrice = styled.div`
 // Selection Cart
 const SelectionCart = styled.div`
   width: 320px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.12) 0%, 
+    rgba(255, 255, 255, 0.08) 25%, 
+    rgba(255, 255, 255, 0.06) 50%, 
+    rgba(255, 255, 255, 0.04) 75%, 
+    rgba(255, 255, 255, 0.05) 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 1rem;

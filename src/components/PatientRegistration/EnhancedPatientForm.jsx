@@ -7,7 +7,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
-import { FaUser, FaPhone, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaIdCard, FaFlask, FaPrint, FaEye, FaEdit, FaNotesMedical, FaArrowRight, FaSave, FaArrowLeft, FaClipboardList, FaSpinner, FaBarcode, FaSmileBeam, FaCheckCircle } from 'react-icons/fa';
+import { FaUser, FaPhone, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaIdCard, FaFlask, FaPrint, FaEye, FaEdit, FaNotesMedical, FaArrowRight, FaSave, FaArrowLeft, FaClipboardList, FaSpinner, FaBarcode, FaSmileBeam, FaCheckCircle, FaTimes } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Select from 'react-select';
@@ -27,14 +27,20 @@ import { useTestSelectionStore } from './TestSelectionPanel';
 import { LinearProgress } from '@mui/material';
 import { showFlashMessage } from '../../contexts/NotificationContext';
 import AutoCompleteInput from '../common/AutoCompleteInput';
-import { useFirstNameSuggestions, useLastNameSuggestions, useFatherNameSuggestions, useGrandfatherNameSuggestions } from '../../hooks/useIraqiNames';
+import { useFirstNameSuggestions, useFatherNameSuggestions, useGrandfatherNameSuggestions } from '../../hooks/useIraqiNames';
 
 // Utility functions for field rendering
 const shouldRenderField = (fields, section, fieldName) => {
-  if (section) {
-    return fields[section]?.[fieldName]?.enabled !== false;
+  // Force show the name fields regardless of settings
+  if (fieldName === 'firstName' || fieldName === 'fathersName' || fieldName === 'grandFathersName') {
+    return true;
   }
-  return fields[fieldName]?.enabled !== false;
+  
+  const result = section 
+    ? fields[section]?.[fieldName]?.enabled !== false
+    : fields[fieldName]?.enabled !== false;
+  
+  return result;
 };
 
 // New utility: shouldRenderSection
@@ -309,6 +315,93 @@ const TextArea = styled.textarea`
   &::placeholder {
     color: #6b7280;
   }
+`;
+
+const AgeInputContainer = styled.div`
+  display: flex;
+  width: 100%;
+  border: 2px solid ${({ theme, $hasError }) => 
+    $hasError ? theme.colors.error : 'rgba(255, 255, 255, 0.1)'};
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+  align-items: center;
+  height: 48px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+  z-index: 1;
+  
+  &:hover {
+    border-color: rgba(102, 126, 234, 0.5);
+    background: #fff;
+    box-shadow: 
+      0 8px 32px rgba(102, 126, 234, 0.15),
+      0 4px 16px rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+  }
+  
+  &:focus-within {
+    border-color: ${({ theme, $hasError }) => 
+      $hasError ? theme.colors.error : '#667eea'};
+    box-shadow: ${({ theme, $hasError }) => 
+      $hasError ? theme.shadows.glow.error : '0 0 0 3px rgba(102, 126, 234, 0.2)'};
+    transform: scale(1.02);
+    background: #fff;
+  }
+`;
+
+// Function to convert Arabic numerals to English numerals
+const convertArabicToEnglish = (text) => {
+  const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  const englishNumerals = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  
+  let converted = text;
+  arabicNumerals.forEach((arabic, index) => {
+    converted = converted.replace(new RegExp(arabic, 'g'), englishNumerals[index]);
+  });
+  
+  return converted;
+};
+
+const AgeInput = styled.input`
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  width: 60%;
+  height: 100%;
+  font-size: 1rem;
+  color: #23263a;
+  padding: 0 0.75rem;
+  outline: none;
+  
+  &::placeholder {
+    color: #6b7280;
+  }
+`;
+
+const AgeSelect = styled.select`
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  width: 40%;
+  height: 100%;
+  font-size: 1rem;
+  color: #23263a;
+  padding: 0 0.75rem;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1rem;
+  padding-right: 2rem;
+`;
+
+const AgeDivider = styled.div`
+  width: 1px;
+  height: 70%;
+  background: #e0e0e0;
 `;
 
 const SelectContainer = styled.div`
@@ -767,7 +860,6 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
       firstName: '',
       fathersName: '',
       grandFathersName: '',
-      lastName: '',
       age: { value: '', unit: 'years' },
       gender: '',
       phoneNumber: '',
@@ -880,6 +972,50 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
       setSelectedArea('');
     }
   }, [selectedGovernorate, selectedDistrict, selectedArea]);
+
+  // Set default address values when settings load
+  useEffect(() => {
+    if (settings.addressData?.defaults && !selectedGovernorate) {
+      const { governorate } = settings.addressData.defaults;
+      if (governorate) {
+        setSelectedGovernorate(governorate);
+        setValue('address.governorate', { value: governorate, label: settings.addressData.governorates.find(g => g.id === governorate)?.nameAr || governorate });
+      }
+      // Don't set default district and area - let user choose
+    }
+  }, [settings.addressData, selectedGovernorate, setValue]);
+
+  // Function to set default address values
+  const handleSetDefaultAddress = () => {
+    if (settings.addressData?.defaults) {
+      const { governorate, district, area } = settings.addressData.defaults;
+      if (governorate) {
+        setSelectedGovernorate(governorate);
+        setValue('address.governorate', { value: governorate, label: settings.addressData.governorates.find(g => g.id === governorate)?.nameAr || governorate });
+      }
+      if (district) {
+        setSelectedDistrict(district);
+        setValue('address.district', { value: district, label: settings.addressData.districts[governorate]?.find(d => d.id === district)?.nameAr || district });
+      }
+      if (area) {
+        setSelectedArea(area);
+        setValue('address.area', { value: area, label: settings.addressData.areas[district]?.find(a => a.id === area)?.nameAr || area });
+      }
+      showFlashMessage({ type: 'success', title: 'Default Address Set', message: 'Default address values have been applied!' });
+    }
+  };
+
+  // Function to clear address fields (except country)
+  const handleClearAddress = () => {
+    setSelectedGovernorate('');
+    setSelectedDistrict('');
+    setSelectedArea('');
+    setValue('address.governorate', '');
+    setValue('address.district', '');
+    setValue('address.area', '');
+    setValue('address.landmark', '');
+    showFlashMessage({ type: 'info', title: 'Address Cleared', message: 'Address fields have been cleared!' });
+  };
 
   // Clear localStorage if it contains translation keys
   useEffect(() => {
@@ -1106,23 +1242,21 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
   const watchedFirstName = watch('firstName');
   const watchedFathersName = watch('fathersName');
   const watchedGrandFathersName = watch('grandFathersName');
-  const watchedLastName = watch('lastName');
   const watchedPhone = watch('phoneNumber');
   const watchedEmail = watch('email');
   const watchedArea = watch('area');
 
   useEffect(() => {
-    if (!watchedFirstName && !watchedFathersName && !watchedGrandFathersName && !watchedLastName && !watchedPhone && !watchedArea) {
+    if (!watchedFirstName && !watchedFathersName && !watchedGrandFathersName && !watchedPhone && !watchedArea) {
       setDuplicateWarning('');
       return;
     }
     const match = patients.find(
       p =>
-        watchedFirstName && watchedFathersName && watchedGrandFathersName && watchedLastName && watchedPhone && watchedArea &&
+        watchedFirstName && watchedFathersName && watchedGrandFathersName && watchedPhone && watchedArea &&
         p.firstName?.toLowerCase() === watchedFirstName.toLowerCase() &&
         p.fathersName?.toLowerCase() === watchedFathersName.toLowerCase() &&
         p.grandFathersName?.toLowerCase() === watchedGrandFathersName.toLowerCase() &&
-        p.lastName?.toLowerCase() === watchedLastName.toLowerCase() &&
         p.phoneNumber === watchedPhone &&
         p.area === watchedArea
     );
@@ -1131,7 +1265,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     } else {
       setDuplicateWarning('');
     }
-  }, [watchedFirstName, watchedFathersName, watchedGrandFathersName, watchedLastName, watchedPhone, watchedArea, patients]);
+  }, [watchedFirstName, watchedFathersName, watchedGrandFathersName, watchedPhone, watchedArea, patients]);
 
   const handleTestSelection = (testName) => {
     if (!selectedTests.includes(testName)) {
@@ -1144,6 +1278,16 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
   };
 
   const renderField = (fieldName, fieldConfig, section = null) => {
+    // Create fallback config for name fields if settings are not loaded
+    if (!fieldConfig && ['firstName', 'fathersName', 'grandFathersName'].includes(fieldName)) {
+      fieldConfig = {
+        required: true,
+        enabled: true,
+        label: fieldName === 'firstName' ? 'First Name' : 
+               fieldName === 'fathersName' ? 'Father\'s Name' : 'Grandfather\'s Name'
+      };
+    }
+    
     if (!fieldConfig) return null;
     if (!shouldRenderField(settings.patientRegistrationFields, section, fieldName)) {
       return null;
@@ -1197,7 +1341,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     }
 
     // Use AutoCompleteInput for name fields
-    if (['firstName', 'lastName', 'fathersName', 'grandFathersName'].includes(fieldName)) {
+    if (['firstName', 'fathersName', 'grandFathersName'].includes(fieldName)) {
       const watchedGender = watch('gender');
       const watchedValue = watch(fieldPath);
       
@@ -1208,10 +1352,6 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         const { suggestions: firstNameSuggestions, isLoading: firstNameLoading } = useFirstNameSuggestions(watchedValue, watchedGender);
         suggestions = firstNameSuggestions;
         isLoading = firstNameLoading;
-      } else if (fieldName === 'lastName') {
-        const { suggestions: lastNameSuggestions, isLoading: lastNameLoading } = useLastNameSuggestions(watchedValue);
-        suggestions = lastNameSuggestions;
-        isLoading = lastNameLoading;
       } else if (fieldName === 'fathersName') {
         const { suggestions: fatherSuggestions, isLoading: fatherLoading } = useFatherNameSuggestions(watchedValue);
         suggestions = fatherSuggestions;
@@ -1252,10 +1392,10 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
       );
     }
 
-    // Show duplicate warning below firstName, lastName, phoneNumber, or email fields
+    // Show duplicate warning below firstName, phoneNumber, or email fields
     const showDup =
       duplicateWarning &&
-      (['firstName', 'lastName', 'phoneNumber', 'email'].includes(fieldName));
+      (['firstName', 'phoneNumber', 'email'].includes(fieldName));
     // Add helpful tips for certain fields
     let tip = '';
     if (fieldName === 'email') tip = t('patientRegistration.emailTip');
@@ -1272,63 +1412,45 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
             name={fieldPath}
             control={control}
             render={({ field }) => (
-              <div style={{
-                display: 'flex',
-                width: '100%',
-                maxWidth: 220,
-                border: '1px solid #ccc',
-                borderRadius: '8px',
-                background: '#fff',
-                overflow: 'hidden',
-                alignItems: 'center',
-                height: '48px',
-              }}>
-                <Input
-                  type="number"
-                  min="0"
+              <AgeInputContainer $hasError={!!errorPath}>
+                <AgeInput
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   id={`${fieldPath}.value`}
                   name={`${fieldPath}.value`}
                   value={field.value?.value ?? ''}
-                  onChange={e => field.onChange({ ...field.value, value: e.target.value === '' ? '' : Number(e.target.value) })}
-                  $hasError={!!errorPath}
+                  onChange={e => {
+                    const convertedValue = convertArabicToEnglish(e.target.value);
+                    // Only allow digits after conversion
+                    const cleanValue = convertedValue.replace(/[^0-9]/g, '');
+                    field.onChange({ 
+                      ...field.value, 
+                      value: cleanValue === '' ? '' : Number(cleanValue) 
+                    });
+                  }}
+                  onKeyPress={e => {
+                    // Allow only digits and Arabic numerals
+                    const allowedChars = /[0-9٠١٢٣٤٥٦٧٨٩]/;
+                    if (!allowedChars.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
                   autoComplete="off"
                   placeholder={t('patientRegistration.ageValuePlaceholder')}
-                  style={{
-                    border: 'none',
-                    borderRadius: '0',
-                    background: 'transparent',
-                    width: '60%',
-                    height: '100%',
-                    fontSize: '1rem',
-                    color: '#23263a',
-                    padding: '0 0.75rem',
-                    outline: 'none',
-                  }}
                 />
-                <div style={{ width: 1, height: '70%', background: '#e0e0e0' }} />
-                <select
+                <AgeDivider />
+                <AgeSelect
                   id={`${fieldPath}.unit`}
                   name={`${fieldPath}.unit`}
                   value={field.value?.unit || 'years'}
                   onChange={e => field.onChange({ ...field.value, unit: e.target.value })}
-                  style={{
-                    border: 'none',
-                    borderRadius: '0',
-                    background: 'transparent',
-                    width: '40%',
-                    height: '100%',
-                    fontSize: '1rem',
-                    color: '#23263a',
-                    padding: '0 0.75rem',
-                    outline: 'none',
-                    appearance: 'none',
-                  }}
                 >
                   <option value="years">{t('patientRegistration.years')}</option>
                   <option value="months">{t('patientRegistration.months')}</option>
                   <option value="days">{t('patientRegistration.days')}</option>
-                </select>
-              </div>
+                </AgeSelect>
+              </AgeInputContainer>
             )}
           />
           {errorPath && (
@@ -1541,9 +1663,75 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     <>
       {showConfetti && <Confetti width={window.innerWidth} height={window.innerHeight} numberOfPieces={250} recycle={false} />} 
       <FormContainer>
-        <h2 style={{ marginBottom: '1.5rem', color: '#667eea', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FaSmileBeam style={{ color: '#f093fb' }} /> {t('patientRegistration.title')}
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ color: '#667eea', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FaSmileBeam style={{ color: '#f093fb' }} /> {t('patientRegistration.title')}
+          </h2>
+          <GlowButton 
+            onClick={() => {
+              // Reset form to default values
+              reset({
+                patientId: '',
+                firstName: '',
+                fathersName: '',
+                grandFathersName: '',
+                age: { value: '', unit: 'years' },
+                gender: '',
+                phoneNumber: '',
+                email: '',
+                address: {
+                  governorate: '',
+                  district: '',
+                  area: '',
+                  landmark: '',
+                  city: ''
+                },
+                emergencyContact: {
+                  name: '',
+                  relationship: '',
+                  phoneNumber: ''
+                },
+                medicalHistory: {
+                  allergies: '',
+                  medications: '',
+                  conditions: '',
+                  notes: ''
+                },
+                insurance: {
+                  provider: '',
+                  policyNumber: '',
+                  groupNumber: ''
+                }
+              });
+              
+              // Clear selected tests
+              setSelectedTests([]);
+              
+              // Clear address selections
+              setSelectedGovernorate('');
+              setSelectedDistrict('');
+              setSelectedArea('');
+              
+              // Clear other state variables
+              setDuplicateWarning('');
+              setShowPrintPreview(false);
+              setShowSummaryModal(false);
+              setIsSubmitting(false);
+              setShowConfetti(false);
+              setScanning(false);
+              setScanError('');
+              
+              // Clear any stored draft
+              localStorage.removeItem('patientRegistrationDraft');
+              
+              // Show success message
+              showFlashMessage({ type: 'success', title: 'Form Cleared', message: 'All fields have been cleared successfully!' });
+            }}
+            style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}
+          >
+            Clear
+          </GlowButton>
+        </div>
         <div style={{ width: '100%', marginBottom: 16 }}>
           <LinearProgress variant="determinate" value={progress} />
           <div style={{ textAlign: 'right', fontSize: 12, color: '#888', marginTop: 2 }}>{progress}%</div>
@@ -1557,15 +1745,14 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                   <FaUser /> {t('patientRegistration.personalInfo')}
                 </SectionTitle>
                 <FormGrid>
-                  {renderField('patientId', settings.patientRegistrationFields.patientId)}
-                  {renderField('firstName', settings.patientRegistrationFields.firstName)}
-                  {renderField('fathersName', settings.patientRegistrationFields.fathersName)}
-                  {renderField('grandFathersName', settings.patientRegistrationFields.grandFathersName)}
-                  {renderField('lastName', settings.patientRegistrationFields.lastName)}
-                  {renderField('age', settings.patientRegistrationFields.age)}
-                  {renderSelectField('gender', settings.patientRegistrationFields.gender, genderOptions)}
-                  {renderField('phoneNumber', settings.patientRegistrationFields.phoneNumber)}
-                  {renderField('email', settings.patientRegistrationFields.email)}
+                  {renderField('patientId', settings.patientRegistrationFields?.patientId)}
+                  {renderField('firstName', settings.patientRegistrationFields?.firstName)}
+                  {renderField('fathersName', settings.patientRegistrationFields?.fathersName)}
+                  {renderField('grandFathersName', settings.patientRegistrationFields?.grandFathersName)}
+                  {renderField('age', settings.patientRegistrationFields?.age)}
+                  {renderSelectField('gender', settings.patientRegistrationFields?.gender, genderOptions)}
+                  {renderField('phoneNumber', settings.patientRegistrationFields?.phoneNumber)}
+                  {renderField('email', settings.patientRegistrationFields?.email)}
                 </FormGrid>
               </FormSection>
 
@@ -1574,6 +1761,49 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                 <FormSection>
                   <SectionTitle>
                     <FaMapMarkerAlt /> {t('patientRegistration.addressInfo')}
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '0.5rem', 
+                      marginLeft: 'auto',
+                      alignItems: 'center'
+                    }}>
+                      <GlowButton
+                        type="button"
+                        onClick={handleSetDefaultAddress}
+                        style={{ 
+                          fontSize: '0.7rem', 
+                          padding: '0.3rem 0.5rem',
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          minWidth: 'auto',
+                          width: '32px',
+                          height: '32px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Set Default Address"
+                      >
+                        <FaMapMarkerAlt />
+                      </GlowButton>
+                      <GlowButton
+                        type="button"
+                        onClick={handleClearAddress}
+                        style={{ 
+                          fontSize: '0.7rem', 
+                          padding: '0.3rem 0.5rem',
+                          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                          minWidth: 'auto',
+                          width: '32px',
+                          height: '32px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Clear Address"
+                      >
+                        <FaTimes />
+                      </GlowButton>
+                    </div>
                   </SectionTitle>
                   <FormGrid>
                     {/* Country (fixed to Iraq) */}

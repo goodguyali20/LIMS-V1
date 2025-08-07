@@ -24,19 +24,7 @@ export const generatePatientSchema = (fieldConfig) => {
           .or(z.literal(''));
   }
 
-  if (fieldConfig.lastName?.enabled) {
-    schemaFields.lastName = fieldConfig.lastName.required
-      ? z.string()
-          .min(2, 'Last name must be at least 2 characters')
-          .max(50, 'Last name must be less than 50 characters')
-          .regex(/^[a-zA-Z\u0600-\u06FF\s]+$/, 'Last name can only contain Arabic or Latin letters and spaces')
-      : z.string()
-          .min(2, 'Last name must be at least 2 characters')
-          .max(50, 'Last name must be less than 50 characters')
-          .regex(/^[a-zA-Z\u0600-\u06FF\s]+$/, 'Last name can only contain Arabic or Latin letters and spaces')
-          .optional()
-          .or(z.literal(''));
-  }
+
 
   if (fieldConfig.fathersName?.enabled) {
     schemaFields.fathersName = fieldConfig.fathersName.required
@@ -302,7 +290,6 @@ export const generateDefaultValues = (fieldConfig) => {
 
   // Personal Information
   if (fieldConfig.firstName?.enabled) defaultValues.firstName = '';
-  if (fieldConfig.lastName?.enabled) defaultValues.lastName = '';
   if (fieldConfig.fathersName?.enabled) defaultValues.fathersName = '';
   if (fieldConfig.grandFathersName?.enabled) defaultValues.grandFathersName = '';
   if (fieldConfig.age?.enabled) defaultValues.age = null;

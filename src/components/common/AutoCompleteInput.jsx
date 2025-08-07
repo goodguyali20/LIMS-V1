@@ -124,7 +124,7 @@ const ClearButton = styled.button`
   }
 `;
 
-const AutoCompleteInput = ({
+const AutoCompleteInput = React.forwardRef(({
   value,
   onChange,
   onBlur,
@@ -139,7 +139,7 @@ const AutoCompleteInput = ({
   required = false,
   autoComplete = 'off',
   ...props
-}) => {
+}, ref) => {
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -235,7 +235,7 @@ const AutoCompleteInput = ({
   return (
     <InputContainer>
       <StyledInput
-        ref={inputRef}
+        ref={ref || inputRef}
         value={value}
         onChange={handleInputChange}
         onFocus={handleFocus}
@@ -294,6 +294,6 @@ const AutoCompleteInput = ({
       </AnimatePresence>
     </InputContainer>
   );
-};
+});
 
 export default AutoCompleteInput; 

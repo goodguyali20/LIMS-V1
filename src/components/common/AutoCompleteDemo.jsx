@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import AutoCompleteInput from './AutoCompleteInput';
-import { useFirstNameSuggestions, useLastNameSuggestions, useFatherNameSuggestions, useGrandfatherNameSuggestions } from '../../hooks/useIraqiNames';
+import { useFirstNameSuggestions, useFatherNameSuggestions, useGrandfatherNameSuggestions } from '../../hooks/useIraqiNames';
 
 const DemoContainer = styled.div`
   padding: 2rem;
@@ -39,13 +39,11 @@ const Label = styled.label`
 
 const AutoCompleteDemo = () => {
   const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   const [fathersName, setFathersName] = useState('');
   const [grandFathersName, setGrandFathersName] = useState('');
   const [gender, setGender] = useState('male');
 
   const { suggestions: firstNameSuggestions, isLoading: firstNameLoading } = useFirstNameSuggestions(firstName, gender);
-  const { suggestions: lastNameSuggestions, isLoading: lastNameLoading } = useLastNameSuggestions(lastName);
   const { suggestions: fatherSuggestions, isLoading: fatherLoading } = useFatherNameSuggestions(fathersName);
   const { suggestions: grandfatherSuggestions, isLoading: grandfatherLoading } = useGrandfatherNameSuggestions(grandFathersName);
 
@@ -84,18 +82,7 @@ const AutoCompleteDemo = () => {
         />
       </DemoSection>
 
-      <DemoSection>
-        <SectionTitle>Last Name</SectionTitle>
-        <Label>Start typing for suggestions:</Label>
-        <AutoCompleteInput
-          value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
-          placeholder="Enter last name..."
-          suggestions={lastNameSuggestions}
-          isLoading={lastNameLoading}
-          name="lastName"
-        />
-      </DemoSection>
+
 
       <DemoSection>
         <SectionTitle>Father's Name</SectionTitle>
@@ -134,7 +121,6 @@ const AutoCompleteDemo = () => {
         }}>
           {JSON.stringify({
             firstName,
-            lastName,
             fathersName,
             grandFathersName,
             gender

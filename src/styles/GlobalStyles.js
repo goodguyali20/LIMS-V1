@@ -30,8 +30,18 @@ export const GlobalStyles = createGlobalStyle`
     overflow-x: hidden;
     /* Premium background with subtle gradient */
     background: ${({ theme }) => theme.isDarkMode 
-      ? `linear-gradient(135deg, ${theme.colors.dark.background} 0%, #1a1a2e 50%, #16213e 100%)`
-      : `linear-gradient(135deg, ${theme.colors.background} 0%, #f1f5f9 50%, #e2e8f0 100%)`
+      ? `linear-gradient(135deg, 
+          ${theme.colors.dark.background} 0%, 
+          rgba(26, 26, 46, 0.8) 25%, 
+          rgba(22, 33, 62, 0.9) 50%, 
+          rgba(16, 25, 48, 0.95) 75%, 
+          #16213e 100%)`
+      : `linear-gradient(135deg, 
+          ${theme.colors.background} 0%, 
+          rgba(241, 245, 249, 0.8) 25%, 
+          rgba(226, 232, 240, 0.9) 50%, 
+          rgba(226, 232, 240, 0.95) 75%, 
+          #e2e8f0 100%)`
     };
     background-attachment: fixed;
     min-height: 100vh;

@@ -45,10 +45,6 @@ export const useFirstNameSuggestions = (inputValue, gender = null) => {
   return useIraqiNames(inputValue, nameType);
 };
 
-export const useLastNameSuggestions = (inputValue) => {
-  return useIraqiNames(inputValue, 'lastNames');
-};
-
 export const useFatherNameSuggestions = (inputValue) => {
   return useIraqiNames(inputValue, 'fatherNames');
 };

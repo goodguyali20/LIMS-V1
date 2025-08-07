@@ -55,8 +55,16 @@ const GlassContainer = styled(motion.div)`
   padding: 1.5rem 1rem 1rem 1rem;
   background: ${({ theme }) =>
     theme.isDarkMode
-      ? `linear-gradient(135deg, ${theme.colors.dark.background} 0%, #1a1a2e 50%, #16213e 100%)`
-      : `linear-gradient(120deg, ${theme.colors.background} 0%, #e0e7ff 100%)`};
+      ? `linear-gradient(135deg, 
+          ${theme.colors.dark.background} 0%, 
+          rgba(26, 26, 46, 0.8) 25%, 
+          rgba(22, 33, 62, 0.9) 50%, 
+          rgba(16, 25, 48, 0.95) 75%, 
+          #16213e 100%)`
+      : `linear-gradient(120deg, 
+          ${theme.colors.background} 0%, 
+          rgba(224, 231, 255, 0.8) 50%, 
+          #e0e7ff 100%)`};
 `;
 
 const Header = styled.div`

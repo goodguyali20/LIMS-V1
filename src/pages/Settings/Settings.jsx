@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -221,6 +221,12 @@ const SettingCard = styled(GlowCard)`
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 25px ${({ color }) => color}20;
+  }
+  
+  &:active {
+    transform: translateY(-2px);
+    transition: all 0.1s ease;
   }
 `;
 
@@ -228,6 +234,24 @@ const SettingCardContent = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
+  position: relative;
+  
+  &::after {
+    content: '→';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    color: ${({ theme }) => theme.colors.textSecondary};
+    font-size: 1.2rem;
+    opacity: 0.6;
+    transition: all 0.3s ease;
+  }
+  
+  &:hover::after {
+    opacity: 1;
+    transform: translateY(-50%) translateX(2px);
+  }
 `;
 
 const SettingIcon = styled.div`
@@ -303,6 +327,10 @@ const TabButton = styled(motion.button)`
   &:hover {
     color: ${({ theme }) => theme.colors.primary};
   }
+`;
+
+const TabContentWrapper = styled.div`
+  animation: fadeIn 0.5s;
 `;
 
 const TabContent = styled(motion.div)`
@@ -454,10 +482,44 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState('general');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [shouldScroll, setShouldScroll] = useState(false);
   const { settings, updateSettings, loading: settingsLoading } = useSettings();
   const { user } = useAuth();
   
   const [generalFormState, setGeneralFormState] = useState(settings);
+  const tabContentRef = useRef(null);
+
+  // Handle scrolling when activeTab changes
+  useEffect(() => {
+    if (shouldScroll && tabContentRef.current) {
+      setTimeout(() => {
+        try {
+          // First, scroll to top to make it obvious
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          // Then scroll to the content
+          setTimeout(() => {
+            tabContentRef.current.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }, 300);
+          
+        } catch (error) {
+          // Fallback to window.scrollTo
+          const rect = tabContentRef.current.getBoundingClientRect();
+          const scrollTop = window.pageYOffset + rect.top - 200;
+          
+          window.scrollTo({
+            top: scrollTop,
+            behavior: 'smooth'
+          });
+        }
+        
+        setShouldScroll(false); // Reset the flag
+      }, 100);
+    }
+  }, [activeTab, shouldScroll]);
 
   // Settings categories with icons and colors
   const settingsCategories = [
@@ -546,6 +608,26 @@ const Settings = () => {
   useEffect(() => {
     setGeneralFormState(settings);
   }, [settings]);
+
+  // Handle card click with smooth scrolling
+  const handleCardClick = (categoryId) => {
+    setActiveTab(categoryId);
+    setShouldScroll(true); // Set flag to trigger scroll
+    
+    // Add visual feedback with better animation
+    const card = document.querySelector(`[data-category="${categoryId}"]`);
+    
+    if (card) {
+      // Add a subtle glow effect
+      card.style.boxShadow = '0 0 20px rgba(102, 126, 234, 0.3)';
+      card.style.transform = 'scale(0.98)';
+      
+      setTimeout(() => {
+        card.style.transform = 'scale(1)';
+        card.style.boxShadow = '';
+      }, 200);
+    }
+  };
   
 
 
@@ -898,12 +980,23 @@ const Settings = () => {
           <option value="data">Data</option>
           <option value="expert">Expert</option>
         </FilterSelect>
+
       </SearchAndFilterContainer>
 
       <SettingsGrid>
-        {filteredCategories.map(category => (
-          <SettingCard key={category.id} color={category.color} onClick={() => setActiveTab(category.id)}>
-            <SettingCardContent>
+        {filteredCategories.map((category, index) => (
+          <SettingCard 
+            key={category.id} 
+            color={category.color} 
+            clickable={true}
+            onClick={() => handleCardClick(category.id)} 
+            data-category={category.id}
+            style={{ pointerEvents: 'auto' }}
+          >
+            <SettingCardContent 
+              onClick={() => handleCardClick(category.id)}
+              style={{ pointerEvents: 'auto' }}
+            >
               <SettingIcon color={category.color}><category.icon size={32} /></SettingIcon>
               <SettingInfo>
                 <SettingTitle>{category.title}</SettingTitle>
@@ -946,7 +1039,7 @@ const Settings = () => {
         </SettingCard>
       </SettingsGrid>
 
-      <TabsContainer>
+      <TabsContainer data-tabs-container>
         {settingsCategories.map((category) => (
           <motion.div
             key={category.id}
@@ -955,7 +1048,7 @@ const Settings = () => {
           >
             <TabButton 
               $active={activeTab === category.id} 
-              onClick={() => setActiveTab(category.id)}
+              onClick={() => handleCardClick(category.id)}
             >
               {category.title}
             </TabButton>
@@ -964,13 +1057,14 @@ const Settings = () => {
       </TabsContainer>
 
       <AnimatePresence mode="wait">
-        <TabContent
-          key={activeTab}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.3 }}
-        >
+        <TabContentWrapper ref={tabContentRef}>
+          <TabContent
+            key={activeTab}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
           {activeTab === 'general' && renderGeneralSettings()}
           {activeTab === 'tests' && <TestCatalog />}
           {activeTab === 'patientRegistration' && <PatientRegistrationSettings />}
@@ -988,7 +1082,8 @@ const Settings = () => {
               <p>Advanced features coming soon...</p>
             </Section>
           )}
-        </TabContent>
+          </TabContent>
+        </TabContentWrapper>
       </AnimatePresence>
 
 

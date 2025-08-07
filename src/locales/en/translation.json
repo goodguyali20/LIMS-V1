@@ -89,6 +89,7 @@
     "phoneNumber": "Phone Number",
     "email": "Email",
     "age": "Age",
+    "ageValuePlaceholder": "Enter age",
     "years": "Years",
     "months": "Months",
     "days": "Days",
@@ -99,7 +100,6 @@
     "cancel": "Cancel",
     "save": "Save",
     "firstNameTip": "Start typing for name suggestions",
-    "lastNameTip": "Start typing for name suggestions", 
     "fathersNameTip": "Start typing for name suggestions",
     "grandFathersNameTip": "Start typing for name suggestions",
     "autoComplete": {
