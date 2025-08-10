@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
-import { logAuditEvent } from '../../utils/auditLogger';
+import { logAuditEvent } from '../../utils/monitoring/auditLogger';
 import { useNavigate } from 'react-router-dom';
 import RejectionModal from '../Modals/RejectionModal';
-import { FaUser, FaVial, FaClock, FaExclamationTriangle, FaPlay, FaBan, FaRedo, FaDownload, FaCalendar, FaThermometer, FaInfoCircle, FaPrint } from 'react-icons/fa';
+import CancellationModal from '../Modals/CancellationModal';
+import { FaUser, FaVial, FaClock, FaExclamationTriangle, FaPlay, FaBan, FaRedo, FaDownload, FaCalendar, FaThermometer, FaInfoCircle, FaPrint, FaFlask, FaSave, FaTimes } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import { useTestCatalog } from '../../contexts/TestContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -91,6 +92,49 @@ const TopRightInfo = styled.div`
   align-items: center;
   gap: 0.3rem;
   z-index: 1;
+`;
+
+const CompletionIndicator = styled.div`
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: #10b981;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: pulse 2s infinite;
+  
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+`;
+
+const CompletionProgress = styled.div`
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  height: 4px;
+  background: #334155;
+  border-radius: 2px;
+  overflow: hidden;
+`;
+
+const ProgressBar = styled.div`
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  width: ${({ progress }) => progress}%;
 `;
 
 const InfoNumber = styled.div`
@@ -264,7 +308,157 @@ const OrderInfo = styled.div`
   flex: 1;
 `;
 
-const OrderCard = ({ order, onDownload, onViewDetails, onPrint, onViewTimeline }) => {
+const QuickResultModal = styled.div`
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 500px;
+  width: 100%;
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #334155;
+`;
+
+const ModalTitle = styled.h3`
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: #334155;
+    color: #f8fafc;
+  }
+`;
+
+const FormGroup = styled.div`
+  margin-bottom: 1rem;
+`;
+
+const Label = styled.label`
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #cbd5e1;
+  font-weight: 500;
+  font-size: 0.9rem;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  background: #334155;
+  color: #f8fafc;
+  font-size: 0.9rem;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+  
+  &::placeholder {
+    color: #64748b;
+  }
+`;
+
+const TextArea = styled.textarea`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  background: #334155;
+  color: #f8fafc;
+  font-size: 0.9rem;
+  min-height: 80px;
+  resize: vertical;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+  
+  &::placeholder {
+    color: #64748b;
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+`;
+
+const SaveButton = styled.button`
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &:hover {
+    background: #059669;
+  }
+  
+  &:disabled {
+    background: #6b7280;
+    cursor: not-allowed;
+  }
+`;
+
+const CancelButton = styled.button`
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: #4b5563;
+  }
+`;
+
+// Add CSS for spinning icon
+const SpinningIcon = styled.span`
+  animation: spin 1s linear infinite;
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const OrderCard = ({ order, onDownload, onViewDetails, onPrint, onViewTimeline, onReadyForCompletion }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const navigate = useNavigate();
@@ -275,11 +469,27 @@ const OrderCard = ({ order, onDownload, onViewDetails, onPrint, onViewTimeline }
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
   const [showAllTests, setShowAllTests] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showQuickResultModal, setShowQuickResultModal] = useState(false);
+  const [selectedTest, setSelectedTest] = useState(null);
+  const [quickResult, setQuickResult] = useState({ value: '', comments: '' });
+  const [savingQuickResult, setSavingQuickResult] = useState(false);
+  
+  // Cancellation state
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [cancellationType, setCancellationType] = useState('order'); // 'order' or 'test'
+  const [cancellationTarget, setCancellationTarget] = useState(null); // order or test object
   const orderDate = order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A';
+
+  // Monitor when order becomes ready for completion
+  useEffect(() => {
+    if (onReadyForCompletion && isReadyForCompletion() && order.status === 'In Progress') {
+      onReadyForCompletion(order.id);
+    }
+  }, [order.results, order.tests, order.status, onReadyForCompletion]);
 
   const getTestDepartment = (testName) => {
     const test = labTests.find(t => t.name === testName);
-    return test ? test.department : 'General';
+    return test ? test.department : 'Parasitology';
   };
 
   const calculateTimeInStage = () => {
@@ -367,6 +577,150 @@ const OrderCard = ({ order, onDownload, onViewDetails, onPrint, onViewTimeline }
     setShowAllTests(!showAllTests);
   };
 
+  const handleTestClick = (test) => {
+    if (order.status === 'In Progress') {
+      setSelectedTest(test);
+      setQuickResult({ value: '', comments: '' });
+      setShowQuickResultModal(true);
+    }
+  };
+
+  const handleQuickResultChange = (field, value) => {
+    setQuickResult(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveQuickResult = async () => {
+    if (!quickResult.value.trim()) {
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Result value is required' });
+      return;
+    }
+
+    try {
+      setSavingQuickResult(true);
+      
+      const testName = typeof selectedTest === 'string' ? selectedTest : selectedTest.name || selectedTest;
+      
+      // Update the order with the new result
+      const orderRef = doc(db, 'testOrders', order.id);
+      const currentResults = order.results || {};
+      
+      await updateDoc(orderRef, {
+        results: {
+          ...currentResults,
+          [testName]: {
+            value: quickResult.value,
+            comments: quickResult.comments,
+            enteredAt: serverTimestamp(),
+            enteredBy: 'current-user', // Replace with actual user
+            status: 'completed'
+          }
+        }
+      });
+
+      // Log audit event
+      await logAuditEvent('Quick Result Entered', {
+        orderId: order.id,
+        testName,
+        resultValue: quickResult.value
+      });
+
+      showFlashMessage({ type: 'success', title: 'Success', message: `Result saved for ${testName}` });
+      
+      // Close modal and reset
+      setShowQuickResultModal(false);
+      setSelectedTest(null);
+      setQuickResult({ value: '', comments: '' });
+      
+      // Refresh the page or update the order data
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Error saving quick result:', error);
+      showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to save result' });
+    } finally {
+      setSavingQuickResult(false);
+    }
+  };
+
+  const handleCloseQuickResultModal = () => {
+    setShowQuickResultModal(false);
+    setSelectedTest(null);
+    setQuickResult({ value: '', comments: '' });
+  };
+
+  // Check if all tests are completed
+  const isReadyForCompletion = () => {
+    return order.tests && order.results && 
+           order.tests.length > 0 && 
+           Object.keys(order.results).length === order.tests.length;
+  };
+
+  // Handle order cancellation
+  const handleOrderCancellation = (reason) => {
+    // This will be handled by the parent component
+    if (onStatusChange) {
+      onStatusChange(order.id, 'Cancelled', { reason });
+    }
+  };
+
+  // Handle test cancellation
+  const handleTestCancellation = async (reason) => {
+    try {
+      // Update the test status to cancelled in Firestore
+      const orderRef = doc(db, 'testOrders', order.id);
+      const testName = typeof cancellationTarget === 'string' ? cancellationTarget : cancellationTarget?.name || cancellationTarget;
+      
+      // Add the cancelled test to a cancelledTests array or update the test status
+      await updateDoc(orderRef, {
+        [`cancelledTests.${testName}`]: {
+          cancelledAt: serverTimestamp(),
+          cancelledBy: 'current_user', // This should come from auth context
+          reason: reason,
+          status: 'Cancelled'
+        },
+        updatedAt: serverTimestamp()
+      });
+
+      // Log the audit event
+      await logAuditEvent('Test Cancelled', {
+        orderId: order.orderId,
+        testName: testName,
+        reason: reason,
+        cancelledBy: 'current_user' // This should come from auth context
+      });
+
+      showFlashMessage({ 
+        type: 'success', 
+        title: 'Test Cancelled', 
+        message: `Test "${testName}" has been cancelled successfully` 
+      });
+
+      // Refresh the page to show updated status
+      window.location.reload();
+    } catch (error) {
+      console.error('Error cancelling test:', error);
+      showFlashMessage({ 
+        type: 'error', 
+        title: 'Error', 
+        message: 'Failed to cancel test. Please try again.' 
+      });
+    }
+  };
+
+  // Open cancellation modal for order
+  const openOrderCancellationModal = () => {
+    setCancellationType('order');
+    setCancellationTarget(order);
+    setShowCancellationModal(true);
+  };
+
+  // Open cancellation modal for specific test
+  const openTestCancellationModal = (test) => {
+    setCancellationType('test');
+    setCancellationTarget(test);
+    setShowCancellationModal(true);
+  };
+
   return (
     <>
       <Card 
@@ -388,10 +742,43 @@ const OrderCard = ({ order, onDownload, onViewDetails, onPrint, onViewTimeline }
         }}
       >
         {order._isOptimistic && <OptimisticIndicator />}
+        
+        {/* Show completion indicator when all tests have results */}
+        {order.status === 'In Progress' && order.tests && order.results && 
+         order.tests.length > 0 && Object.keys(order.results).length === order.tests.length && (
+          <CompletionIndicator title="All tests completed - ready to move to Completed column">
+            ✓
+          </CompletionIndicator>
+        )}
+        
+        {/* Show auto-completion indicator for completed orders */}
+        {order.status === 'Completed' && order.tests && order.results && 
+         order.tests.length > 0 && Object.keys(order.results).length === order.tests.length && (
+          <CompletionIndicator 
+            style={{ 
+              background: '#059669',
+              animation: 'none',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+            }}
+            title="Order automatically completed when all test results were entered"
+          >
+            ✓
+          </CompletionIndicator>
+        )}
+        
         <TopRightInfo>
           <InfoNumber>{order.tests?.length || 0}</InfoNumber>
           <LiveTimer>{timeInStage}</LiveTimer>
         </TopRightInfo>
+        
+        {/* Show completion progress for In Progress orders */}
+        {order.status === 'In Progress' && order.tests && order.results && order.tests.length > 0 && (
+          <CompletionProgress>
+            <ProgressBar 
+              progress={Math.round((Object.keys(order.results).length / order.tests.length) * 100)} 
+            />
+          </CompletionProgress>
+        )}
         <OrderInfo>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
             <div>
@@ -420,11 +807,75 @@ const OrderCard = ({ order, onDownload, onViewDetails, onPrint, onViewTimeline }
                 const testName = typeof test === 'string' ? test : test.name || test;
                 const department = getTestDepartment(testName);
                 const departmentColor = departmentColors[department];
-                return (
-                  <TestName key={index} departmentColor={departmentColor}>
-                    {testName}
-                  </TestName>
-                );
+                const hasResult = order.results && order.results[testName];
+                
+                                  return (
+                    <TestName 
+                      key={index} 
+                      departmentColor={departmentColor}
+                      onClick={() => handleTestClick(test)}
+                      style={{ 
+                        cursor: order.status === 'In Progress' ? 'pointer' : 'default',
+                        transition: order.status === 'In Progress' ? 'all 0.2s ease' : 'none',
+                        opacity: hasResult ? 0.7 : 1,
+                        position: 'relative'
+                      }}
+                      title={order.status === 'In Progress' ? 
+                        (hasResult ? `Result already entered for ${testName}. Click to modify.` : `Click to enter result for ${testName}`) : 
+                        ''
+                      }
+                    >
+                      {testName}
+                      {hasResult && (
+                        <span style={{
+                          position: 'absolute',
+                          top: -5,
+                          right: -5,
+                          background: '#10b981',
+                          color: 'white',
+                          borderRadius: '50%',
+                          width: '16px',
+                          height: '16px',
+                          fontSize: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '2px solid #1e293b'
+                        }}>
+                          ✓
+                        </span>
+                      )}
+                      
+                      {/* Cancel Test button - show for all non-completed tests */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openTestCancellationModal(test);
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: -5,
+                          left: -5,
+                          background: '#ef4444',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '16px',
+                          height: '16px',
+                          fontSize: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                        title={`Cancel test: ${testName}`}
+                        aria-label={`Cancel test ${testName}`}
+                      >
+                        ×
+                      </button>
+                    </TestName>
+                  );
               })}
               {!showAllTests && order.tests.length > 3 && (
                 <TestName 
@@ -478,6 +929,37 @@ const OrderCard = ({ order, onDownload, onViewDetails, onPrint, onViewTimeline }
           >
             <FaClock aria-hidden="true" />
           </IconButton>
+          {/* Process button - only show for orders currently in progress */}
+          {order.status === 'In Progress' && (
+            <IconButton 
+              onClick={handleProcessClick}
+              aria-label={`Process order ${order.orderId}`}
+              title={t('orderCard_process_button')}
+              style={{ 
+                background: '#f59e0b',
+                color: '#ffffff',
+                borderColor: '#d97706'
+              }}
+            >
+              <FaPlay aria-hidden="true" />
+            </IconButton>
+          )}
+          
+          {/* Cancel Order button - show for all non-completed orders */}
+          {order.status !== 'Completed' && order.status !== 'Cancelled' && (
+            <IconButton 
+              onClick={openOrderCancellationModal}
+              aria-label={`Cancel order ${order.orderId}`}
+              title="Cancel entire order"
+              style={{ 
+                background: '#ef4444',
+                color: '#ffffff',
+                borderColor: '#dc2626'
+              }}
+            >
+              <FaBan aria-hidden="true" />
+            </IconButton>
+          )}
         </ActionButtons>
       </Card>
 
@@ -498,6 +980,61 @@ const OrderCard = ({ order, onDownload, onViewDetails, onPrint, onViewTimeline }
         ) : (
           <div>No timeline data available for this order.</div>
         )}
+      </AnimatedModal>
+
+      {/* Quick Result Input Modal */}
+      <AnimatedModal isOpen={showQuickResultModal} onClose={handleCloseQuickResultModal}>
+        <QuickResultModal>
+          <ModalHeader>
+            <ModalTitle>
+              <FaFlask />
+              Enter Result for {typeof selectedTest === 'string' ? selectedTest : selectedTest?.name || selectedTest}
+            </ModalTitle>
+            <CloseButton onClick={handleCloseQuickResultModal}>
+              <FaTimes />
+            </CloseButton>
+          </ModalHeader>
+          
+          <FormGroup>
+            <Label>Result Value *</Label>
+            <Input
+              type="text"
+              value={quickResult.value}
+              onChange={(e) => handleQuickResultChange('value', e.target.value)}
+              placeholder="Enter the test result..."
+              autoFocus
+            />
+          </FormGroup>
+          
+          <FormGroup>
+            <Label>Comments (Optional)</Label>
+            <TextArea
+              value={quickResult.comments}
+              onChange={(e) => handleQuickResultChange('comments', e.target.value)}
+              placeholder="Add any additional notes or observations..."
+            />
+          </FormGroup>
+          
+          <ButtonGroup>
+            <CancelButton onClick={handleCloseQuickResultModal}>
+              <FaTimes /> Cancel
+            </CancelButton>
+            <SaveButton 
+              onClick={handleSaveQuickResult}
+              disabled={savingQuickResult || !quickResult.value.trim()}
+            >
+              {savingQuickResult ? (
+                <>
+                  <SpinningIcon><FaClock /></SpinningIcon> Saving...
+                </>
+              ) : (
+                <>
+                  <FaSave /> Save Result
+                </>
+              )}
+            </SaveButton>
+          </ButtonGroup>
+        </QuickResultModal>
       </AnimatedModal>
     </>
   );
