@@ -1,5 +1,5 @@
 import { createGlobalStyle } from 'styled-components';
-import { layoutShiftPreventionCSS } from '../utils/layoutShiftPrevention.tsx';
+import { layoutShiftPreventionCSS } from '../utils/performance/layoutShiftPrevention.tsx';
 
 export const GlobalStyles = createGlobalStyle`
   ${layoutShiftPreventionCSS}

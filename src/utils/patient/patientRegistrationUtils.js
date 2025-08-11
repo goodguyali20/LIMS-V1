@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getAge } from './dateUtils.js';
+import { getAge } from '../core/dateUtils.js';
 
 /**
  * Generates a dynamic Zod schema for patient registration based on field configurations

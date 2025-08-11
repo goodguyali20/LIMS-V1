@@ -29,7 +29,10 @@
     "i18n:extract": "i18next 'src/**/*.{js,jsx,ts,tsx}' -o src/locales/$LOCALE/translation.missing.json",
     "i18n:lint": "eslint --ext .json src/locales/",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "cleanup": "node scripts/cleanup.js",
+    "organize": "node scripts/utilities/organize-files.js",
+    "organize-files": "node scripts/utilities/organize-files.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

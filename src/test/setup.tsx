@@ -265,9 +265,9 @@ vi.mock('../contexts/TestContext', () => ({
   TestProvider: ({ children }: { children: React.ReactNode }) => children,
   useTestCatalog: () => {
     const tests = [
-      { id: 't1', name: 'CBC', code: 'CBC', price: 100, department: 'General' },
-      { id: 't2', name: 'Blood Sugar', code: 'BS', price: 50, department: 'General' },
-      { id: 't3', name: 'Lipid Profile', code: 'LP', price: 200, department: 'General' },
+      { id: 't1', name: 'CBC', code: 'CBC', price: 100, department: 'Parasitology' },
+      { id: 't2', name: 'Blood Sugar', code: 'BS', price: 50, department: 'Parasitology' },
+      { id: 't3', name: 'Lipid Profile', code: 'LP', price: 200, department: 'Parasitology' },
     ];
     return {
       tests,
@@ -382,7 +382,7 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 
 // Mock departmentColors for TestSelectionPanel
 Object.defineProperty(global, 'departmentColors', {
-  value: { General: '#667eea' },
+  value: { Parasitology: '#6f42c1' },
   writable: true,
 });
 

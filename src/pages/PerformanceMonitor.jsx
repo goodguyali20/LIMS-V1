@@ -14,7 +14,7 @@ import {
   Cpu,
   RefreshCw
 } from 'lucide-react';
-import { PerformanceOptimizer } from '../utils/performanceOptimizer';
+import { PerformanceOptimizer } from '../utils/performance/performanceOptimizer';
 
 const MonitorContainer = styled.div`
   padding: 2rem;

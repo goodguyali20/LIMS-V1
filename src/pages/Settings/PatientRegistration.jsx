@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import Select from 'react-select';
 import {
   Edit,
   ToggleLeft,
@@ -177,6 +178,7 @@ const SectionCard = styled(GlowCard)`
   padding: 0;
   overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
   transition: all 0.3s ease;
   
   &:hover {
@@ -292,9 +294,10 @@ const SectionContent = styled.div`
   padding: 1.5rem;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 1rem;
+  gap: 1.5rem;
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 `;
 
@@ -306,11 +309,15 @@ const FieldCard = styled(GlowCard)`
   flex-direction: column;
   gap: 1rem;
   transition: all 0.3s ease;
-  border: 2px solid transparent;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
   
   &:hover {
     transform: translateY(-2px);
     border-color: ${({ theme }) => theme.colors.primary}40;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
   }
   
   ${({ $disabled }) => $disabled && `
@@ -483,7 +490,7 @@ const Input = styled.input`
   }
 `;
 
-const Select = styled.select`
+const StyledSelect = styled.select`
   padding: 1rem;
   border-radius: 12px;
   border: 2px solid ${({ theme }) => theme.colors.border};
@@ -497,6 +504,60 @@ const Select = styled.select`
     outline: none;
     border-color: ${({ theme }) => theme.colors.primary};
     box-shadow: 0 0 0 4px ${({ theme }) => theme.colors.primary}20;
+  }
+`;
+
+const SelectContainer = styled.div`
+  position: relative;
+  
+  .react-select__control {
+    background: ${({ theme }) => theme.colors.surface};
+    border: 2px solid ${({ theme }) => theme.colors.border};
+    border-radius: 12px;
+    min-height: 48px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      border-color: ${({ theme }) => theme.colors.primary}40;
+    }
+    
+    &.react-select__control--is-focused {
+      border-color: ${({ theme }) => theme.colors.primary};
+      box-shadow: 0 0 0 4px ${({ theme }) => theme.colors.primary}20;
+    }
+  }
+  
+  .react-select__menu {
+    background: ${({ theme }) => theme.colors.surface};
+    border: 2px solid ${({ theme }) => theme.colors.border};
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  }
+  
+  .react-select__option {
+    color: ${({ theme }) => theme.colors.text};
+    padding: 0.75rem 1rem;
+    
+    &:hover {
+      background: ${({ theme }) => theme.colors.primary}20;
+    }
+    
+    &.react-select__option--is-focused {
+      background: ${({ theme }) => theme.colors.primary}30;
+    }
+    
+    &.react-select__option--is-selected {
+      background: ${({ theme }) => theme.colors.primary};
+      color: white;
+    }
+  }
+  
+  .react-select__single-value {
+    color: ${({ theme }) => theme.colors.text};
+  }
+  
+  .react-select__placeholder {
+    color: ${({ theme }) => theme.colors.textSecondary};
   }
 `;
 
@@ -552,6 +613,7 @@ const DefaultLocationSection = styled.div`
   padding: 2rem;
   border-radius: ${({ theme }) => theme.shapes.squircle};
   box-shadow: ${({ theme }) => theme.shadows.main};
+  margin-top: 3rem;
   margin-bottom: 2rem;
 `;
 
@@ -582,8 +644,46 @@ const PatientRegistrationSettings = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingField, setEditingField] = useState(null);
-  const [collapsedSections, setCollapsedSections] = useState({});
+  const [collapsedSections, setCollapsedSections] = useState({
+    personal: true,
+    address: true,
+    emergencyContact: true,
+    medicalHistory: true,
+    insurance: true
+  });
   
+  // Address data for dropdowns
+  const addressData = [
+    { name: 'بغداد', en: 'Baghdad', districts: [
+      { name: 'بغداد المركز', en: 'Baghdad Central', areas: ['بغداد المركز', 'الكرخ', 'الرصافة', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني'] },
+      { name: 'الكرخ', en: 'Karkh', areas: ['الكرخ', 'بغداد المركز', 'الرصافة', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني'] },
+      { name: 'الرصافة', en: 'Rusafa', areas: ['الرصافة', 'بغداد المركز', 'الكرخ', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني'] }
+    ] },
+    { name: 'البصرة', en: 'Basra', districts: [
+      { name: 'البصرة المركز', en: 'Basra Central', areas: ['البصرة المركز', 'شط العرب', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني'] },
+      { name: 'شط العرب', en: 'Shatt al-Arab', areas: ['شط العرب', 'البصرة المركز', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني'] }
+    ] },
+    { name: 'واسط', en: 'Wasit', districts: [
+      { name: 'الكوت', en: 'Kut', areas: ['الكوت', 'الحي', 'الصويرة', 'النعمانية', 'بدرة', 'العزيزية', 'الزبيدية', 'الشيخ سعد', 'الدبوني', 'الحفرية', 'الموفقية', 'البتار', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني'] },
+      { name: 'الصويرة', en: 'Suwaira', areas: ['الصويرة', 'الحي', 'النعمانية', 'بدرة', 'العزيزية', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني'] },
+      { name: 'الحي', en: 'Hai', areas: ['الحي', 'الصويرة', 'النعمانية', 'بدرة', 'العزيزية', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني'] },
+      { name: 'النعمانية', en: 'Numaniyah', areas: ['النعمانية', 'الصويرة', 'الحي', 'بدرة', 'العزيزية', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني'] },
+      { name: 'بدرة', en: 'Badra', areas: ['بدرة', 'الصويرة', 'الحي', 'النعمانية', 'العزيزية', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني'] },
+      { name: 'العزيزية', en: 'Aziziyah', areas: ['العزيزية', 'الصويرة', 'الحي', 'النعمانية', 'بدرة', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي التجاري', 'الحي السكني'] }
+    ] },
+    { name: 'النجف', en: 'Najaf', districts: [
+      { name: 'النجف', en: 'Najaf', areas: ['النجف', 'الكوفة', 'المناذرة', 'المشخاب', 'العباسية', 'الحيدرية', 'الحرية', 'الحي العسكري', 'الحي الصناعي'] },
+      { name: 'الكوفة', en: 'Kufa', areas: ['الكوفة', 'النجف', 'المناذرة', 'المشخاب'] },
+      { name: 'المناذرة', en: 'Manathera', areas: ['المناذرة', 'النجف', 'الكوفة', 'المشخاب'] },
+      { name: 'المشخاب', en: 'Meshkhab', areas: ['المشخاب', 'النجف', 'الكوفة', 'المناذرة'] }
+    ] },
+    { name: 'كربلاء', en: 'Karbala', districts: [
+      { name: 'كربلاء', en: 'Karbala', areas: ['كربلاء', 'الحر', 'الحسينية', 'الحي العسكري', 'الحي الصناعي', 'الحي الجامعي', 'الحي الزراعي', 'الحي العسكري الجديد'] },
+      { name: 'الهندية', en: 'Hindiya', areas: ['الهندية', 'الجدول الغربي', 'الجدول الشرقي', 'العطيشي', 'الحي العسكري'] },
+      { name: 'عين التمر', en: 'Ayn al-Tamr', areas: ['عين التمر', 'الحي العسكري', 'الحي الصناعي'] }
+    ] }
+  ];
+
   // Default location form state
   const [formState, setFormState] = useState({
     defaultLocation: {
@@ -592,6 +692,11 @@ const PatientRegistrationSettings = () => {
       area: settings?.patientRegistrationFields?.defaultLocation?.area?.value || ''
     }
   });
+
+  // Selected governorate and district for cascading dropdowns
+  const [selectedGovernorate, setSelectedGovernorate] = useState(null);
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
+  const [selectedArea, setSelectedArea] = useState(null);
   
   const [fieldFormState, setFieldFormState] = useState({
     section: 'personal',
@@ -614,6 +719,45 @@ const PatientRegistrationSettings = () => {
     });
   }, [settings.patientRegistrationFields]);
 
+  // Governorate options
+  const governorateOptions = useMemo(() => 
+    addressData.map(g => ({ value: g.name, label: g.name })), 
+    []
+  );
+
+  // Initialize selected values based on current settings
+  useEffect(() => {
+    const currentGovernorate = settings?.patientRegistrationFields?.defaultLocation?.governorate?.value;
+    const currentDistrict = settings?.patientRegistrationFields?.defaultLocation?.district?.value;
+    const currentArea = settings?.patientRegistrationFields?.defaultLocation?.area?.value;
+
+    if (currentGovernorate) {
+      const governorateOption = governorateOptions.find(opt => opt.value === currentGovernorate);
+      setSelectedGovernorate(governorateOption || null);
+    } else {
+      setSelectedGovernorate(null);
+    }
+
+    if (currentDistrict && currentGovernorate) {
+      const governorate = addressData.find(g => g.name === currentGovernorate);
+      const districtOptions = governorate ? governorate.districts.map(d => ({ value: d.name, label: d.name })) : [];
+      const districtOption = districtOptions.find(opt => opt.value === currentDistrict);
+      setSelectedDistrict(districtOption || null);
+    } else {
+      setSelectedDistrict(null);
+    }
+
+    if (currentArea && currentDistrict && currentGovernorate) {
+      const governorate = addressData.find(g => g.name === currentGovernorate);
+      const district = governorate?.districts.find(d => d.name === currentDistrict);
+      const areaOptions = district ? district.areas.map(a => ({ value: a, label: a })) : [];
+      const areaOption = areaOptions.find(opt => opt.value === currentArea);
+      setSelectedArea(areaOption || null);
+    } else {
+      setSelectedArea(null);
+    }
+  }, [settings.patientRegistrationFields, governorateOptions]);
+
   // Handle input change for default location form
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -628,6 +772,64 @@ const PatientRegistrationSettings = () => {
       }));
     }
   };
+
+  // Handle governorate selection
+  const handleGovernorateChange = (selectedOption) => {
+    setSelectedGovernorate(selectedOption);
+    setSelectedDistrict(null);
+    setSelectedArea(null);
+    setFormState(prev => ({
+      ...prev,
+      defaultLocation: {
+        ...prev.defaultLocation,
+        governorate: selectedOption ? selectedOption.value : '',
+        district: '',
+        area: ''
+      }
+    }));
+  };
+
+  // Handle district selection
+  const handleDistrictChange = (selectedOption) => {
+    setSelectedDistrict(selectedOption);
+    setSelectedArea(null);
+    setFormState(prev => ({
+      ...prev,
+      defaultLocation: {
+        ...prev.defaultLocation,
+        district: selectedOption ? selectedOption.value : '',
+        area: ''
+      }
+    }));
+  };
+
+  // Handle area selection
+  const handleAreaChange = (selectedOption) => {
+    setSelectedArea(selectedOption);
+    setFormState(prev => ({
+      ...prev,
+      defaultLocation: {
+        ...prev.defaultLocation,
+        area: selectedOption ? selectedOption.value : ''
+      }
+    }));
+  };
+
+  // Get available districts based on selected governorate
+  const getAvailableDistricts = useMemo(() => {
+    if (!selectedGovernorate) return [];
+    const governorate = addressData.find(g => g.name === selectedGovernorate.value);
+    return governorate ? governorate.districts.map(d => ({ value: d.name, label: d.name })) : [];
+  }, [selectedGovernorate]);
+
+  // Get available areas based on selected district
+  const getAvailableAreas = useMemo(() => {
+    if (!selectedDistrict) return [];
+    const governorate = addressData.find(g => g.name === selectedGovernorate?.value);
+    if (!governorate) return [];
+    const district = governorate.districts.find(d => d.name === selectedDistrict.value);
+    return district ? district.areas.map(a => ({ value: a, label: a })) : [];
+  }, [selectedDistrict, selectedGovernorate]);
 
   // Handle save for default location settings
   const handleSaveDefaultLocation = async () => {
@@ -645,7 +847,7 @@ const PatientRegistrationSettings = () => {
         }
       };
       await updateSettings(updatedSettings);
-      showFlashMessage({ type: 'success', title: 'Success', message: t('defaultLocationUpdated') });
+      showFlashMessage({ type: 'success', title: 'Success', message: t('settings.defaultLocationUpdated') });
     } catch (error) {
       console.error('Error updating default location:', error);
       showFlashMessage({ type: 'error', title: 'Error', message: t('failedToUpdateDefaultLocation') });
@@ -1234,7 +1436,6 @@ const PatientRegistrationSettings = () => {
                                     {t(field.label)}
                                     {!field.enabled && <EyeOff size={16} color="#6b7280" />}
                                   </FieldName>
-                                  <FieldKey>{field.key}</FieldKey>
                                 </FieldInfo>
                                 <FieldControls>
                                   <ActionButton
@@ -1289,9 +1490,6 @@ const PatientRegistrationSettings = () => {
                                 <StatusBadge $type={field.enabled ? 'enabled' : 'disabled'}>
                                   {field.enabled ? 'Enabled' : 'Disabled'}
                                 </StatusBadge>
-                                <small style={{ color: '#6b7280', fontSize: '0.75rem' }}>
-                                  Debug: {field.section}.{field.key} = {field.enabled ? 'true' : 'false'}
-                                </small>
                               </FieldStatus>
                             </FieldCard>
                           ))}
@@ -1314,7 +1512,6 @@ const PatientRegistrationSettings = () => {
                                     {t(field.label)}
                                     {!field.enabled && <EyeOff size={16} color="#6b7280" />}
                                   </FieldName>
-                                  <FieldKey>{field.key}</FieldKey>
                                 </FieldInfo>
                                 <FieldControls>
                                   <ActionButton
@@ -1369,9 +1566,6 @@ const PatientRegistrationSettings = () => {
                                 <StatusBadge $type={field.enabled ? 'enabled' : 'disabled'}>
                                   {field.enabled ? 'Enabled' : 'Disabled'}
                                 </StatusBadge>
-                                <small style={{ color: '#6b7280', fontSize: '0.75rem' }}>
-                                  Debug: {field.section}.{field.key} = {field.enabled ? 'true' : 'false'}
-                                </small>
                               </FieldStatus>
                             </FieldCard>
                           ))}
@@ -1407,7 +1601,7 @@ const PatientRegistrationSettings = () => {
         <ModalForm onSubmit={handleSaveField}>
           <InputGroup>
             <Label>Section</Label>
-            <Select 
+            <StyledSelect 
               name="section" 
               value={fieldFormState.section} 
               onChange={handleFieldFormChange}
@@ -1418,7 +1612,7 @@ const PatientRegistrationSettings = () => {
                   {section.label}
                 </option>
               ))}
-            </Select>
+            </StyledSelect>
           </InputGroup>
 
           <InputGroup>
@@ -1497,11 +1691,11 @@ const PatientRegistrationSettings = () => {
         <DefaultLocationHeader>
           <h2>
             <FaMapMarkerAlt />
-            {t('defaultLocationSettings')}
+            {t('settings.defaultLocationSettings')}
           </h2>
           <GlowButton onClick={handleSaveDefaultLocation} disabled={isSaving} variant="secondary">
             <FaSave />
-            {isSaving ? t('saving') : t('saveChanges')}
+            {isSaving ? t('settings.saving') : t('saveChanges')}
           </GlowButton>
         </DefaultLocationHeader>
 
@@ -1519,46 +1713,60 @@ const PatientRegistrationSettings = () => {
             }
           };
           updateSettings(updatedSettings);
-          showFlashMessage({ type: 'success', title: 'Success', message: t('defaultLocationUpdated') });
+          showFlashMessage({ type: 'success', title: 'Success', message: t('settings.defaultLocationUpdated') });
         }}>
           <DefaultLocationForm>
             <InputGroup>
               <Label>
                 <FaMapMarkerAlt />
-                {t('defaultGovernorate')}
+                {t('settings.defaultGovernorate')}
               </Label>
-              <Input
-                name="defaultLocation.governorate"
-                value={formState.defaultLocation.governorate}
-                onChange={handleInputChange}
-                placeholder="واسط"
-              />
+              <SelectContainer>
+                <Select
+                  options={governorateOptions}
+                  placeholder="اختر المحافظة"
+                  value={selectedGovernorate}
+                  onChange={handleGovernorateChange}
+                  isClearable
+                  classNamePrefix="react-select"
+                />
+              </SelectContainer>
             </InputGroup>
 
             <InputGroup>
               <Label>
                 <FaMapMarkerAlt />
-                {t('defaultDistrict')}
+                {t('settings.defaultDistrict')}
               </Label>
-              <Input
-                name="defaultLocation.district"
-                value={formState.defaultLocation.district}
-                onChange={handleInputChange}
-                placeholder="الكوت"
-              />
+              <SelectContainer>
+                <Select
+                  options={getAvailableDistricts}
+                  placeholder="اختر القضاء"
+                  value={selectedDistrict}
+                  onChange={handleDistrictChange}
+                  isClearable
+                  isDisabled={!selectedGovernorate}
+                  classNamePrefix="react-select"
+                />
+              </SelectContainer>
             </InputGroup>
 
             <InputGroup>
               <Label>
                 <FaMapMarkerAlt />
-                {t('defaultArea')}
+                {t('settings.defaultArea')}
               </Label>
-              <Input
-                name="defaultLocation.area"
-                value={formState.defaultLocation.area}
-                onChange={handleInputChange}
-                placeholder="الكوت"
-              />
+              <SelectContainer>
+                <Select
+                  options={getAvailableAreas}
+                  placeholder="اختر المنطقة"
+                  value={selectedArea}
+                  onChange={handleAreaChange}
+                  isClearable
+                  isDisabled={!selectedDistrict}
+                  classNamePrefix="react-select"
+                />
+              </SelectContainer>
             </InputGroup>
           </DefaultLocationForm>
         </form>

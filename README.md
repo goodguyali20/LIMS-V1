@@ -57,6 +57,17 @@ A modern, feature-rich Laboratory Information Management System built with React
 - **Prettier**: Code formatting
 - **Husky**: Git hooks
 
+## 📚 Documentation
+
+All project documentation is organized in the `docs/` directory:
+
+- **📋 Development Phases**: `docs/phases/` - Complete development progress and milestones
+- **📚 Implementation Guides**: `docs/guides/` - Detailed guides for features and systems
+- **📊 Performance Summaries**: `docs/summaries/` - Optimization and performance reports
+- **🚀 Release Notes**: `docs/releases/` - Version history and release information
+
+For a complete overview, see [docs/README.md](docs/README.md).
+
 ## 📦 Installation
 
 ### Prerequisites

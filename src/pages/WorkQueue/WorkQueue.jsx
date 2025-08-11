@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, limit, startAfter, getDocs, addDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, limit, startAfter, getDocs, addDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -10,7 +10,7 @@ import {
   FaClock, FaPlay, FaCheckCircle, FaTimes, FaSearch, FaFilter, FaPrint, FaDownload, FaEye, 
   FaEdit, FaTrash, FaPlus, FaColumns, FaList, FaSync, FaSpinner, FaChartLine, FaCalendar, 
   FaUser, FaVial, FaThermometer, FaInfoCircle, FaSortUp, FaSortDown, FaRedo, 
-  FaPause, FaTicketAlt, FaIdCard, FaFlask, FaBarcode, FaClipboardList, FaBan, FaSave, FaCog, FaBug
+  FaPause, FaTicketAlt, FaIdCard, FaFlask, FaBarcode, FaClipboardList, FaBan, FaSave, FaCog, FaBug, FaExclamationTriangle
 } from 'react-icons/fa';
 import OrderCard from '../../components/WorkQueue/OrderCard';
 import GlowCard from '../../components/common/GlowCard';
@@ -21,12 +21,14 @@ import RequisitionForm from '../../components/Print/RequisitionForm';
 import MasterSlip from '../../components/Print/MasterSlip';
 import DepartmentSlip from '../../components/Print/DepartmentSlip';
 import TubeIdSlip from '../../components/Print/TubeIdSlip';
-import { usePerformanceMonitor, useMemoWithPerformance, useCallbackWithPerformance } from '../../utils/performanceOptimizer';
+import DetailedResultsReport from '../../components/Print/DetailedResultsReport';
+import { usePerformanceMonitor, useMemoWithPerformance, useCallbackWithPerformance } from '../../utils/performance/performanceOptimizer';
 import { FixedSizeList as List } from 'react-window';
 import usePdfDownload from '../../components/Print/usePdfDownload';
 import { showFlashMessage } from '../../contexts/NotificationContext';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import AnimatedModal from '../../components/common/AnimatedModal';
+import { logAuditEvent } from '../../utils/monitoring/auditLogger';
 
 
 
@@ -49,7 +51,7 @@ const departmentThemes = {
     icon: 'FaClipboardList'
   },
   Hematology: {
-    primary: '#ef4444',
+    primary: '#dc3545',      // Red
     accent: '#f87171',
     background: '#0f172a',
     surface: '#1e293b',
@@ -60,12 +62,12 @@ const departmentThemes = {
     borderHover: '#475569',
     shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
     shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    gradient: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+    gradient: 'linear-gradient(135deg, #dc3545 0%, #dc2626 100%)',
     name: 'Hematology Lab',
     icon: 'FaVial'
   },
   Chemistry: {
-    primary: '#fbbf24',
+    primary: '#ffc107',      // Yellow
     accent: '#fde68a',
     background: '#0f172a',
     surface: '#1e293b',
@@ -73,15 +75,15 @@ const departmentThemes = {
     text: '#f8fafc',
     textSecondary: '#cbd5e1',
     border: '#334155',
-    borderHover: '#fbbf24',
+    borderHover: '#ffc107',
     shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
     shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    gradient: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+    gradient: 'linear-gradient(135deg, #ffc107 0%, #f59e0b 100%)',
     name: 'Chemistry Lab',
     icon: 'FaFlask'
   },
   Serology: {
-    primary: '#22c55e',
+    primary: '#28a745',      // Green
     accent: '#4ade80',
     background: '#0f172a',
     surface: '#1e293b',
@@ -89,15 +91,15 @@ const departmentThemes = {
     text: '#f8fafc',
     textSecondary: '#cbd5e1',
     border: '#334155',
-    borderHover: '#22c55e',
+    borderHover: '#28a745',
     shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
     shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    gradient: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+    gradient: 'linear-gradient(135deg, #28a745 0%, #16a34a 100%)',
     name: 'Serology Lab',
     icon: 'FaThermometer'
   },
   Virology: {
-    primary: '#2563eb',
+    primary: '#007bff',      // Blue
     accent: '#60a5fa',
     background: '#0f172a',
     surface: '#1e293b',
@@ -105,15 +107,15 @@ const departmentThemes = {
     text: '#f8fafc',
     textSecondary: '#cbd5e1',
     border: '#334155',
-    borderHover: '#2563eb',
+    borderHover: '#007bff',
     shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
     shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    gradient: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
+    gradient: 'linear-gradient(135deg, #007bff 0%, #1e40af 100%)',
     name: 'Virology Lab',
     icon: 'FaIdCard'
   },
   Microbiology: {
-    primary: '#a21caf',
+    primary: '#6f42c1',      // Purple
     accent: '#e879f9',
     background: '#0f172a',
     surface: '#1e293b',
@@ -121,15 +123,15 @@ const departmentThemes = {
     text: '#f8fafc',
     textSecondary: '#cbd5e1',
     border: '#334155',
-    borderHover: '#a21caf',
+    borderHover: '#6f42c1',
     shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
     shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    gradient: 'linear-gradient(135deg, #a21caf 0%, #6d28d9 100%)',
+    gradient: 'linear-gradient(135deg, #6f42c1 0%, #6d28d9 100%)',
     name: 'Microbiology Lab',
     icon: 'FaBacteria'
   },
   Parasitology: {
-    primary: '#f97316',
+    primary: '#6f42c1',      // Purple
     accent: '#fdba74',
     background: '#0f172a',
     surface: '#1e293b',
@@ -137,10 +139,10 @@ const departmentThemes = {
     text: '#f8fafc',
     textSecondary: '#cbd5e1',
     border: '#334155',
-    borderHover: '#f97316',
+    borderHover: '#6f42c1',
     shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
     shadowHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    gradient: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+    gradient: 'linear-gradient(135deg, #6f42c1 0%, #6d28d9 100%)',
     name: 'Parasitology Lab',
     icon: 'FaBug'
   }
@@ -724,7 +726,7 @@ const EmptyState = memo(styled(GlowCard)`
 EmptyState.displayName = 'EmptyState';
 
 // Memoized order card wrapper
-const MemoizedOrderCard = memo(({ order, onStatusChange, onViewDetails, onPrint, onDownload }) => (
+const MemoizedOrderCard = memo(({ order, onStatusChange, onViewDetails, onPrint, onDownload, onReadyForCompletion }) => (
   <OrderCard
     key={order.id}
     order={order}
@@ -732,6 +734,7 @@ const MemoizedOrderCard = memo(({ order, onStatusChange, onViewDetails, onPrint,
     onViewDetails={onViewDetails}
     onPrint={onPrint}
     onDownload={onDownload}
+    onReadyForCompletion={onReadyForCompletion}
   />
 ));
 
@@ -858,7 +861,8 @@ const kanbanColumns = [
   { id: 'Sample Collected', title: 'Pending Collection', color: '#ef4444', icon: <FaClock /> },
   { id: 'In Progress', title: 'In Progress', color: '#f59e0b', icon: <FaPlay /> },
   { id: 'Completed', title: 'Completed', color: '#10b981', icon: <FaCheckCircle /> },
-  { id: 'Cancelled', title: 'Cancelled', color: '#6b7280', icon: <FaTimes /> }
+  { id: 'Cancelled', title: 'Cancelled', color: '#6b7280', icon: <FaTimes /> },
+  { id: 'Rejected', title: 'Rejected - Recollection Required', color: '#f59e0b', icon: <FaExclamationTriangle /> }
 ];
 
 
@@ -900,8 +904,118 @@ const WorkQueue = memo(() => {
   const [focusedElement, setFocusedElement] = useState(null);
   const [showCancelledColumn, setShowCancelledColumn] = useState(false);
   const [isCreatingMissingOrders, setIsCreatingMissingOrders] = useState(false);
+  const [isGlobalPrintModeActive, setIsGlobalPrintModeActive] = useState(false);
 
-
+  // Custom print function for all completed orders
+  const printAllCompletedOrders = () => {
+    const completedOrders = processedOrders.filter(order => order.status === 'Completed');
+    
+    if (completedOrders.length === 0) {
+      return;
+    }
+    
+    // Create a new window with the printable content
+    const printWindow = window.open('', '_blank');
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>All Completed Orders - SmartLab LIMS</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+            .section { margin-bottom: 25px; }
+            .section-title { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 15px; }
+            .order-card { border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px; background: #f9f9f9; }
+            .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+            .order-id { font-size: 16px; font-weight: bold; color: #333; }
+            .patient-name { font-size: 14px; color: #666; }
+            .tests-summary { font-size: 14px; color: #666; }
+            .tests-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            .tests-table th, .tests-table td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+            .tests-table th { background: #f8f9fa; font-weight: bold; }
+            .status-completed { color: #28a745; font-weight: bold; }
+            .footer { margin-top: 40px; text-align: center; color: #666; font-size: 14px; }
+            .page-break { page-break-before: always; }
+            @media print { 
+              body { margin: 0; } 
+              .order-card { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>SmartLab LIMS - All Completed Orders</h1>
+            <h2>Total Orders: ${completedOrders.length}</h2>
+            <p>Generated on ${new Date().toLocaleString()}</p>
+          </div>
+          
+          ${completedOrders.map((order, index) => `
+            <div class="order-card ${index > 0 ? 'page-break' : ''}">
+              <div class="order-header">
+                <div>
+                  <div class="order-id">Order ID: ${order.orderId || order.id}</div>
+                  <div class="patient-name">Patient: ${order.patientName || 'N/A'}</div>
+                  <div class="tests-summary">Tests: ${(order.tests || []).length} test(s)</div>
+                </div>
+              </div>
+              
+              <div class="section">
+                <div class="section-title">Test Results</div>
+                <table class="tests-table">
+                  <thead>
+                    <tr>
+                      <th>Test Name</th>
+                      <th>Status</th>
+                      <th>Result</th>
+                      <th>Unit</th>
+                      <th>Reference Range</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${(order.tests || []).map(test => `
+                      <tr>
+                        <td>${test.name || test.testName || 'N/A'}</td>
+                        <td class="status-${test.status === 'Completed' ? 'completed' : 'pending'}">${test.status || 'Pending'}</td>
+                        <td>${test.result || 'N/A'}</td>
+                        <td>${test.unit || 'N/A'}</td>
+                        <td>${test.referenceRange || 'N/A'}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `).join('')}
+          
+          <div class="footer">
+            <p>SmartLab LIMS - Laboratory Information Management System</p>
+            <p>Total Orders Printed: ${completedOrders.length}</p>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Wait for content to load then print with a delay to ensure content is ready
+    setTimeout(() => {
+      try {
+        printWindow.focus();
+        printWindow.print();
+        // Keep the window open for a bit longer to ensure print dialog completes
+        setTimeout(() => {
+          printWindow.close();
+        }, 1000);
+      } catch (error) {
+        console.error('Print error:', error);
+        // If print fails, keep window open for manual printing
+        printWindow.focus();
+      }
+    }, 500);
+  };
 
   // Remove all custom CSS and handlers - let react-beautiful-dnd handle everything
 
@@ -1369,21 +1483,101 @@ const WorkQueue = memo(() => {
     return () => unsubscribe();
   }, [ordersQuery]);
 
-  // Optimistic status update
-  const handleOptimisticStatusChange = async (orderId, newStatus) => {
+  // Check for orders that should be auto-completed
+  useEffect(() => {
+    if (orders && orders.length > 0) {
+      orders.forEach(order => {
+        if (order.status === 'In Progress' && checkAllTestsCompleted(order)) {
+          // Auto-complete orders that have all test results
+          autoCompleteOrder(order.id);
+        }
+      });
+    }
+  }, [orders]);
+
+  // Check if all tests in an order have results
+  const checkAllTestsCompleted = (order) => {
+    if (!order.tests || !order.results) return false;
+    
+    const testCount = order.tests.length;
+    const completedTestCount = Object.keys(order.results).length;
+    
+    // All tests must have results
+    return testCount > 0 && completedTestCount === testCount;
+  };
+
+  // Automatically complete order when all tests have results
+  const autoCompleteOrder = async (orderId) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order || order.status === 'Completed') return;
+    
+    if (checkAllTestsCompleted(order)) {
+      console.log(`Auto-completing order ${orderId} - all tests have results`);
+      await handleOptimisticStatusChange(orderId, 'Completed');
+    }
+  };
+
+  // Optimistic status update with completion validation
+  const handleOptimisticStatusChange = async (orderId, newStatus, additionalData = {}) => {
+    // Handle refresh requests
+    if (additionalData.refresh) {
+      // This is a refresh request, not a status change
+      // We can trigger a data refresh here if needed
+      return;
+    }
+
     // Store original state for potential rollback
     const originalOrder = orders.find(o => o.id === orderId);
     if (!originalOrder) return;
+
+    // Prevent manual completion if not all tests have results
+    if (newStatus === 'Completed' && !checkAllTestsCompleted(originalOrder)) {
+      showFlashMessage({ 
+        type: 'error', 
+        title: 'Cannot Complete Order', 
+        message: 'All test results must be entered before marking as completed' 
+      });
+      return;
+    }
 
     // Immediately update UI optimistically
     setOptimisticUpdates(prev => new Map(prev.set(orderId, { status: newStatus, timestamp: Date.now() })));
     
     try {
-      // Update backend
-      await updateDoc(doc(db, 'testOrders', orderId), {
+      // Prepare update data
+      const updateData = {
         status: newStatus,
         updatedAt: new Date()
-      });
+      };
+
+      // Handle cancellation with reason
+      if (newStatus === 'Cancelled' && additionalData.reason) {
+        updateData.cancellationReason = additionalData.reason;
+        updateData.cancelledAt = new Date();
+        updateData.cancelledBy = additionalData.cancelledBy || 'unknown_user';
+        
+        // Add to history
+        updateData.history = arrayUnion({
+          event: 'Order Cancelled',
+          timestamp: new Date(),
+          reason: additionalData.reason,
+          cancelledBy: additionalData.cancelledBy || 'unknown_user'
+        });
+
+        // Log audit event
+        try {
+          await logAuditEvent('Order Cancelled', {
+            orderId: originalOrder.orderId || originalOrder.id,
+            reason: additionalData.reason,
+            cancelledBy: additionalData.cancelledBy || 'unknown_user'
+          });
+        } catch (auditError) {
+          console.error('Error logging audit event:', auditError);
+        }
+      }
+
+      // Update backend
+      await updateDoc(doc(db, 'testOrders', orderId), updateData);
       
       // Remove optimistic update on success
       setOptimisticUpdates(prev => {
@@ -1392,7 +1586,10 @@ const WorkQueue = memo(() => {
         return newMap;
       });
       
-      showFlashMessage({ type: 'success', title: 'Success', message: 'Order status updated successfully' });
+      const successMessage = newStatus === 'Cancelled' 
+        ? 'Order cancelled successfully' 
+        : 'Order status updated successfully';
+      showFlashMessage({ type: 'success', title: 'Success', message: successMessage });
     } catch (error) {
       console.error('Error updating order status:', error);
       
@@ -1407,10 +1604,28 @@ const WorkQueue = memo(() => {
     }
   };
 
+  // Function to refresh order data
+  const refreshOrderData = useCallbackWithPerformance(async (orderId) => {
+    try {
+      // Force a refresh of the orders data
+      // This will trigger the useEffect that fetches orders
+      setOrders(prevOrders => [...prevOrders]); // Trigger re-render
+    } catch (error) {
+      console.error('Error refreshing order data:', error);
+    }
+  }, [], 'refresh_order_data');
+
   // Update the existing handleStatusChange to use optimistic updates
-  const handleStatusChange = useCallbackWithPerformance(async (orderId, newStatus) => {
-    await handleOptimisticStatusChange(orderId, newStatus);
-  }, [], 'status_change');
+  const handleStatusChange = useCallbackWithPerformance(async (orderId, newStatus, additionalData = {}) => {
+    // Handle refresh requests
+    if (additionalData.refresh) {
+      // This is a refresh request, not a status change
+      await refreshOrderData(orderId);
+      return;
+    }
+
+    await handleOptimisticStatusChange(orderId, newStatus, additionalData);
+  }, [refreshOrderData], 'status_change');
 
   // Optimized event handlers
   const handleSearchChange = useCallbackWithPerformance((e) => {
@@ -1492,7 +1707,8 @@ const WorkQueue = memo(() => {
       { value: 'Sample Collected', label: t('workQueue.pending') },
       { value: 'In Progress', label: t('workQueue.inProgress') },
       { value: 'Completed', label: t('workQueue.completed') },
-      { value: 'Cancelled', label: t('workQueue.cancelled') }
+      { value: 'Cancelled', label: t('workQueue.cancelled') },
+      { value: 'Rejected', label: t('workQueue.rejected') }
     ],
     priority: [
       { value: 'all', label: t('workQueue.allPriorities') },
@@ -1513,6 +1729,23 @@ const WorkQueue = memo(() => {
 
   // Batch status update
   const handleBatchStatusChange = async (newStatus) => {
+    // Prevent batch completion if any selected orders don't have all test results
+    if (newStatus === 'Completed') {
+      const incompleteOrders = selectedOrderIds.filter(id => {
+        const order = orders.find(o => o.id === id);
+        return !checkAllTestsCompleted(order);
+      });
+      
+      if (incompleteOrders.length > 0) {
+        showFlashMessage({ 
+          type: 'error', 
+          title: 'Cannot Complete Orders', 
+          message: `${incompleteOrders.length} selected order(s) don't have all test results. Complete all tests first.` 
+        });
+        return;
+      }
+    }
+    
     for (const id of selectedOrderIds) {
       await handleStatusChange(id, newStatus);
     }
@@ -1549,6 +1782,19 @@ const WorkQueue = memo(() => {
     if (source.droppableId === destination.droppableId) {
       // Reorder within same column
       return;
+    }
+    
+    // Prevent dragging to Completed if not all tests have results
+    if (destination.droppableId === 'Completed') {
+      const order = orders.find(o => o.id === draggableId);
+      if (!checkAllTestsCompleted(order)) {
+        showFlashMessage({ 
+          type: 'error', 
+          title: 'Cannot Complete Order', 
+          message: 'All test results must be entered before moving to Completed column' 
+        });
+        return;
+      }
     }
     
     // Update order status
@@ -1611,7 +1857,38 @@ const WorkQueue = memo(() => {
                       </div>
                       <ColumnTitle color={column.color}>{column.title}</ColumnTitle>
                     </div>
-                    <ColumnCount color={column.color}>{orders.length}</ColumnCount>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <ColumnCount color={column.color}>{orders.length}</ColumnCount>
+                      {column.id === 'Completed' && orders.length > 0 && (
+                        <button
+                          onClick={() => {
+                            // Toggle global print mode for all completed orders
+                            setIsGlobalPrintModeActive(!isGlobalPrintModeActive);
+                            // Print all completed orders
+                            printAllCompletedOrders();
+                          }}
+                          style={{
+                            background: isGlobalPrintModeActive ? '#059669' : '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '0.5rem 0.75rem',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                          }}
+                          title="Print all completed orders"
+                          aria-label="Print all completed orders"
+                        >
+                          <FaPrint /> {isGlobalPrintModeActive ? 'Print Mode Active' : 'Print All'}
+                        </button>
+                      )}
+                    </div>
                   </ColumnHeader>
                   
                   <Droppable droppableId={column.id}>
@@ -1638,6 +1915,8 @@ const WorkQueue = memo(() => {
                                   onPrint={handlePrint}
                                   onViewTimeline={handleViewTimeline}
                                   onDownload={handleDownloadPDF}
+                                  onReadyForCompletion={autoCompleteOrder}
+                                  isGlobalPrintModeActive={isGlobalPrintModeActive}
                                 />
                               </div>
                             )}
@@ -1685,6 +1964,8 @@ const WorkQueue = memo(() => {
                         onPrint={handlePrint}
                         onViewTimeline={handleViewTimeline}
                         onDownload={handleDownloadPDF}
+                        onReadyForCompletion={autoCompleteOrder}
+                        isGlobalPrintModeActive={isGlobalPrintModeActive}
                       />
                     </div>
                   </div>
@@ -1935,6 +2216,7 @@ const WorkQueue = memo(() => {
               {option.value === 'In Progress' && <FaPlay style={{ color: '#f59e0b' }} />}
               {option.value === 'Completed' && <FaCheckCircle style={{ color: '#10b981' }} />}
               {option.value === 'Cancelled' && <FaTimes style={{ color: '#6b7280' }} />}
+              {option.value === 'Rejected' && <FaExclamationTriangle style={{ color: '#f59e0b' }} />}
             </FilterButton>
           ))}
         </FilterGrid>
@@ -1994,13 +2276,88 @@ const WorkQueue = memo(() => {
         <PrintCenter
           isOpen={showPrintModal}
           onClose={() => setShowPrintModal(false)}
-          title={t('workQueue.printOrder')}
+          title={selectedOrder.type === 'all-completed' ? 'Print All Completed Orders' : t('workQueue.printOrder')}
         >
-          {printType === 'report' && <PrintableReport order={selectedOrder} />}
-          {printType === 'requisition' && <RequisitionForm order={selectedOrder} />}
-          {printType === 'masterSlip' && <MasterSlip order={selectedOrder} />}
-          {printType === 'departmentSlip' && <DepartmentSlip order={selectedOrder} />}
-          {printType === 'tubeIdSlip' && <TubeIdSlip order={selectedOrder} />}
+          {printType === 'detailed-report' && selectedOrder.type === 'all-completed' ? (
+            <div>
+              <div style={{ marginBottom: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <h3 style={{ margin: '0 0 0.5rem 0', color: '#1f2937' }}>Print Options</h3>
+                <p style={{ margin: '0', color: '#6b7280' }}>
+                  You can print individual completed orders or generate a comprehensive report for all {selectedOrder.orders.length} completed orders.
+                </p>
+              </div>
+              
+              {selectedOrder.orders.map((order, index) => (
+                <div key={order.id} style={{ 
+                  marginBottom: '1rem', 
+                  padding: '1rem', 
+                  background: '#f8fafc', 
+                  borderRadius: '8px', 
+                  border: '1px solid #e5e7eb' 
+                }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#1f2937' }}>
+                    Order #{order.id?.substring(0, 8)} - {order.patientName}
+                  </h4>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => {
+                        // Print individual order
+                        setSelectedOrder(order);
+                        setPrintType('report');
+                      }}
+                      style={{
+                        background: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.9rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      <FaPrint /> Print Order
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Print detailed results report
+                        setSelectedOrder(order);
+                        setPrintType('detailed-report');
+                      }}
+                      style={{
+                        background: '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.9rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      <FaPrint /> Detailed Report
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : printType === 'detailed-report' ? (
+            <DetailedResultsReport order={selectedOrder} />
+          ) : printType === 'report' ? (
+            <PrintableReport order={selectedOrder} />
+          ) : printType === 'requisition' ? (
+            <RequisitionForm order={selectedOrder} />
+          ) : printType === 'masterSlip' ? (
+            <MasterSlip order={selectedOrder} />
+          ) : printType === 'departmentSlip' ? (
+            <DepartmentSlip order={selectedOrder} />
+          ) : printType === 'tubeIdSlip' ? (
+            <TubeIdSlip order={selectedOrder} />
+          ) : null}
         </PrintCenter>
       )}
 

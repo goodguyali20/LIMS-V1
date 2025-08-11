@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
-import { logAuditEvent } from '../../utils/auditLogger';
+import { logAuditEvent } from '../../utils/monitoring/auditLogger';
 import { useTranslation } from 'react-i18next';
 import { showFlashMessage } from '../../contexts/NotificationContext';
 

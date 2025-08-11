@@ -26,15 +26,15 @@ import EmptyState from '../../components/common/EmptyState';
 import WelcomeSection from '../../components/common/WelcomeSection';
 import AdvancedDateRangeFilter from '../../components/common/AdvancedDateRangeFilter';
 
-import { trackEvent } from '../../utils/errorMonitoring';
-import { usePerformanceMonitor } from '../../utils/performanceOptimizer';
+import { trackEvent } from '../../utils/monitoring/errorMonitoring';
+import { usePerformanceMonitor } from '../../utils/performance/performanceOptimizer';
 import { 
   getCachedData, 
   setCachedData, 
   clearCache, 
   getCacheStats,
   hasTodayData 
-} from '../../utils/dashboardCache';
+} from '../../utils/data/dashboardCache';
 import { 
   SkeletonCard, 
   SkeletonGrid, 
@@ -42,7 +42,7 @@ import {
   FixedAspectRatioContainer,
   withLayoutShiftPrevention,
   SkeletonBox
-} from '../../utils/layoutShiftPrevention';
+} from '../../utils/performance/layoutShiftPrevention';
 
 // Lazy load heavy components with proper cleanup
 const AdvancedAnalytics = lazy(() => import('../../components/Analytics/AdvancedAnalytics'));

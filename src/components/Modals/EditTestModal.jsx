@@ -82,7 +82,7 @@ const CancelButton = styled(Button)`
   color: ${({ theme }) => theme.colors.textSecondary};
 `;
 
-const DEPARTMENTS = ["General", "Chemistry", "Hematology", "Serology", "Virology", "Microbiology"];
+const DEPARTMENTS = ["Parasitology", "Chemistry", "Hematology", "Serology", "Virology", "Microbiology"];
 
 const EditTestModal = ({ test, onClose }) => {
   const [testName, setTestName] = useState('');

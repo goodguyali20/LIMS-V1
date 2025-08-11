@@ -211,7 +211,7 @@ const OrderView = () => {
     if (!order || !labTests.length) return {};
     return order.tests.reduce((acc, testName) => {
         const test = labTests.find(t => t.name === testName);
-        const dept = test?.department || 'General';
+        const dept = test?.department || 'Parasitology';
         if (!acc[dept]) acc[dept] = [];
         acc[dept].push(testName);
         return acc;

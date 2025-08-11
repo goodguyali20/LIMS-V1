@@ -15,23 +15,9 @@ import {
   FaDna, FaVirus, FaBacteria, FaAllergies, FaPills,
   FaShieldAlt, FaTint, FaStethoscope, FaHospital, FaNotesMedical
 } from 'react-icons/fa';
-import { create } from 'zustand';
 import GlowCard from '../common/GlowCard';
 import GlowButton from '../common/GlowButton';
-
-// Zustand store for test selection
-export const useTestSelectionStore = create((set) => ({
-  selectedTestIds: [],
-  toggleTestSelection: (testId) => set((state) => {
-    const exists = state.selectedTestIds.includes(testId);
-    return {
-      selectedTestIds: exists
-        ? state.selectedTestIds.filter((id) => id !== testId)
-        : [...state.selectedTestIds, testId],
-    };
-  }),
-  clearSelection: () => set({ selectedTestIds: [] }),
-}));
+import { useTestSelection } from '../../contexts/TestSelectionContext';
 
 // Department icon mapping
 const getDepartmentIcon = (department) => {
@@ -59,10 +45,13 @@ const getDepartmentIcon = (department) => {
 // Department color mapping
 const getDepartmentColor = (department) => {
   const colorMap = {
-    'Hematology': '#dc3545',
-    'Chemistry': '#ffc107',
-    'Immunology': '#007bff',
-    'Microbiology': '#6f42c1',
+    'Hematology': '#dc3545',     // Red
+    'Chemistry': '#ffc107',       // Yellow
+    'Serology': '#28a745',        // Green
+    'Virology': '#007bff',        // Blue
+    'Parasitology': '#6f42c1',    // Purple (replacing General)
+    'Microbiology': '#6f42c1',    // Purple
+    'Immunology': '#007bff',      // Blue
     'Molecular': '#20c997',
     'Endocrinology': '#fd7e14',
     'Cardiology': '#e83e8c',
@@ -74,9 +63,9 @@ const getDepartmentColor = (department) => {
     'Infectious Disease': '#dc143c',
     'Allergy': '#ff8c00',
     'Toxicology': '#9932cc',
-    'General': '#3b82f6'
+    'General': '#6f42c1'          // Fallback to Parasitology color
   };
-  return colorMap[department] || '#3b82f6';
+  return colorMap[department] || '#6f42c1';
 };
 
 // Test type indicators
@@ -636,19 +625,19 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, chi
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
-  // Zustand selection state
-  const selectedTestIds = useTestSelectionStore((s) => s.selectedTestIds);
-  const toggleTestSelection = useTestSelectionStore((s) => s.toggleTestSelection);
-  const clearSelection = useTestSelectionStore((s) => s.clearSelection);
+  // Test selection context
+  const { selectedTestIds, toggleTestSelection, clearSelection } = useTestSelection();
 
   // Get unique departments for tabs
   const departments = useMemo(() => {
+    if (!Array.isArray(labTests)) return [];
     const deptSet = new Set(labTests.map(test => test.department));
     return Array.from(deptSet).sort();
   }, [labTests]);
 
   // Filter tests based on search and category
   const filteredTests = useMemo(() => {
+    if (!Array.isArray(labTests)) return [];
     return labTests.filter(test => {
       const matchesSearch = test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            test.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -660,8 +649,9 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, chi
 
   // Group tests by department and subsection
   const groupedTests = useMemo(() => {
+    if (!Array.isArray(filteredTests)) return {};
     return filteredTests.reduce((acc, test) => {
-      const dept = test.department || 'General';
+      const dept = test.department || 'Parasitology';
       if (!acc[dept]) acc[dept] = {};
       
       const subsection = test.subsection || 'General Tests';
@@ -674,10 +664,18 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, chi
 
   // Calculate cart summary
   const cartSummary = useMemo(() => {
+    if (!Array.isArray(labTests) || !Array.isArray(selectedTestIds)) {
+      return {
+        count: 0,
+        totalPrice: 0,
+        departments: []
+      };
+    }
     const selectedTests = labTests.filter(test => selectedTestIds.includes(test.name));
+    const totalPrice = selectedTests.reduce((sum, test) => sum + (test.price || 0), 0);
     return {
       count: selectedTests.length,
-      totalPrice: selectedTests.reduce((sum, test) => sum + (test.price || 0), 0),
+      totalPrice: typeof totalPrice === 'number' ? totalPrice : 0,
       departments: [...new Set(selectedTests.map(test => test.department))]
     };
   }, [selectedTestIds, labTests]);
@@ -727,7 +725,7 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, chi
             $isActive={selectedCategory === 'all'}
             onClick={() => setSelectedCategory('all')}
           >
-            All Tests ({labTests.length})
+            All Tests ({Array.isArray(labTests) ? labTests.length : 0})
           </CategoryTab>
           {departments.map(dept => (
             <CategoryTab
@@ -735,7 +733,7 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, chi
               $isActive={selectedCategory === dept}
               onClick={() => setSelectedCategory(dept)}
             >
-              {dept} ({labTests.filter(t => t.department === dept).length})
+              {dept} ({Array.isArray(labTests) ? labTests.filter(t => t.department === dept).length : 0})
             </CategoryTab>
           ))}
         </CategoryTabs>
@@ -744,7 +742,7 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, chi
       <ContentArea>
         <TestsList>
           {Object.entries(groupedTests).map(([department, subsections]) => {
-            const DeptIcon = getDepartmentIcon(department);
+            const DeptIconComponent = getDepartmentIcon(department);
             const deptColor = getDepartmentColor(department);
             const isExpanded = expandedDepartments.has(department);
             const totalTests = Object.values(subsections).flat().length;
@@ -754,9 +752,9 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, chi
               <DepartmentSection key={department}>
                 <DepartmentHeader onClick={() => toggleDepartment(department)}>
                   <DepartmentInfo>
-                    <DepartmentIcon $color={deptColor}>
-                      {(() => { const { $color, ...iconProps } = { color: deptColor }; return <DeptIcon {...iconProps} />; })()}
-                    </DepartmentIcon>
+                                    <DepartmentIcon $color={deptColor}>
+                  <DeptIconComponent style={{ color: deptColor }} />
+                </DepartmentIcon>
                     <DepartmentDetails>
                       <DepartmentName>{department}</DepartmentName>
                       <DepartmentStats>
@@ -780,14 +778,14 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, chi
                       transition={{ duration: 0.3, ease: 'easeInOut' }}
                     >
                       {Object.entries(subsections).map(([subsection, tests]) => {
-                        const SubsectionIcon = getSubsectionIcon(subsection);
+                        const SubsectionIconComponent = getSubsectionIcon(subsection);
                         const subsectionColor = subsection === 'General Tests' ? deptColor : '#8b5cf6';
                         
                         return (
                           <SubsectionGroup key={subsection}>
                             <SubsectionHeader $color={subsectionColor}>
                               <SubsectionIcon $color={subsectionColor}>
-                                {(() => { const { $color, ...iconProps } = { color: subsectionColor }; return <SubsectionIcon {...iconProps} />; })()}
+                                <SubsectionIconComponent style={{ color: subsectionColor }} />
                               </SubsectionIcon>
                               <SubsectionInfo>
                                 <SubsectionName>
@@ -800,7 +798,7 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, chi
                             <TestsGrid>
                               {tests.map(test => {
                                 const TestTypeIcon = getTestTypeIcon(test.name);
-                                const isSelected = selectedTestIds.includes(test.name);
+                                const isSelected = (selectedTestIds || []).includes(test.name);
                                 
                                 return (
                                   <TestItem
@@ -816,19 +814,19 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, chi
                                     </TestCheckbox>
                                     
                                     <TestIcon $deptColor={deptColor}>
-                                      {(() => { const { $deptColor, ...iconProps } = { color: deptColor }; return <DeptIcon {...iconProps} />; })()}
+                                      <TestTypeIcon style={{ color: deptColor }} />
                                     </TestIcon>
                                     
                                     <TestInfo>
                                       <TestName>{test.name}</TestName>
                                       <TestDetails>
                                         <TestBadge $color={deptColor}>
-                                          {(() => { const { $color, ...iconProps } = { size: 10, color: deptColor }; return <DeptIcon {...iconProps} />; })()}
+                                          <DeptIconComponent size={10} style={{ color: deptColor }} />
                                           {test.department}
                                         </TestBadge>
                                         {test.unit && (
                                           <TestBadge $color="#06b6d4">
-                                            {test.unit}
+                                            {typeof test.unit === 'string' ? test.unit : (test.unit?.value || test.unit?.unit || 'N/A')}
                                           </TestBadge>
                                         )}
                                       </TestDetails>
@@ -877,9 +875,11 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, chi
               </button>
             )}
           </CartHeader>
+          
+
 
           <CartItems>
-            {selectedTestIds.length === 0 ? (
+            {(selectedTestIds || []).length === 0 ? (
               <div style={{ 
                 textAlign: 'center', 
                 color: 'rgba(255, 255, 255, 0.6)', 
@@ -892,7 +892,7 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, chi
                 </div>
               </div>
             ) : (
-              selectedTestIds.map(testName => {
+              (selectedTestIds || []).map(testName => {
                 const test = labTests.find(t => t.name === testName);
                 const deptColor = test ? getDepartmentColor(test.department) : '#3b82f6';
                 return (
@@ -910,7 +910,7 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, chi
           <CartFooter>
             <CartSummary>
               <span>{cartSummary.count} tests</span>
-              <span>${cartSummary.totalPrice.toFixed(2)}</span>
+              <span>${(cartSummary.totalPrice || 0).toFixed(2)}</span>
             </CartSummary>
             {/* Removed Proceed to Confirmation button */}
           </CartFooter>
@@ -938,7 +938,7 @@ const TestSelectionPanel = ({ selectedTests, onTestSelection, onTestRemoval, chi
             >
               <ModalTitle>Confirm Test Selection</ModalTitle>
               <ModalList>
-                {selectedTestIds.map(testName => {
+                {(selectedTestIds || []).map(testName => {
                   const test = labTests.find(t => t.name === testName);
                   return (
                     <ModalListItem key={testName}>

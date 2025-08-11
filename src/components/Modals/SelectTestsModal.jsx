@@ -92,7 +92,7 @@ const SelectTestsModal = ({ initialSelectedTests, onClose, onSave }) => {
   const [selectedTests, setSelectedTests] = useState(new Set(initialSelectedTests));
 
   const grouped_tests = labTests.reduce((acc, test) => {
-    const dept = test.department || 'General';
+    const dept = test.department || 'Parasitology';
     if (!acc[dept]) acc[dept] = [];
     acc[dept].push(test);
     return acc;

@@ -1,20 +1,81 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, where } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { showFlashMessage } from '../contexts/NotificationContext';
-import { FaSearch, FaFilter, FaPrint, FaEye, FaSpinner, FaPlus, FaSort, FaUser, FaIdCard, FaCalendar, FaUserCircle, FaVenusMars, FaBirthdayCake } from 'react-icons/fa';
+import { 
+  FaSearch, FaFilter, FaPrint, FaEye, FaSpinner, FaPlus, FaSort, FaUser, FaIdCard, 
+  FaCalendar, FaUserCircle, FaVenusMars, FaBirthdayCake, FaEdit, FaTrash, FaExpandAlt,
+  FaCompressAlt, FaCheckCircle, FaClock, FaExclamationTriangle, FaTimes, FaPlay, FaPause,
+  FaVial, FaFlask, FaThermometer, FaIdCard as FaIdCardIcon, FaBug, FaBacteria
+} from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
 import GlowCard from '../components/common/GlowCard';
 import GlowButton from '../components/common/GlowButton';
 import EmptyState from '../components/common/EmptyState';
-import SuccessState from '../components/common/SuccessState';
+import AnimatedModal from '../components/common/AnimatedModal';
 import { advancedVariants, pageTransitions } from '../styles/animations';
-import { FixedSizeList as List } from 'react-window';
-import PrintPreviewModal from '../components/PatientRegistration/PrintPreviewModal';
 
+// Department Theme System - Borrowed from WorkQueue
+const departmentThemes = {
+  Hematology: {
+    primary: '#dc3545',
+    accent: '#f87171',
+    name: 'Hematology Lab',
+    icon: FaVial
+  },
+  Chemistry: {
+    primary: '#ffc107',
+    accent: '#fde68a',
+    name: 'Chemistry Lab',
+    icon: FaFlask
+  },
+  Serology: {
+    primary: '#28a745',
+    accent: '#4ade80',
+    name: 'Serology Lab',
+    icon: FaThermometer
+  },
+  Virology: {
+    primary: '#007bff',
+    accent: '#60a5fa',
+    name: 'Virology Lab',
+    icon: FaIdCardIcon
+  },
+  Microbiology: {
+    primary: '#6f42c1',
+    accent: '#e879f9',
+    name: 'Microbiology Lab',
+    icon: FaBacteria
+  },
+  Parasitology: {
+    primary: '#6f42c1',
+    accent: '#fdba74',
+    name: 'Parasitology Lab',
+    icon: FaBug
+  }
+};
+
+// Test Status Types
+const testStatuses = {
+  'Not Started': { color: '#6c757d', icon: FaClock, label: 'Not Started' },
+  'In Progress': { color: '#ffc107', icon: FaPlay, label: 'In Progress' },
+  'Completed': { color: '#28a745', icon: FaCheckCircle, label: 'Completed' },
+  'Failed': { color: '#dc3545', icon: FaTimes, label: 'Failed' },
+  'Cancelled': { color: '#6c757d', icon: FaTimes, label: 'Cancelled' }
+};
+
+// Priority Levels
+const priorityLevels = {
+  'High': { color: '#dc3545', label: 'High Priority' },
+  'Medium': { color: '#ffc107', label: 'Medium Priority' },
+  'Low': { color: '#28a745', label: 'Low Priority' },
+  'Normal': { color: '#6c757d', label: 'Normal Priority' }
+};
+
+// Styled Components
 const OrdersContainer = styled(motion.div)`
   padding: 2rem;
   max-width: 1400px;
@@ -60,6 +121,65 @@ const HeaderActions = styled.div`
   display: flex;
   gap: 1rem;
   align-items: center;
+`;
+
+const StatsContainer = styled(motion.div)`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+`;
+
+const StatCard = styled(motion.div)`
+  background: linear-gradient(145deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      #667eea 0%, 
+      #764ba2 25%, 
+      #f093fb 50%, 
+      #f5576c 75%, 
+      #4facfe 100%);
+    border-radius: 20px 20px 0 0;
+  }
+  
+  h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #667eea;
+    position: relative;
+    z-index: 1;
+  }
+  
+  p {
+    margin: 0;
+    color: ${({ theme }) => theme.colors.textSecondary};
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 1;
+  }
 `;
 
 const SearchAndFilterContainer = styled(motion.div)`
@@ -135,30 +255,21 @@ const FilterSelect = styled(motion.select)`
   }
 `;
 
-const SortButton = styled(motion.button)`
+const BulkActionsContainer = styled(motion.div)`
   display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 1.5rem;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  padding: 1rem;
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  color: ${({ theme }) => theme.colors.text};
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.3s ease;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
-  
-  &:hover {
-    border-color: #667eea;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-  }
 `;
 
 const OrdersGrid = styled(motion.div)`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
   gap: 2rem;
   margin-top: 2rem;
 `;
@@ -177,6 +288,8 @@ const OrderCard = styled(motion.div)`
   backdrop-filter: blur(20px);
   position: relative;
   overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
   
   &::before {
     content: '';
@@ -192,18 +305,6 @@ const OrderCard = styled(motion.div)`
       #f5576c 75%, 
       #4facfe 100%);
     border-radius: 20px 20px 0 0;
-  }
-  
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
-    pointer-events: none;
   }
   
   &:hover {
@@ -222,6 +323,31 @@ const OrderHeader = styled.div`
   margin-bottom: 1.5rem;
   position: relative;
   z-index: 1;
+`;
+
+const OrderNumbers = styled.div`
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+`;
+
+const QueueNumber = styled.span`
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+`;
+
+const DepartmentNumber = styled.span`
+  background: ${({ departmentColor }) => departmentColor};
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
 `;
 
 const OrderId = styled.h3`
@@ -280,6 +406,22 @@ const PatientInfo = styled.div`
   }
 `;
 
+const PatientAvatar = styled.div`
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-right: 1.2rem;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+  flex-shrink: 0;
+`;
+
 const TestList = styled.div`
   margin-bottom: 1.5rem;
   position: relative;
@@ -291,15 +433,52 @@ const TestList = styled.div`
     color: ${({ theme }) => theme.colors.textSecondary};
     font-weight: 600;
   }
+`;
+
+const TestItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem;
+  margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border-left: 4px solid ${({ departmentColor }) => departmentColor};
   
-  ul {
-    margin: 0;
-    padding-left: 1.5rem;
-    font-size: 0.9rem;
+  .test-info {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
     
-    li {
-      margin-bottom: 0.3rem;
+    .department-icon {
+      color: ${({ departmentColor }) => departmentColor};
+      font-size: 1.2rem;
+    }
+    
+    .test-name {
+      font-weight: 600;
+      color: ${({ theme }) => theme.colors.text};
+    }
+    
+    .department-name {
+      font-size: 0.8rem;
       color: ${({ theme }) => theme.colors.textSecondary};
+    }
+  }
+  
+  .test-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    
+    .status-badge {
+      padding: 0.3rem 0.8rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: ${({ statusColor }) => statusColor}20;
+      color: ${({ statusColor }) => statusColor};
+      border: 1px solid ${({ statusColor }) => statusColor};
     }
   }
 `;
@@ -348,113 +527,27 @@ const LoadingContainer = styled(motion.div)`
   gap: 1rem;
 `;
 
-const StatsContainer = styled(motion.div)`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+const Checkbox = styled.input`
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #667eea;
 `;
 
-const StatCard = styled(motion.div)`
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.1) 0%, 
-    rgba(255, 255, 255, 0.05) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  padding: 1.5rem;
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.1),
-    0 8px 16px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(20px);
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, 
-      #667eea 0%, 
-      #764ba2 25%, 
-      #f093fb 50%, 
-      #f5576c 75%, 
-      #4facfe 100%);
-    border-radius: 20px 20px 0 0;
-  }
-  
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
-    pointer-events: none;
-  }
-  
-  h3 {
-    margin: 0 0 0.5rem 0;
-    font-size: 2rem;
-    font-weight: 700;
-    color: #667eea;
-    position: relative;
-    z-index: 1;
-  }
-  
-  p {
-    margin: 0;
-    color: ${({ theme }) => theme.colors.textSecondary};
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    position: relative;
-    z-index: 1;
-  }
-`;
+// Helper functions
+const getDepartmentTheme = (department) => {
+  return departmentThemes[department] || departmentThemes['Hematology'];
+};
 
-const PatientAvatar = styled.div`
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  font-weight: 700;
-  margin-right: 1.2rem;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
-  flex-shrink: 0;
-`;
+const getTestStatus = (status) => {
+  return testStatuses[status] || testStatuses['Not Started'];
+};
 
-// Helper to transform order to patientData for PrintPreviewModal
-function orderToPatientData(order) {
-  if (!order) return {};
-  let firstName = '', lastName = '';
-  if (order.patientName) {
-    const parts = order.patientName.split(' ');
-    firstName = parts[0] || '';
-    lastName = parts.slice(1).join(' ') || '';
-  }
-  return {
-    id: order.patientId || order.id || '',
-    firstName,
-    lastName,
-    age: order.age || { value: '', unit: 'years' },
-    gender: order.gender || '',
-    phoneNumber: order.phone || '',
-    // Add any other fields as needed
-  };
-}
+const getPriorityColor = (priority) => {
+  return priorityLevels[priority]?.color || priorityLevels['Normal'].color;
+};
 
+// Main component
 const Orders = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -463,11 +556,15 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
-  const [printModalOpen, setPrintModalOpen] = useState(false);
-  const [printOrder, setPrintOrder] = useState(null);
+  const [selectedOrders, setSelectedOrders] = useState([]);
+  const [expandedOrder, setExpandedOrder] = useState(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null);
 
+  // Fetch orders from Firebase
   useEffect(() => {
     const q = query(
       collection(db, "testOrders"),
@@ -477,7 +574,13 @@ const Orders = () => {
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const ordersData = [];
       querySnapshot.forEach((doc) => {
-        ordersData.push({ id: doc.id, ...doc.data() });
+        const orderData = { id: doc.id, ...doc.data() };
+        
+        // Add numbering system
+        orderData.queueNumber = generateQueueNumber(orderData.createdAt);
+        orderData.departmentNumbers = generateDepartmentNumbers(orderData.tests);
+        
+        ordersData.push(orderData);
       });
       setOrders(ordersData);
       setLoading(false);
@@ -490,6 +593,47 @@ const Orders = () => {
     return () => unsubscribe();
   }, []);
 
+  // Generate queue number based on creation date
+  const generateQueueNumber = (createdAt) => {
+    if (!createdAt) return 1;
+    const today = new Date();
+    const orderDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+    
+    if (orderDate.toDateString() === today.toDateString()) {
+      // Count orders created today
+      const todayOrders = orders.filter(order => {
+        const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+        return orderDate.toDateString() === today.toDateString();
+      });
+      return todayOrders.length + 1;
+    }
+    return 1;
+  };
+
+  // Generate department-specific numbers
+  const generateDepartmentNumbers = (tests) => {
+    if (!tests || !Array.isArray(tests)) return {};
+    
+    const departmentNumbers = {};
+    const today = new Date();
+    
+    tests.forEach(test => {
+      const department = test.department || 'Unknown';
+      if (!departmentNumbers[department]) {
+        // Count tests in this department today
+        const todayTestsInDept = orders.filter(order => {
+          const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+          return orderDate.toDateString() === today.toDateString() && 
+                 order.tests?.some(t => t.department === department);
+        });
+        departmentNumbers[department] = todayTestsInDept.length + 1;
+      }
+    });
+    
+    return departmentNumbers;
+  };
+
+  // Filter and sort orders
   useEffect(() => {
     let filtered = orders;
 
@@ -505,6 +649,13 @@ const Orders = () => {
     // Apply status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(order => order.status === statusFilter);
+    }
+
+    // Apply department filter
+    if (departmentFilter !== 'all') {
+      filtered = filtered.filter(order => 
+        order.tests?.some(test => test.department === departmentFilter)
+      );
     }
 
     // Apply sorting
@@ -524,6 +675,10 @@ const Orders = () => {
           aValue = a.status || '';
           bValue = b.status || '';
           break;
+        case 'priority':
+          aValue = a.priority || 'Normal';
+          bValue = b.priority || 'Normal';
+          break;
         default:
           return 0;
       }
@@ -536,16 +691,113 @@ const Orders = () => {
     });
 
     setFilteredOrders(filtered);
-  }, [orders, searchTerm, statusFilter, sortBy, sortOrder]);
+  }, [orders, searchTerm, statusFilter, departmentFilter, sortBy, sortOrder]);
 
+  // Handle order selection
+  const toggleOrderSelection = (orderId) => {
+    setSelectedOrders(prev => 
+      prev.includes(orderId) 
+        ? prev.filter(id => id !== orderId)
+        : [...prev, orderId]
+    );
+  };
+
+  const selectAllOrders = () => {
+    setSelectedOrders(filteredOrders.map(order => order.id));
+  };
+
+  const clearSelection = () => {
+    setSelectedOrders([]);
+  };
+
+  // Handle bulk operations
+  const handleBulkStatusChange = async (newStatus) => {
+    try {
+      const updatePromises = selectedOrders.map(orderId => 
+        updateDoc(doc(db, "testOrders", orderId), { status: newStatus })
+      );
+      
+      await Promise.all(updatePromises);
+      showFlashMessage({ 
+        type: 'success', 
+        title: 'Success', 
+        message: `Updated ${selectedOrders.length} orders to ${newStatus}` 
+      });
+      setSelectedOrders([]);
+    } catch (error) {
+      console.error('Error updating orders:', error);
+      showFlashMessage({ 
+        type: 'error', 
+        title: 'Error', 
+        message: 'Failed to update orders' 
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedOrders.length} orders?`)) {
+      return;
+    }
+
+    try {
+      const deletePromises = selectedOrders.map(orderId => 
+        deleteDoc(doc(db, "testOrders", orderId))
+      );
+      
+      await Promise.all(deletePromises);
+      showFlashMessage({ 
+        type: 'success', 
+        title: 'Success', 
+        message: `Deleted ${selectedOrders.length} orders` 
+      });
+      setSelectedOrders([]);
+    } catch (error) {
+      console.error('Error deleting orders:', error);
+      showFlashMessage({ 
+        type: 'error', 
+        title: 'Error', 
+        message: 'Failed to delete orders' 
+      });
+    }
+  };
+
+  // Handle individual order actions
   const handleViewOrder = (orderId) => {
     navigate(`/app/print-order/${orderId}`);
+  };
+
+  const handleEditOrder = (order) => {
+    setEditingOrder(order);
+    setEditModalOpen(true);
+  };
+
+  const handleDeleteOrder = async (orderId) => {
+    if (!window.confirm('Are you sure you want to delete this order?')) {
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, "testOrders", orderId));
+      showFlashMessage({ 
+        type: 'success', 
+        title: 'Success', 
+        message: 'Order deleted successfully' 
+      });
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      showFlashMessage({ 
+        type: 'error', 
+        title: 'Error', 
+        message: 'Failed to delete order' 
+      });
+    }
   };
 
   const handlePrintOrder = (orderId) => {
     navigate(`/app/print-order/${orderId}`);
   };
 
+  // Handle sorting
   const handleSort = (field) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -555,6 +807,7 @@ const Orders = () => {
     }
   };
 
+  // Get statistics
   const getStats = () => {
     const total = orders.length;
     const completed = orders.filter(o => o.status === 'Completed').length;
@@ -616,7 +869,7 @@ const Orders = () => {
             transition={{ delay: 0.2 }}
             style={{ color: theme.colors.textSecondary, margin: '0.5rem 0 0 0' }}
           >
-            Manage and view all laboratory orders
+            Manage and view all laboratory orders with advanced tracking
           </motion.p>
         </div>
         <HeaderActions>
@@ -685,16 +938,88 @@ const Orders = () => {
           <option value="Rejected">Rejected</option>
         </FilterSelect>
 
-        <SortButton
+        <FilterSelect
+          value={departmentFilter}
+          onChange={(e) => setDepartmentFilter(e.target.value)}
+          whileFocus={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300 }}
+        >
+          <option value="all">All Departments</option>
+          {Object.keys(departmentThemes).map(dept => (
+            <option key={dept} value={dept}>{dept}</option>
+          ))}
+        </FilterSelect>
+
+        <motion.button
           onClick={() => handleSort(sortBy)}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '1rem 1.5rem',
+            border: '2px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '12px',
+            background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+            color: theme.colors.text,
+            cursor: 'pointer',
+            fontSize: '1rem',
+            transition: 'all 0.3s ease',
+            backdropFilter: 'blur(20px)'
+          }}
         >
           <FaSort />
-          Sort by {sortBy === 'date' ? 'Date' : sortBy === 'patient' ? 'Patient' : 'Status'}
+          Sort by {sortBy === 'date' ? 'Date' : sortBy === 'patient' ? 'Patient' : sortBy === 'status' ? 'Status' : 'Priority'}
           {sortOrder === 'asc' ? ' ↑' : ' ↓'}
-        </SortButton>
+        </motion.button>
       </SearchAndFilterContainer>
+
+      {/* Bulk Actions */}
+      {selectedOrders.length > 0 && (
+        <BulkActionsContainer
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <span style={{ color: theme.colors.text }}>
+            {selectedOrders.length} order(s) selected
+          </span>
+          <GlowButton
+            onClick={() => handleBulkStatusChange('Completed')}
+            size="small"
+          >
+            Mark Complete
+          </GlowButton>
+          <GlowButton
+            onClick={() => handleBulkStatusChange('In Progress')}
+            size="small"
+          >
+            Mark In Progress
+          </GlowButton>
+          <GlowButton
+            onClick={handleBulkDelete}
+            size="small"
+            variant="danger"
+          >
+            Delete Selected
+          </GlowButton>
+          <motion.button
+            onClick={clearSelection}
+            whileHover={{ scale: 1.05 }}
+            style={{
+              padding: '0.5rem 1rem',
+              border: 'none',
+              borderRadius: '8px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              color: theme.colors.text,
+              cursor: 'pointer'
+            }}
+          >
+            Clear Selection
+          </motion.button>
+        </BulkActionsContainer>
+      )}
 
       <AnimatePresence mode="wait">
         {filteredOrders.length === 0 ? (
@@ -708,7 +1033,7 @@ const Orders = () => {
             <EmptyState
               title="No Orders Found"
               description={
-                searchTerm || statusFilter !== 'all' 
+                searchTerm || statusFilter !== 'all' || departmentFilter !== 'all'
                   ? 'Try adjusting your search or filter criteria.'
                   : 'No orders have been created yet.'
               }
@@ -729,8 +1054,39 @@ const Orders = () => {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
                 status={order.status}
+                onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
               >
-                {/* PatientInfo, TestList, StatusBadge, OrderActions as before */}
+                {/* Order Header with Numbers */}
+                <OrderHeader>
+                  <div>
+                    <OrderNumbers>
+                      <QueueNumber>#{order.queueNumber}</QueueNumber>
+                      {Object.entries(order.departmentNumbers || {}).map(([dept, num]) => (
+                        <DepartmentNumber
+                          key={dept}
+                          departmentColor={getDepartmentTheme(dept).primary}
+                        >
+                          {dept} #{num}
+                        </DepartmentNumber>
+                      ))}
+                    </OrderNumbers>
+                    <OrderId>{order.id}</OrderId>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <Checkbox
+                      checked={selectedOrders.includes(order.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleOrderSelection(order.id);
+                      }}
+                    />
+                    <StatusBadge status={order.status}>
+                      {order.status}
+                    </StatusBadge>
+                  </div>
+                </OrderHeader>
+
+                {/* Patient Information */}
                 <PatientInfo style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <PatientAvatar>
                     {order.patientName ? order.patientName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() : <FaUserCircle />}
@@ -738,37 +1094,88 @@ const Orders = () => {
                   <div>
                     <h3 style={{ margin: 0 }}>{order.patientName}</h3>
                     <div style={{ display: 'flex', gap: '1.2rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}><FaUser /> {order.patientId}</p>
-                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}><FaIdCard /> {order.id}</p>
-                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}><FaCalendar /> {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A'}</p>
-                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}><FaBirthdayCake /> {order.age?.value ? `${order.age.value} ${order.age.unit || ''}` : '—'}</p>
-                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}><FaVenusMars /> {order.gender ? order.gender : '—'}</p>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}>
+                        <FaUser /> {order.patientId}
+                      </p>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}>
+                        <FaIdCard /> {order.id}
+                      </p>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}>
+                        <FaCalendar /> {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A'}
+                      </p>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}>
+                        <FaBirthdayCake /> {order.age?.value ? `${order.age.value} ${order.age.unit || ''}` : '—'}
+                      </p>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 4, color: '#888' }}>
+                        <FaVenusMars /> {order.gender ? order.gender : '—'}
+                      </p>
                     </div>
                   </div>
                 </PatientInfo>
+
+                {/* Tests List with Department Color Coding */}
                 <TestList>
                   <h4>Tests:</h4>
-                  <ul>
-                    {order.tests?.map((test, idx) => (
-                      <li key={idx}>{typeof test === 'string' ? test : (test?.name || test?.id || 'Unknown Test')}</li>
-                    ))}
-                  </ul>
+                  {order.tests?.map((test, idx) => {
+                    const department = test.department || 'Unknown';
+                    const departmentTheme = getDepartmentTheme(department);
+                    const testStatus = getTestStatus(test.status || 'Not Started');
+                    
+                    return (
+                      <TestItem
+                        key={idx}
+                        departmentColor={departmentTheme.primary}
+                        statusColor={testStatus.color}
+                      >
+                        <div className="test-info">
+                          <span className="department-icon">
+                            {React.createElement(departmentTheme.icon)}
+                          </span>
+                          <div>
+                            <div className="test-name">
+                              {typeof test === 'string' ? test : (test?.name || test?.id || 'Unknown Test')}
+                            </div>
+                            <div className="department-name">{department}</div>
+                          </div>
+                        </div>
+                        <div className="test-status">
+                          <span className="status-badge">
+                            {React.createElement(testStatus.icon, { size: 12 })}
+                            {testStatus.label}
+                          </span>
+                        </div>
+                      </TestItem>
+                    );
+                  })}
                 </TestList>
-                <StatusBadge status={order.status}>
-                  {order.status}
-                </StatusBadge>
+
+                {/* Order Actions */}
                 <OrderActions>
                   <ActionButton
-                    onClick={() => handleViewOrder(order.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewOrder(order.id);
+                    }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     <FaEye /> View
                   </ActionButton>
                   <ActionButton
-                    onClick={() => {
-                      setPrintOrder(order);
-                      setPrintModalOpen(true);
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditOrder(order);
+                    }}
+                    $variant="secondary"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <FaEdit /> Edit
+                  </ActionButton>
+                  <ActionButton
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrintOrder(order.id);
                     }}
                     $variant="secondary"
                     whileHover={{ scale: 1.05 }}
@@ -776,25 +1183,39 @@ const Orders = () => {
                   >
                     <FaPrint /> Print
                   </ActionButton>
+                  <ActionButton
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteOrder(order.id);
+                    }}
+                    $variant="secondary"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    style={{ color: '#dc3545' }}
+                  >
+                    <FaTrash /> Delete
+                  </ActionButton>
                 </OrderActions>
               </OrderCard>
             ))}
           </OrdersGrid>
         )}
       </AnimatePresence>
-      <PrintPreviewModal
-        isOpen={printModalOpen}
-        onClose={() => setPrintModalOpen(false)}
-        patientData={orderToPatientData(printOrder)}
-        selectedTests={Array.isArray(printOrder?.tests) ? printOrder.tests.map(t => typeof t === 'string' ? t : (t?.name || t?.id || 'Unknown Test')) : []}
-        orderData={{
-          referringDoctor: printOrder?.referringDoctor || 'N/A',
-          priority: printOrder?.priority || 'Normal',
-          notes: printOrder?.notes || ''
-        }}
-      />
+
+      {/* Edit Modal Placeholder */}
+      <AnimatedModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title="Edit Order"
+      >
+        <div style={{ padding: '2rem' }}>
+          <p>Edit functionality will be implemented here...</p>
+          <p>Order ID: {editingOrder?.id}</p>
+          <p>Patient: {editingOrder?.patientName}</p>
+        </div>
+      </AnimatedModal>
     </OrdersContainer>
   );
 };
 
-export default Orders; 
+export default Orders;

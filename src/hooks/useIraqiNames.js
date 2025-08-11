@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getFilteredNames } from '../utils/iraqiNamesData';
+import { getFilteredNames } from '../utils/patient/iraqiNamesData';
 
 export const useIraqiNames = (inputValue, nameType) => {
   const [suggestions, setSuggestions] = useState([]);

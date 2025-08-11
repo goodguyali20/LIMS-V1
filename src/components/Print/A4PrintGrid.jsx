@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import EnhancedLaboratoryReport from './EnhancedLaboratoryReport';
 // import QRCode from 'qrcode.react'; // Uncomment if using QR/barcode
 // import logo from '../../assets/logo.png'; // Placeholder for logo
 
@@ -179,79 +180,8 @@ const ChartPlaceholder = styled.div`
 `;
 
 const A4PrintGrid = ({ order, user, settings }) => {
-  const now = new Date();
-  return (
-    <Wrapper className="print-only-premium">
-      <Watermark>PREMIUM LIMS</Watermark>
-      <Header>
-        <Logo>
-          {/* <img src={logo} alt="Logo" style={{height:40}} /> */}
-          SmartLab
-        </Logo>
-        <Title>Lab Report</Title>
-        <Meta>
-          <div>Order ID: {order?.id?.substring(0, 8) || 'N/A'}</div>
-          <div>Date: {now.toLocaleDateString()} {now.toLocaleTimeString()}</div>
-          <div>User: {user?.displayName || user?.email || 'N/A'}</div>
-        </Meta>
-      </Header>
-      <Section>
-        <SectionTitle>Patient Information</SectionTitle>
-        <InfoGrid>
-          <InfoItem><strong>Name:</strong> {order?.patientName || 'N/A'}</InfoItem>
-          <InfoItem><strong>Patient ID:</strong> {order?.patientId || 'N/A'}</InfoItem>
-          <InfoItem><strong>Age/Gender:</strong> {order?.age || 'N/A'} / {order?.gender || 'N/A'}</InfoItem>
-          <InfoItem><strong>Phone:</strong> {order?.phone || 'N/A'}</InfoItem>
-          <InfoItem><strong>Referring Doctor:</strong> {order?.referringDoctor || 'N/A'}</InfoItem>
-          <InfoItem><strong>Department:</strong> {order?.department || 'N/A'}</InfoItem>
-        </InfoGrid>
-      </Section>
-      <Section>
-        <SectionTitle>Test Results</SectionTitle>
-        <Table>
-          <thead>
-            <tr>
-              <th>Test</th>
-              <th>Result</th>
-              <th>Unit</th>
-              <th>Reference Range</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {order?.results?.map((result, idx) => (
-              <tr key={idx}>
-                <td>{result.testName}</td>
-                <td>{result.value}</td>
-                <td>{result.unit}</td>
-                <td>{result.referenceRange}</td>
-                <td style={{color: result.status === 'critical' ? '#e11d48' : result.status === 'abnormal' ? '#f59e42' : '#10b981', fontWeight: 700}}>
-                  {result.status?.toUpperCase() || 'NORMAL'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </Section>
-      <Section>
-        <SectionTitle>Notes</SectionTitle>
-        <div style={{minHeight: '2.5rem'}}>{order?.notes || '—'}</div>
-      </Section>
-      <ChartPlaceholder>Premium Chart/Graph (Coming Soon)</ChartPlaceholder>
-      <SignatureRow>
-        <SignatureBox>Doctor Signature</SignatureBox>
-        <SignatureBox>Patient Signature</SignatureBox>
-      </SignatureRow>
-      <BarcodeBox>
-        {/* <QRCode value={order?.id || ''} size={48} /> */}
-        <div style={{fontSize:'0.95rem',color:'#888'}}>Order QR/Barcode (Coming Soon)</div>
-      </BarcodeBox>
-      <Footer>
-        <div>Printed by SmartLab Premium LIMS</div>
-        <div>Page 1 of 1</div>
-      </Footer>
-    </Wrapper>
-  );
+  // Use the enhanced laboratory report for a more professional look
+  return <EnhancedLaboratoryReport order={order} user={user} settings={settings} />;
 };
 
 export default A4PrintGrid;

@@ -9,7 +9,7 @@ import {
   FaSpinner, FaArrowLeft, FaVial, FaUser, FaCalendar,
   FaFlask, FaThermometerHalf, FaInfoCircle, FaIdCard
 } from 'react-icons/fa';
-import { logAuditEvent } from '../../utils/auditLogger';
+import { logAuditEvent } from '../../utils/monitoring/auditLogger';
 import { motion, AnimatePresence } from 'framer-motion';
 import { showFlashMessage } from '../../contexts/NotificationContext';
 
@@ -725,7 +725,7 @@ const ResultEntry = () => {
                 <TestHeader>
                   <TestInfo>
                     <TestName>{test.name}</TestName>
-                    <TestDepartment>{testInfo?.department || 'General'}</TestDepartment>
+                    <TestDepartment>{testInfo?.department || 'Parasitology'}</TestDepartment>
                   </TestInfo>
                   <StatusBadge status={status} as={motion.span} animate={status === 'critical' ? { scale: [1, 1.15, 1] } : {}} transition={status === 'critical' ? { repeat: Infinity, duration: 1 } : {}}>
                     {status === 'completed' ? t('completed') : status === 'critical' ? t('critical') : t('pending')}

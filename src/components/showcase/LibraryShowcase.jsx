@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { IconMicroscope, IconFlask, IconTestPipe, IconChartLine, IconCode, IconPalette, IconUpload, IconFileText } from '@tabler/icons-react';
-import { usePerformanceMonitor } from '../utils/performanceOptimizer';
+import { usePerformanceMonitor } from '../../utils/performance/performanceOptimizer';
 
 
 // Styled Components

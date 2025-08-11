@@ -3,8 +3,8 @@ import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import './i18n';
 import './styles/index.css';
-import { initializeErrorMonitoring, setupGlobalErrorHandling } from './utils/errorMonitoring.tsx';
-import { initializePerformanceMonitoring } from './utils/performanceOptimizer';
+import { initializeErrorMonitoring, setupGlobalErrorHandling } from './utils/monitoring/errorMonitoring.tsx';
+import { initializePerformanceMonitoring } from './utils/performance/performanceOptimizer';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { AuthProvider } from './contexts/AuthContext';
 

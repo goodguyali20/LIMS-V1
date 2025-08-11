@@ -41,12 +41,12 @@ export const theme = {
     },
     
     // Department Colors with Premium Gradients
-    chemistry: '#007bff',
-    hematology: '#dc3545',
-    serology: '#28a745',
-    virology: '#ffc107',
-    microbiology: '#6f42c1',
-    general: '#6c757d',
+    chemistry: '#ffc107',      // Yellow
+    hematology: '#dc3545',     // Red
+    serology: '#28a745',       // Green
+    virology: '#007bff',       // Blue
+    parasitology: '#6f42c1',   // Purple (replacing general)
+    microbiology: '#6f42c1',   // Purple
     
     // Status Colors for Enhanced UX
     status: {

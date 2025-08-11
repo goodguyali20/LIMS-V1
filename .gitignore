@@ -25,3 +25,9 @@ dist-ssr
 
 *storybook.log
 storybook-static
+
+# Temporary and loose files
+*.tmp
+*.temp
+pglite-debug.log
+test-report.pdf

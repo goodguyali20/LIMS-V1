@@ -173,30 +173,26 @@ const CancellationModal = ({
   type = 'order', // 'order' or 'test'
   orderId, 
   testName = null,
-  patientName = null 
+  patientName = null,
+  isSubmitting = false
 }) => {
   const { t } = useTranslation();
   const [reason, setReason] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!reason.trim()) return;
+    if (!reason.trim() || isSubmitting) return;
     
-    setIsSubmitting(true);
     try {
       await onConfirm(reason.trim());
       handleClose();
     } catch (error) {
       console.error('Error during cancellation:', error);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const handleClose = () => {
     setReason('');
-    setIsSubmitting(false);
     onClose();
   };
 
@@ -240,11 +236,12 @@ const CancellationModal = ({
               placeholder="Please provide a detailed reason for cancellation..."
               required
               autoFocus
+              disabled={isSubmitting}
             />
           </FormGroup>
 
           <ButtonGroup>
-            <CancelButton type="button" onClick={handleClose}>
+            <CancelButton type="button" onClick={handleClose} disabled={isSubmitting}>
               {t('cancel')}
             </CancelButton>
             <ConfirmButton 

@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { Bell, Settings, Search, User, LogOut, Sun, Moon, Barcode, LayoutGrid, Plus } from 'lucide-react';
 import LanguageSwitcher from '../common/LanguageSwitcher';
-import { logAuditEvent } from '../../utils/auditLogger';
+import { logAuditEvent } from '../../utils/monitoring/auditLogger';
 
 const HeaderContainer = styled.header`
   position: relative;

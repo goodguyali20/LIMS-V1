@@ -1,7 +1,7 @@
-import { auth } from '../firebase/config.js';
+import { auth } from '../../firebase/config.js';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase/config.js';
+import { db } from '../../firebase/config.js';
 
 // Demo user credentials for testing
 export const DEMO_USERS = {

@@ -72,12 +72,12 @@ const allLabTests = [
   { name: "Rubella IgM", department: "Virology", unit: "", normalRange: "Negative", subsection: "General Virology" },
   { name: "V.D.R.L Test", department: "Virology", unit: "", normalRange: "Non-Reactive", subsection: "General Virology" },
 
-  // Microbiology / General
-  { name: "GUE (Urine Examination)", department: "General", unit: "", normalRange: "", subsection: "General Microbiology" },
-  { name: "GSE (Stool Examination)", department: "General", unit: "", normalRange: "", subsection: "General Microbiology" },
-  { name: "Kala-azar DS", department: "General", unit: "", normalRange: "Negative", subsection: "General Microbiology" },
-  { name: "Fungal Scraping", department: "General", unit: "", normalRange: "", subsection: "General Microbiology" },
-  { name: "Leishmania Scraping", department: "General", unit: "", normalRange: "", subsection: "General Microbiology" },
+  // Microbiology / Parasitology
+  { name: "GUE (Urine Examination)", department: "Parasitology", unit: "", normalRange: "", subsection: "General Microbiology" },
+  { name: "GSE (Stool Examination)", department: "Parasitology", unit: "", normalRange: "", subsection: "General Microbiology" },
+  { name: "Kala-azar DS", department: "Parasitology", unit: "", normalRange: "Negative", subsection: "General Microbiology" },
+  { name: "Fungal Scraping", department: "Parasitology", unit: "", normalRange: "", subsection: "General Microbiology" },
+  { name: "Leishmania Scraping", department: "Parasitology", unit: "", normalRange: "", subsection: "General Microbiology" },
 ];
 
 async function seedTests() {

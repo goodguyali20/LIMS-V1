@@ -8,6 +8,7 @@ import { OrderProvider } from './contexts/OrderContext';
 import { TestProvider } from './contexts/TestContext';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { TestSelectionProvider } from './contexts/TestSelectionContext';
 import { GlobalStyles } from './styles/GlobalStyles';
 import PerformanceMonitor from './components/PerformanceMonitor';
 import AppRoutes from './AppRoutes';
@@ -189,56 +190,58 @@ const NotificationContent = memo(({ showPerformanceMonitor, setShowPerformanceMo
 
   return (
     <OrderProvider>
-      <SettingsProvider>
-        <GlobalStyles />
-        {/* Global AnimatedNotification */}
-        {currentNotification && (
-          <FlashMessageWrapper>
-            <FlashMessage
-              type={currentNotification.type}
-              title={currentNotification.title || currentNotification.type.charAt(0).toUpperCase() + currentNotification.type.slice(1)}
-              message={currentNotification.message}
-              onClose={() => showNotification(null)}
+      <TestSelectionProvider>
+        <SettingsProvider>
+          <GlobalStyles />
+          {/* Global AnimatedNotification */}
+          {currentNotification && (
+            <FlashMessageWrapper>
+              <FlashMessage
+                type={currentNotification.type}
+                title={currentNotification.title || currentNotification.type.charAt(0).toUpperCase() + currentNotification.type.slice(1)}
+                message={currentNotification.message}
+                onClose={() => showNotification(null)}
+              />
+            </FlashMessageWrapper>
+          )}
+          <BrowserRouter
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true
+            }}
+          >
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                <Route path="/status/:orderId" element={<QRStatusPage />} />
+                <Route path="/test-visuals" element={<TestVisualEffects />} />
+                <Route path="/*" element={<AppRoutes />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+          
+          {/* Performance Monitor for Development */}
+          {process.env.NODE_ENV === 'development' && (
+            <PerformanceMonitor
+              isVisible={showPerformanceMonitor}
+              onClose={() => setShowPerformanceMonitor(false)}
             />
-          </FlashMessageWrapper>
-        )}
-        <BrowserRouter
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true
-          }}
-        >
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/status/:orderId" element={<QRStatusPage />} />
-              <Route path="/test-visuals" element={<TestVisualEffects />} />
-              <Route path="/*" element={<AppRoutes />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-        
-        {/* Performance Monitor for Development */}
-        {process.env.NODE_ENV === 'development' && (
-          <PerformanceMonitor
-            isVisible={showPerformanceMonitor}
-            onClose={() => setShowPerformanceMonitor(false)}
+          )}
+          
+          {/* Toast Container */}
+          <ToastContainer
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={true}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
           />
-        )}
-        
-        {/* Toast Container */}
-        <ToastContainer
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={true}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-        />
-      </SettingsProvider>
+        </SettingsProvider>
+      </TestSelectionProvider>
     </OrderProvider>
   );
 });

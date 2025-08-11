@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { generatePatientSchema } from '../../utils/patientRegistrationUtils';
+import { generatePatientSchema } from '../../utils/patient/patientRegistrationUtils';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, addDoc } from 'firebase/firestore';
@@ -21,9 +21,9 @@ import i18n from 'i18next';
 import useBarcodeScanner from '../../hooks/useBarcodeScanner';
 import { useRef } from 'react';
 import Confetti from 'react-confetti';
-import { useTheme } from 'styled-components';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useTestCatalog } from '../../contexts/TestContext';
-import { useTestSelectionStore } from './TestSelectionPanel';
+import { useTestSelection } from '../../contexts/TestSelectionContext';
 import { LinearProgress } from '@mui/material';
 import { showFlashMessage } from '../../contexts/NotificationContext';
 import AutoCompleteInput from '../common/AutoCompleteInput';
@@ -829,7 +829,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
   const { settings } = useSettings();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedTests, setSelectedTests] = useState([]);
+
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -841,7 +841,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
   const { theme } = useTheme();
   const isDarkMode = theme?.isDarkMode;
   const { labTests } = useTestCatalog();
-  const selectedTestIds = useTestSelectionStore((s) => s.selectedTestIds);
+  const { selectedTestIds, toggleTestSelection, clearSelection } = useTestSelection();
 
   // React Hook Form setup
   const {
@@ -1088,7 +1088,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         ...patientData,
         bloodCollectionStatus: 'ready_for_collection', // Set initial status for phlebotomist view
         priority: patientData.priority || 'normal',
-        selectedTests: selectedTests, // Include selected tests for test order creation
+        selectedTests: selectedTestIds, // Include selected tests for test order creation
         createdAt: new Date(),
         updatedAt: new Date()
       });
@@ -1142,7 +1142,12 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
           reset(cleanedFormData);
         }
         if (parsed.selectedTests) {
-          setSelectedTests(parsed.selectedTests);
+          // Restore selected tests to context
+          parsed.selectedTests.forEach(testName => {
+            if (!selectedTestIds.includes(testName)) {
+              toggleTestSelection(testName);
+            }
+          });
         }
       } catch (e) {
         // Ignore parse errors
@@ -1163,7 +1168,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
       }
       localStorage.setItem(
         AUTOSAVE_KEY,
-        JSON.stringify({ formData, selectedTests })
+        JSON.stringify({ formData, selectedTests: selectedTestIds })
       );
     });
     return () => {
@@ -1171,18 +1176,16 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         autosaveSubscription.current.unsubscribe();
       }
     };
-  }, [watch, selectedTests]);
+  }, [watch, selectedTestIds]);
 
   useEffect(() => {
     localStorage.setItem(
       AUTOSAVE_KEY,
-      JSON.stringify({ formData: getValues(), selectedTests })
+      JSON.stringify({ formData: getValues(), selectedTests: selectedTestIds })
     );
-  }, [selectedTests]);
-
-  useEffect(() => {
-    setSelectedTests(selectedTestIds);
   }, [selectedTestIds]);
+
+
 
   // Show summary modal instead of direct submission
   const onSubmit = (data) => {
@@ -1215,10 +1218,10 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
           skipNextAutosave.current = false;
           return;
         }
-        localStorage.setItem(
-          AUTOSAVE_KEY,
-          JSON.stringify({ formData, selectedTests })
-        );
+              localStorage.setItem(
+        AUTOSAVE_KEY,
+        JSON.stringify({ formData, selectedTests: selectedTestIds })
+      );
       });
       setShowSummaryModal(false);
       setShowPrintPreview(true); // Automatically open print preview after registration
@@ -1268,13 +1271,11 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
   }, [watchedFirstName, watchedFathersName, watchedGrandFathersName, watchedPhone, watchedArea, patients]);
 
   const handleTestSelection = (testName) => {
-    if (!selectedTests.includes(testName)) {
-      setSelectedTests([...selectedTests, testName]);
-    }
+    toggleTestSelection(testName);
   };
 
   const handleTestRemoval = (testName) => {
-    setSelectedTests(selectedTests.filter(test => test !== testName));
+    toggleTestSelection(testName);
   };
 
   const renderField = (fieldName, fieldConfig, section = null) => {
@@ -1615,7 +1616,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
   }, [getValues('address.city'), getValues('address.district'), settings, setValue]);
 
   // Map selectedTests (names) to test objects
-  const selectedTestObjects = selectedTests.map(testName => labTests.find(t => t.name === testName)).filter(Boolean);
+  const selectedTestObjects = selectedTestIds.map(testName => labTests.find(t => t.name === testName)).filter(Boolean);
 
   // Add after useForm and before the form JSX
   const requiredFields = [
@@ -1637,7 +1638,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
 
   // Add after autosave logic
   const handleSaveDraft = () => {
-    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ formData: getValues(), selectedTests }));
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ formData: getValues(), selectedTests: selectedTestIds }));
     showFlashMessage({ type: 'success', title: 'Success', message: 'Draft saved!' });
   };
   const handleLoadDraft = () => {
@@ -1649,7 +1650,12 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
           reset(parsed.formData);
         }
         if (parsed.selectedTests) {
-          setSelectedTests(parsed.selectedTests);
+          // Restore selected tests to context
+          parsed.selectedTests.forEach(testName => {
+            if (!selectedTestIds.includes(testName)) {
+              toggleTestSelection(testName);
+            }
+          });
         }
         showFlashMessage({ type: 'success', title: 'Success', message: 'Draft loaded!' });
       } catch (e) {
@@ -1705,7 +1711,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
               });
               
               // Clear selected tests
-              setSelectedTests([]);
+              clearSelection();
               
               // Clear address selections
               setSelectedGovernorate('');
@@ -1964,7 +1970,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
 
               {/* Test Selection Section */}
               <TestSelectionPanel
-                selectedTests={selectedTests}
+                selectedTests={selectedTestIds}
                 onTestSelection={handleTestSelection}
                 onTestRemoval={handleTestRemoval}
               >
@@ -2003,7 +2009,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         isOpen={showSummaryModal}
         onClose={() => setShowSummaryModal(false)}
         patientData={getValues()}
-        selectedTests={selectedTestObjects}
+        selectedTests={selectedTestIds}
         onConfirm={handleConfirmRegistration}
         onEdit={handleEditForm}
         onPrint={handlePrintSummary}
@@ -2012,12 +2018,14 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         isOpen={showPrintPreview}
         onClose={() => setShowPrintPreview(false)}
         patientData={getValues()}
-        selectedTests={selectedTestObjects}
+        selectedTests={selectedTestIds}
         orderData={{
           referringDoctor: getValues('referringDoctor') || 'N/A',
           priority: getValues('priority') || 'Normal',
           notes: getValues('notes') || ''
         }}
+        user={user}
+        settings={settings}
       />
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         <GlowButton type="button" onClick={handleSaveDraft}>

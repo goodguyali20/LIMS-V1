@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import LoginForm from './LoginForm';
 import { useTheme } from '../../contexts/ThemeContext';
-import { setupDemoUsers, testAllDemoUsers, DEMO_USERS } from '../../utils/authHelper';
+import { setupDemoUsers, testAllDemoUsers, DEMO_USERS } from '../../utils/core/authHelper';
 
 const LoginContainer = styled(motion.div)`
   min-height: 100vh;

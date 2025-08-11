@@ -5,6 +5,73 @@ import { showFlashMessage } from '../../contexts/NotificationContext';
 import { FaPlus, FaEdit, FaTrash, FaExclamationCircle, FaSearch, FaSpinner } from 'react-icons/fa';
 import Modal from '../../components/Common/Modal';
 
+// Predefined constants for dropdowns
+const DEPARTMENTS = [
+  "Chemistry",
+  "Hematology", 
+  "Microbiology",
+  "Parasitology",
+  "Serology",
+  "Virology",
+  "Immunology",
+  "Molecular Biology",
+  "Histopathology",
+  "Cytology"
+];
+
+const UNITS = [
+  "mg/dL",
+  "g/dL", 
+  "mmol/L",
+  "μmol/L",
+  "ng/mL",
+  "pg/mL",
+  "U/L",
+  "IU/L",
+  "%",
+  "cells/μL",
+  "g/L",
+  "mEq/L",
+  "pg",
+  "fL",
+  "ratio",
+  "index",
+  "titer",
+  "CFU/mL",
+  "copies/mL"
+];
+
+const SAMPLE_TYPES = [
+  "Blood",
+  "Serum", 
+  "Plasma",
+  "Urine",
+  "Cerebrospinal Fluid",
+  "Stool",
+  "Sputum",
+  "Swab",
+  "Tissue",
+  "Bone Marrow",
+  "Amniotic Fluid",
+  "Synovial Fluid",
+  "Pleural Fluid",
+  "Peritoneal Fluid"
+];
+
+const TURNAROUND_TIMES = [
+  "Same day",
+  "2-4 hours",
+  "4-6 hours", 
+  "6-8 hours",
+  "8-12 hours",
+  "12-24 hours",
+  "1-2 days",
+  "2-3 days",
+  "3-5 days",
+  "1 week",
+  "2 weeks"
+];
+
 const TestsContainer = styled.div`
   padding: 2rem;
   animation: fadeIn 0.3s ease-in-out;
@@ -224,6 +291,33 @@ const Input = styled.input`
   }
 `;
 
+const Select = styled.select`
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: ${({ theme }) => theme.shapes.squircle};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background-color: ${({ theme }) => theme.colors.input};
+  color: ${({ theme }) => theme.colors.text};
+  cursor: pointer;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+  }
+  
+  option {
+    background-color: ${({ theme }) => theme.colors.input};
+    color: ${({ theme }) => theme.colors.text};
+  }
+`;
+
+const ReferenceRangeContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: end;
+`;
+
 const CheckboxContainer = styled.label`
   display: flex;
   align-items: center;
@@ -270,32 +364,79 @@ const Tests = () => {
     name: '',
     department: '',
     unit: '',
-    referenceRange: '',
+    referenceRangeMin: '',
+    referenceRangeMax: '',
+    price: 0.00,
+    turnaroundTime: '',
+    sampleType: '',
     requiresSpecialSlip: false
   });
 
-  useEffect(() => {
-    if (editingTest) {
-      setTestFormState({
-        name: editingTest.name || '',
-        department: editingTest.department || '',
-        unit: editingTest.unit || '',
-        referenceRange: editingTest.referenceRange || '',
-        requiresSpecialSlip: editingTest.requiresSpecialSlip || false,
-      });
-    } else {
-      setTestFormState({ name: '', department: '', unit: '', referenceRange: '', requiresSpecialSlip: false });
-    }
-  }, [editingTest, isModalOpen]);
+
 
   const handleOpenModal = (test = null) => {
     setEditingTest(test);
+    if (test) {
+      // Handle backward compatibility for old referenceRange format
+      let referenceRangeMin = '';
+      let referenceRangeMax = '';
+      
+      if (test.referenceRangeMin && test.referenceRangeMax) {
+        // New format already exists
+        referenceRangeMin = test.referenceRangeMin;
+        referenceRangeMax = test.referenceRangeMax;
+      } else if (test.referenceRange) {
+        // Old format - try to parse it
+        const rangeMatch = test.referenceRange.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
+        if (rangeMatch) {
+          referenceRangeMin = rangeMatch[1];
+          referenceRangeMax = rangeMatch[2];
+        }
+      }
+      
+      setTestFormState({
+        name: test.name || '',
+        department: test.department || '',
+        unit: test.unit || '',
+        referenceRangeMin: referenceRangeMin,
+        referenceRangeMax: referenceRangeMax,
+        price: test.price || 0.00,
+        turnaroundTime: test.turnaroundTime || '',
+        sampleType: test.sampleType || '',
+        requiresSpecialSlip: test.requiresSpecialSlip || false
+      });
+    } else {
+      // Reset form for new test
+      setTestFormState({
+        name: '',
+        department: '',
+        unit: '',
+        referenceRangeMin: '',
+        referenceRangeMax: '',
+        price: 0.00,
+        turnaroundTime: '',
+        sampleType: '',
+        requiresSpecialSlip: false
+      });
+    }
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setEditingTest(null);
     setIsModalOpen(false);
+    // Reset form state
+    setTestFormState({
+      name: '',
+      department: '',
+      unit: '',
+      referenceRangeMin: '',
+      referenceRangeMax: '',
+      price: 0.00,
+      turnaroundTime: '',
+      sampleType: '',
+      requiresSpecialSlip: false
+    });
   };
 
   const handleFormChange = (e) => {
@@ -340,7 +481,9 @@ const Tests = () => {
 
   const filteredTests = labTests.filter(test =>
     test.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    test.department?.toLowerCase().includes(searchTerm.toLowerCase())
+    test.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    test.sampleType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    test.turnaroundTime?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -425,9 +568,29 @@ const Tests = () => {
                     <p><strong>Unit:</strong> {test.unit}</p>
                   </DetailItem>
                 )}
-                {test.referenceRange && (
+                {(test.referenceRangeMin || test.referenceRangeMax || test.referenceRange) && (
                   <DetailItem>
-                    <p><strong>Reference Range:</strong> {test.referenceRange}</p>
+                    <p><strong>Reference Range:</strong> 
+                      {test.referenceRangeMin && test.referenceRangeMax 
+                        ? `${test.referenceRangeMin} - ${test.referenceRangeMax}`
+                        : test.referenceRange || test.referenceRangeMin || test.referenceRangeMax
+                      }
+                    </p>
+                  </DetailItem>
+                )}
+                {test.price > 0 && (
+                  <DetailItem>
+                    <p><strong>Price:</strong> ${test.price.toFixed(2)}</p>
+                  </DetailItem>
+                )}
+                {test.turnaroundTime && (
+                  <DetailItem>
+                    <p><strong>Turnaround Time:</strong> {test.turnaroundTime}</p>
+                  </DetailItem>
+                )}
+                {test.sampleType && (
+                  <DetailItem>
+                    <p><strong>Sample Type:</strong> {test.sampleType}</p>
                   </DetailItem>
                 )}
               </TestDetails>
@@ -444,40 +607,107 @@ const Tests = () => {
               name="name"
               value={testFormState.name}
               onChange={handleFormChange}
-              placeholder="e.g., Glucose"
+              placeholder="Test Name (e.g., Glucose)"
               required
             />
           </FormGroup>
           
           <FormGroup>
             <Label>Department *</Label>
-            <Input
+            <Select
               name="department"
               value={testFormState.department}
               onChange={handleFormChange}
-              placeholder="e.g., Chemistry"
               required
-            />
+            >
+              <option value="">Department (e.g., Chemistry)</option>
+              {DEPARTMENTS.map(dept => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))}
+            </Select>
           </FormGroup>
           
           <FormGroup>
             <Label>Unit</Label>
-            <Input
+            <Select
               name="unit"
               value={testFormState.unit}
               onChange={handleFormChange}
-              placeholder="e.g., mg/dL"
-            />
+            >
+              <option value="">Unit (e.g., mg/dL)</option>
+              {UNITS.map(unit => (
+                <option key={unit} value={unit}>{unit}</option>
+              ))}
+            </Select>
           </FormGroup>
           
           <FormGroup>
             <Label>Reference Range</Label>
+            <ReferenceRangeContainer>
+              <div>
+                <Label>Minimum</Label>
+                <Input
+                  type="number"
+                  name="referenceRangeMin"
+                  value={testFormState.referenceRangeMin}
+                  onChange={handleFormChange}
+                  placeholder="Min value"
+                  step="0.01"
+                />
+              </div>
+              <div>
+                <Label>Maximum</Label>
+                <Input
+                  type="number"
+                  name="referenceRangeMax"
+                  value={testFormState.referenceRangeMax}
+                  onChange={handleFormChange}
+                  placeholder="Max value"
+                  step="0.01"
+                />
+              </div>
+            </ReferenceRangeContainer>
+          </FormGroup>
+          
+          <FormGroup>
+            <Label>Price ($)</Label>
             <Input
-              name="referenceRange"
-              value={testFormState.referenceRange}
+              type="number"
+              name="price"
+              value={testFormState.price}
               onChange={handleFormChange}
-              placeholder="e.g., 70-100"
+              placeholder="0.00"
+              step="0.01"
+              min="0"
             />
+          </FormGroup>
+          
+          <FormGroup>
+            <Label>Turnaround Time</Label>
+            <Select
+              name="turnaroundTime"
+              value={testFormState.turnaroundTime}
+              onChange={handleFormChange}
+            >
+              <option value="">e.g., 24 hours, Same day, 2-3 days</option>
+              {TURNAROUND_TIMES.map(time => (
+                <option key={time} value={time}>{time}</option>
+              ))}
+            </Select>
+          </FormGroup>
+          
+          <FormGroup>
+            <Label>Sample Type</Label>
+            <Select
+              name="sampleType"
+              value={testFormState.sampleType}
+              onChange={handleFormChange}
+            >
+              <option value="">e.g., Blood, Urine, Serum, Plasma</option>
+              {SAMPLE_TYPES.map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </Select>
           </FormGroup>
           
           <CheckboxContainer>

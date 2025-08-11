@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import PremiumBarcodeScanner from '../../components/common/PremiumBarcodeScanner';
-import { logAuditEvent } from '../../utils/auditLogger';
+import { logAuditEvent } from '../../utils/monitoring/auditLogger';
 
 const ScannerPageContainer = styled(motion.div)`
   padding: 2rem;

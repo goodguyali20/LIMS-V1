@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaChartLine, FaClock, FaExclamationTriangle, FaCheckCircle, FaTimes } from 'react-icons/fa';
-import { performanceOptimizer } from '../utils/performanceOptimizer';
+import { performanceOptimizer } from '../utils/performance/performanceOptimizer';
 
 const MonitorContainer = styled(motion.div)`
   position: fixed;

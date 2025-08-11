@@ -4,8 +4,8 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { FiClock, FiCalendar, FiCloud, FiSun, FiCloudRain, FiCloudSnow, FiUsers } from 'react-icons/fi';
-import { getWeatherData, getWeatherIcon } from '../../utils/weatherService';
-import { getTodayPatients, getPatientStatus } from '../../utils/patientMetrics';
+import { getWeatherData, getWeatherIcon } from '../../utils/services/weatherService';
+import { getTodayPatients, getPatientStatus } from '../../utils/data/patientMetrics';
 
 const WelcomeContainer = styled(motion.div)`
   display: flex;

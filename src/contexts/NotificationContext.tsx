@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { io, Socket } from 'socket.io-client';
 import { Notification, RealtimeUpdate } from '../types';
 import { useAuth } from './AuthContext';
-import { trackEvent } from '../utils/errorMonitoring';
+import { trackEvent } from '../utils/monitoring/errorMonitoring';
 
 interface NotificationContextType {
   notifications: Notification[];

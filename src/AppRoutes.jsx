@@ -12,8 +12,7 @@ import General from './pages/Settings/General.jsx';
 import Tests from './pages/Settings/Tests.jsx';
 import Users from './pages/Settings/Users.jsx';
 import LoginPage from './pages/Login/LoginPage.jsx';
-import Layout from './components/Layout/Layout.jsx';
-import AuthRequired from './components/Auth/AuthRequired.jsx';
+import { Layout, AuthRequired } from './components';
 import PatientRegistration from './pages/PatientRegistration/PatientRegistration.jsx';
 import PatientHistory from './pages/PatientHistory/PatientHistory.jsx';
 import WorkQueue from './pages/WorkQueue/WorkQueue.jsx';
@@ -27,15 +26,11 @@ import ResultEntry from './pages/ResultEntry/ResultEntry.jsx';
 import Phlebotomist from './pages/Phlebotomist/Phlebotomist.jsx';
 import SearchResults from './pages/SearchResults.jsx';
 import Scanner from './pages/Scanner/Scanner.jsx';
-import LibraryShowcase from './components/LibraryShowcase.jsx';
-
-import AdvancedLibraryShowcase from './components/AdvancedLibraryShowcase.jsx';
-import PdfGeneratorDemo from './components/Print/PdfGeneratorDemo.jsx';
-import PdfTestPage from './components/Print/PdfTestPage.jsx';
+import { LibraryShowcase, PdfGeneratorDemo, PdfTestPage } from './components';
 import LayoutShiftDebug from './pages/LayoutShiftDebug.jsx';
 import PerformanceMonitor from './pages/PerformanceMonitor.jsx';
 import PatientDetails from './pages/PatientDetails.jsx';
-import AutoCompleteDemoPage from './pages/AutoCompleteDemo.jsx';
+import AutoCompleteDemoPage from './demos/AutoCompleteDemo.jsx';
 
 // Wrapper component that uses theme context
 const AppContent = () => {
@@ -73,7 +68,7 @@ const AppContent = () => {
           <Route path="scanner" element={<Scanner />} />
           <Route path="search" element={<SearchResults />} />
           <Route path="showcase" element={<LibraryShowcase />} />
-          <Route path="advanced-showcase" element={<AdvancedLibraryShowcase />} />
+          <Route path="advanced-showcase" element={<LibraryShowcase />} />
           <Route path="pdf-demo" element={<PdfGeneratorDemo />} />
           <Route path="pdf-test" element={<PdfTestPage />} />
           <Route path="layout-debug" element={<LayoutShiftDebug />} />

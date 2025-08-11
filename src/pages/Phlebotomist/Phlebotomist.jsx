@@ -593,7 +593,7 @@ const ModalSection = styled.div`
 function groupTestsByDepartment(tests) {
   const grouped = {};
   (tests || []).forEach(test => {
-    const dept = typeof test === 'object' && test.department ? test.department : 'General';
+    const dept = typeof test === 'object' && test.department ? test.department : 'Parasitology';
     if (!grouped[dept]) grouped[dept] = [];
     grouped[dept].push(test);
   });
@@ -957,12 +957,20 @@ const Phlebotomist = () => {
     const fetchPatients = async () => {
       try {
         setLoading(true);
+        
+        // Query both patients and testOrders for recollection
         const patientsQuery = query(
           collection(db, 'patients'), 
           orderBy('createdAt', 'desc')
         );
         
-        const unsubscribe = onSnapshot(patientsQuery, (querySnapshot) => {
+        const rejectedOrdersQuery = query(
+          collection(db, 'testOrders'),
+          where('needsRecollection', '==', true),
+          where('status', '==', 'Rejected')
+        );
+        
+        const unsubscribePatients = onSnapshot(patientsQuery, (querySnapshot) => {
           const patientsData = [];
           querySnapshot.forEach((doc) => {
             const data = { id: doc.id, ...doc.data() };
@@ -974,40 +982,95 @@ const Phlebotomist = () => {
             data.sampleConditions = data.sampleConditions || [];
             data.collectionMethod = data.collectionMethod || 'standard';
             data.patientName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
+            data.needsRecollection = false; // Default to false for regular patients
             patientsData.push(data);
           });
           
-          setPatients(patientsData);
-          
-          // Calculate stats
-          const readyForCollection = patientsData.filter(p => p.bloodCollectionStatus === 'ready_for_collection');
-          const samplesCollected = patientsData.filter(p => p.bloodCollectionStatus === 'sample_collected');
-          const urgent = patientsData.filter(p => p.priority === 'urgent');
-          
-          const collectionTimes = samplesCollected
-            .filter(p => p.collectionTime)
-            .map(p => {
-              const created = p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt);
-              const collected = p.collectionTime?.toDate ? p.collectionTime.toDate() : new Date(p.collectionTime);
-              return (collected - created) / (1000 * 60); // minutes
+          // Also listen to rejected orders for recollection
+          const unsubscribeRejectedOrders = onSnapshot(rejectedOrdersQuery, (rejectedSnapshot) => {
+            const rejectedOrdersData = [];
+            rejectedSnapshot.forEach((doc) => {
+              const orderData = { id: doc.id, ...doc.data() };
+              rejectedOrdersData.push(orderData);
             });
-          
-          const avgTime = collectionTimes.length > 0 
-            ? collectionTimes.reduce((a, b) => a + b, 0) / collectionTimes.length 
-            : 0;
-          
-          setStats({
-            totalPatients: patientsData.length,
-            readyForCollection: readyForCollection.length,
-            samplesCollected: samplesCollected.length,
-            urgentPatients: urgent.length,
-            averageCollectionTime: Math.round(avgTime)
+            
+            // Merge rejected orders with patient data
+            const allPatients = [...patientsData];
+            
+            rejectedOrdersData.forEach(rejectedOrder => {
+              // Check if patient already exists in the list
+              const existingPatientIndex = allPatients.findIndex(p => p.id === rejectedOrder.patientId);
+              
+              if (existingPatientIndex >= 0) {
+                // Update existing patient with rejection info
+                allPatients[existingPatientIndex] = {
+                  ...allPatients[existingPatientIndex],
+                  needsRecollection: true,
+                  rejectedOrderId: rejectedOrder.id,
+                  rejectionReason: rejectedOrder.rejectionDetails?.reason || 'Sample rejected',
+                  rejectionNotes: rejectedOrder.rejectionDetails?.notes || '',
+                  rejectedAt: rejectedOrder.rejectionDetails?.rejectedAt,
+                  bloodCollectionStatus: 'needs_recollection'
+                };
+              } else {
+                // Create a patient entry for rejected orders (in case patient was deleted)
+                const rejectedPatient = {
+                  id: rejectedOrder.patientId || `rejected_${rejectedOrder.id}`,
+                  patientName: rejectedOrder.patientName || 'Unknown Patient',
+                  patientId: rejectedOrder.patientId || 'Unknown',
+                  firstName: rejectedOrder.patientName?.split(' ')[0] || 'Unknown',
+                  lastName: rejectedOrder.patientName?.split(' ').slice(1).join(' ') || 'Patient',
+                  phoneNumber: rejectedOrder.patientPhone || '',
+                  needsRecollection: true,
+                  rejectedOrderId: rejectedOrder.id,
+                  rejectionReason: rejectedOrder.rejectionDetails?.reason || 'Sample rejected',
+                  rejectionNotes: rejectedOrder.rejectionDetails?.notes || '',
+                  rejectedAt: rejectedOrder.rejectionDetails?.rejectedAt,
+                  bloodCollectionStatus: 'needs_recollection',
+                  priority: 'urgent', // Rejected samples get urgent priority
+                  createdAt: rejectedOrder.rejectionDetails?.rejectedAt || new Date(),
+                  isRejectedOrder: true
+                };
+                allPatients.push(rejectedPatient);
+              }
+            });
+            
+            setPatients(allPatients);
+            
+            // Calculate stats including rejected orders
+            const readyForCollection = allPatients.filter(p => p.bloodCollectionStatus === 'ready_for_collection');
+            const samplesCollected = allPatients.filter(p => p.bloodCollectionStatus === 'sample_collected');
+            const needsRecollection = allPatients.filter(p => p.needsRecollection);
+            const urgent = allPatients.filter(p => p.priority === 'urgent');
+            
+            const collectionTimes = samplesCollected
+              .filter(p => p.collectionTime)
+              .map(p => {
+                const created = p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt);
+                const collected = p.collectionTime?.toDate ? p.collectionTime.toDate() : new Date(p.collectionTime);
+                return (collected - created) / (1000 * 60); // minutes
+              });
+            
+            const avgTime = collectionTimes.length > 0 
+              ? collectionTimes.reduce((a, b) => a + b, 0) / collectionTimes.length 
+              : 0;
+            
+            setStats({
+              totalPatients: allPatients.length,
+              readyForCollection: readyForCollection.length,
+              samplesCollected: samplesCollected.length,
+              needsRecollection: needsRecollection.length,
+              urgentPatients: urgent.length,
+              averageCollectionTime: Math.round(avgTime)
+            });
+            
+            setLoading(false);
           });
           
-          setLoading(false);
+          return () => unsubscribeRejectedOrders();
         });
 
-        return () => unsubscribe();
+        return () => unsubscribePatients();
       } catch (error) {
         console.error('Error fetching patients:', error);
         showFlashMessage({ type: 'error', title: t('phlebotomyView.error', { defaultValue: 'Error' }), message: t('phlebotomyView.failedToLoadPatientData') });
@@ -1396,6 +1459,9 @@ const Phlebotomist = () => {
   const collectedPatients = filteredPatients.filter(
     p => p.bloodCollectionStatus === 'sample_collected'
   );
+  const needsRecollectionPatients = filteredPatients.filter(
+    p => p.bloodCollectionStatus === 'needs_recollection'
+  );
 
   return (
     <PhlebotomistContainer
@@ -1459,6 +1525,17 @@ const Phlebotomist = () => {
             Requires immediate attention
           </StatChange>
         </StatCard>
+
+        <StatCard>
+          <StatIcon color="#F59E0B">
+            <FaExclamationTriangle />
+          </StatIcon>
+          <StatValue>{stats.needsRecollection}</StatValue>
+          <StatLabel>{t('phlebotomyView.needsRecollection', { defaultValue: 'Needs Recollection' })}</StatLabel>
+          <StatChange $positive={false}>
+            Rejected samples
+          </StatChange>
+        </StatCard>
       </StatsContainer>
 
       {/* Enhanced Search & Filters */}
@@ -1482,6 +1559,7 @@ const Phlebotomist = () => {
             <option value="ready_for_collection">{t('phlebotomyView.readyForCollection', { defaultValue: 'Ready for Collection' })}</option>
             <option value="sample_collected">{t('phlebotomyView.sampleCollected', { defaultValue: 'Sample Collected' })}</option>
             <option value="in_progress">{t('phlebotomyView.inProgress', { defaultValue: 'In Progress' })}</option>
+            <option value="needs_recollection">{t('phlebotomyView.needsRecollection', { defaultValue: 'Needs Recollection' })}</option>
           </FilterSelect>
 
           <FilterSelect
@@ -1768,6 +1846,116 @@ const Phlebotomist = () => {
           )}
         </div>
       </GlowCard>
+
+      {/* Needs Recollection Section */}
+      {needsRecollectionPatients.length > 0 && (
+        <GlowCard style={{ minHeight: 180, marginBottom: 32, background: theme.isDarkMode ? '#181C23' : '#f8fafc', boxShadow: theme.isDarkMode ? '0 8px 32px #1118' : '0 8px 32px #e0e7ef33', border: 'none', backdropFilter: 'blur(18px)' }}>
+          <div style={{ padding: '2rem 1.5rem 1.5rem 1.5rem' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16,
+              marginBottom: 24,
+              fontWeight: 700,
+              fontSize: '1.2rem',
+              color: '#f59e0b'
+            }}>
+              <FaExclamationTriangle style={{ color: '#f59e0b', fontSize: 28, marginRight: 8 }} />
+              {t('phlebotomyView.needsRecollection', { defaultValue: 'Needs Recollection' })}
+              <span style={{ color: theme.colors.text, fontWeight: 600, fontSize: '1.1rem', marginLeft: 8 }}>
+                {needsRecollectionPatients.length}
+              </span>
+            </div>
+            <div style={{
+              background: theme.isDarkMode ? '#451a03' : '#fef3c7',
+              border: '1px solid #f59e0b',
+              borderRadius: 12,
+              padding: '1rem 1.5rem',
+              marginBottom: 24,
+              color: '#92400e',
+              fontSize: '0.95rem'
+            }}>
+              <FaExclamationTriangle style={{ marginRight: 8, display: 'inline' }} />
+              {t('phlebotomyView.recollectionWarning', { defaultValue: 'These samples were rejected and require recollection. Please collect new samples from these patients.' })}
+            </div>
+            <PatientGrid>
+              {needsRecollectionPatients.map((patient) => (
+                <PatientCard
+                  key={patient.id}
+                  style={{ marginBottom: 28 }}
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <PatientCardContent $priority="rejected" style={{ 
+                    boxShadow: `0 0 16px 2px #f59e0b44, 0 8px 32px #0002`,
+                    borderLeft: '4px solid #f59e0b',
+                    background: theme.isDarkMode ? 'linear-gradient(135deg, #1f2937 0%, #451a03 100%)' : 'linear-gradient(135deg, #f8fafc 0%, #fef3c7 100%)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                      <FaExclamationTriangle style={{ color: '#f59e0b', fontSize: 22 }} title={t('phlebotomyView.sampleRejected', { defaultValue: 'Sample Rejected' })} />
+                      <PatientName style={{ color: '#f59e0b' }}>{patient.patientName}</PatientName>
+                      <span style={{ 
+                        background: '#f59e0b', 
+                        color: '#ffffff', 
+                        padding: '2px 8px', 
+                        borderRadius: 12, 
+                        fontSize: '0.75rem', 
+                        fontWeight: 700 
+                      }}>
+                        {t('phlebotomyView.rejected', { defaultValue: 'REJECTED' })}
+                      </span>
+                    </div>
+                    <PatientMeta>
+                      <FaIdCard size={13} style={{marginRight: 4}} />{patient.patientId} &nbsp;|
+                      <FaCalendar size={13} style={{margin: '0 4px 0 8px'}} />{typeof patient.age === 'object' && patient.age !== null ? `${patient.age.value} ${patient.age.unit}` : patient.age} &nbsp;|
+                      <FaUser size={13} style={{margin: '0 4px 0 8px'}} />{patient.gender}
+                    </PatientMeta>
+                    {patient.rejectionReason && (
+                      <div style={{ 
+                        color: '#92400e', 
+                        fontSize: '0.9rem', 
+                        margin: '8px 0', 
+                        padding: '8px 12px', 
+                        background: 'rgba(245, 158, 11, 0.1)', 
+                        borderRadius: 8,
+                        border: '1px solid rgba(245, 158, 11, 0.3)'
+                      }}>
+                        <strong>{t('phlebotomyView.rejectionReason', { defaultValue: 'Rejection Reason' })}:</strong> {patient.rejectionReason}
+                        {patient.rejectionNotes && (
+                          <div style={{ marginTop: 4, fontStyle: 'italic' }}>
+                            {t('phlebotomyView.rejectionNotes', { defaultValue: 'Notes' })}: {patient.rejectionNotes}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <PatientTags style={{ marginTop: 12 }}>
+                      {(Array.isArray(patient.selectedTests) ? patient.selectedTests : []).map((test, idx) => (
+                        <PatientTag key={idx} color="#f59e0b"><FaTag size={12} />{typeof test === 'string' ? test : (test?.name || test?.id || 'Unknown Test')}</PatientTag>
+                      ))}
+                    </PatientTags>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
+                      <GlowButton
+                        $variant="warning"
+                        style={{ fontSize: '0.98rem', fontWeight: 700, padding: '0.5rem 0.9rem', borderRadius: 10, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}
+                        onClick={() => handleViewDetails(patient)}
+                      >
+                        <FaEye style={{ marginRight: 4 }} />{t('phlebotomyView.details', { defaultValue: 'Details' })}
+                      </GlowButton>
+                      <GlowButton
+                        $variant="success"
+                        style={{ fontSize: '0.98rem', fontWeight: 700, padding: '0.5rem 0.9rem', borderRadius: 10, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}
+                        onClick={() => handleAcceptPatient(patient)}
+                      >
+                        <FaSyringe style={{ marginRight: 4 }} />{t('phlebotomyView.recollect', { defaultValue: 'Recollect' })}
+                      </GlowButton>
+                    </div>
+                  </PatientCardContent>
+                </PatientCard>
+              ))}
+            </PatientGrid>
+          </div>
+        </GlowCard>
+      )}
 
       <AnimatePresence>
         {modalPatient && (

@@ -6,13 +6,13 @@ import {
   applyQuickFixes, 
   monitorElement, 
   createVisualOverlay 
-} from '../utils/layoutShiftDebugger';
+} from '../utils/performance/layoutShiftDebugger';
 import { 
   LayoutShiftPreventionWrapper, 
   SkeletonLoader,
   SkeletonGrid,
   SkeletonList 
-} from '../utils/layoutShiftPrevention';
+} from '../utils/performance/layoutShiftPrevention';
 
 const DebugContainer = styled.div`
   padding: 2rem;

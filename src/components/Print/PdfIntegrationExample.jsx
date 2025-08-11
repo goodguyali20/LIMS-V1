@@ -78,7 +78,7 @@ const PdfIntegrationExample = ({ orderData, patientData, testResults }) => {
       tests: testResults?.map(result => ({
         testId: result.testId || result.testName?.substring(0, 3).toUpperCase(),
         testName: result.testName || result.test || 'Unknown Test',
-        department: result.department || 'General',
+        department: result.department || 'Parasitology',
         result: result.value || result.result || 'N/A',
         units: result.unit || result.units || '',
         referenceRange: result.referenceRange || result.normalRange || 'N/A',
