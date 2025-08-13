@@ -3,3 +3,6 @@ node_modules
 coverage
 .storybook-static
 public
+vite.config.ts
+vitest.config.ts
+*.cjs
