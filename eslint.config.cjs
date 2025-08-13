@@ -1,5 +1,5 @@
 // For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
-import storybook from "eslint-plugin-storybook";
+// Note: Using CommonJS requires. Avoid ESM imports in .cjs files to prevent ESLint loader errors.
 
 const js = require('@eslint/js');
 const globals = require('globals');
