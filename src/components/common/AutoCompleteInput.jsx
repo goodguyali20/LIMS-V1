@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaChevronDown, FaTimes } from 'react-icons/fa';
+import { FaChevronDown, FaTimes, FaPlus } from 'react-icons/fa';
 
 const InputContainer = styled.div`
   position: relative;
@@ -57,6 +57,7 @@ const SuggestionsContainer = styled(motion.div)`
   max-height: 200px;
   overflow-y: auto;
   margin-top: 4px;
+  backdrop-filter: blur(10px);
 `;
 
 const SuggestionItem = styled.div`
@@ -64,6 +65,8 @@ const SuggestionItem = styled.div`
   cursor: pointer;
   transition: background-color 0.2s ease;
   border-bottom: 1px solid #f0f0f0;
+  color: #23263a;
+  font-weight: 500;
   
   &:hover {
     background-color: rgba(102, 126, 234, 0.1);
@@ -79,6 +82,8 @@ const NoSuggestions = styled.div`
   color: #6b7280;
   font-style: italic;
   text-align: center;
+  background-color: #f9fafb;
+  border-top: 1px solid #f0f0f0;
 `;
 
 const LoadingSpinner = styled.div`
@@ -87,6 +92,8 @@ const LoadingSpinner = styled.div`
   justify-content: center;
   padding: 0.75rem 1rem;
   color: #6b7280;
+  background-color: #f9fafb;
+  border-top: 1px solid #f0f0f0;
   
   &::after {
     content: '';
@@ -124,6 +131,27 @@ const ClearButton = styled.button`
   }
 `;
 
+const AddNewNameButton = styled.div`
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-top: 1px solid #f0f0f0;
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &:hover {
+    background-color: rgba(34, 197, 94, 0.2);
+  }
+  
+  svg {
+    font-size: 0.875rem;
+  }
+`;
+
 const AutoCompleteInput = React.forwardRef(({
   value,
   onChange,
@@ -138,11 +166,15 @@ const AutoCompleteInput = React.forwardRef(({
   disabled = false,
   required = false,
   autoComplete = 'off',
+  showClearButton = true,
+  onSaveNewName,
+  showAddNewOption = false,
   ...props
 }, ref) => {
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [showAddNew, setShowAddNew] = useState(false);
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
 
@@ -150,6 +182,15 @@ const AutoCompleteInput = React.forwardRef(({
   const filteredSuggestions = suggestions.filter(suggestion =>
     suggestion.toLowerCase().includes(value.toLowerCase())
   );
+
+  // Show add new option if input doesn't match any suggestions and is long enough
+  useEffect(() => {
+    if (value && value.length >= 2 && filteredSuggestions.length === 0 && !isLoading) {
+      setShowAddNew(true);
+    } else {
+      setShowAddNew(false);
+    }
+  }, [value, filteredSuggestions.length, isLoading]);
 
   // Handle input change
   const handleInputChange = (e) => {
@@ -167,15 +208,37 @@ const AutoCompleteInput = React.forwardRef(({
     inputRef.current?.focus();
   };
 
+  // Handle adding new name
+  const handleAddNewName = async () => {
+    if (onSaveNewName && value) {
+      try {
+        const success = await onSaveNewName(value);
+        if (success) {
+          // Clear input after successful save
+          onChange({ target: { name, value: '' } });
+          setShowSuggestions(false);
+          setShowAddNew(false);
+          // Assuming showFlashMessage is a prop or context function
+          // showFlashMessage({ type: 'success', title: 'Name Added', message: `"${value}" has been added to the database!` });
+        }
+      } catch (error) {
+        // Assuming showFlashMessage is a prop or context function
+        // showFlashMessage({ type: 'error', title: 'Error', message: 'Failed to add new name' });
+      }
+    }
+  };
+
   // Handle keyboard navigation
   const handleKeyDown = (e) => {
-    if (!showSuggestions) return;
+    if (!showSuggestions && !showAddNew) return;
+
+    const totalOptions = filteredSuggestions.length + (showAddNew ? 1 : 0);
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
         setHighlightedIndex(prev => 
-          prev < filteredSuggestions.length - 1 ? prev + 1 : prev
+          prev < totalOptions - 1 ? prev + 1 : prev
         );
         break;
       case 'ArrowUp':
@@ -184,8 +247,12 @@ const AutoCompleteInput = React.forwardRef(({
         break;
       case 'Enter':
         e.preventDefault();
-        if (highlightedIndex >= 0 && filteredSuggestions[highlightedIndex]) {
-          handleSuggestionClick(filteredSuggestions[highlightedIndex]);
+        if (highlightedIndex >= 0) {
+          if (highlightedIndex < filteredSuggestions.length) {
+            handleSuggestionClick(filteredSuggestions[highlightedIndex]);
+          } else if (showAddNew) {
+            handleAddNewName();
+          }
         }
         break;
       case 'Escape':
@@ -253,14 +320,14 @@ const AutoCompleteInput = React.forwardRef(({
         {...props}
       />
       
-      {value && (
+      {value && showClearButton && (
         <ClearButton onClick={handleClear} type="button">
           <FaTimes size={12} />
         </ClearButton>
       )}
 
       <AnimatePresence>
-        {showSuggestions && (
+        {(showSuggestions || showAddNew) && (
           <SuggestionsContainer
             ref={suggestionsRef}
             initial={{ opacity: 0, y: -10 }}
@@ -272,22 +339,38 @@ const AutoCompleteInput = React.forwardRef(({
               <LoadingSpinner>
                 Loading suggestions...
               </LoadingSpinner>
-            ) : filteredSuggestions.length > 0 ? (
-              filteredSuggestions.map((suggestion, index) => (
-                <SuggestionItem
-                  key={suggestion}
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  style={{
-                    backgroundColor: index === highlightedIndex ? 'rgba(102, 126, 234, 0.1)' : 'transparent'
-                  }}
-                >
-                  {suggestion}
-                </SuggestionItem>
-              ))
             ) : (
-              <NoSuggestions>
-                No suggestions found
-              </NoSuggestions>
+              <>
+                {filteredSuggestions.map((suggestion, index) => (
+                  <SuggestionItem
+                    key={suggestion}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    style={{
+                      backgroundColor: index === highlightedIndex ? 'rgba(102, 126, 234, 0.1)' : 'transparent'
+                    }}
+                  >
+                    {suggestion}
+                  </SuggestionItem>
+                ))}
+                
+                {showAddNew && (
+                  <AddNewNameButton
+                    onClick={handleAddNewName}
+                    style={{
+                      backgroundColor: (filteredSuggestions.length === highlightedIndex) ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.1)'
+                    }}
+                  >
+                    <FaPlus />
+                    Add "{value}" as new name
+                  </AddNewNameButton>
+                )}
+                
+                {filteredSuggestions.length === 0 && !showAddNew && !isLoading && (
+                  <NoSuggestions>
+                    No suggestions found
+                  </NoSuggestions>
+                )}
+              </>
             )}
           </SuggestionsContainer>
         )}

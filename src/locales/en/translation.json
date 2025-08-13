@@ -102,6 +102,9 @@
     "firstNameTip": "Start typing for name suggestions",
     "fathersNameTip": "Start typing for name suggestions",
     "grandFathersNameTip": "Start typing for name suggestions",
+    "firstNamePlaceholder": "Enter first name",
+    "fathersNamePlaceholder": "Enter father's name",
+    "grandFathersNamePlaceholder": "Enter grandfather's name",
     "autoComplete": {
       "noSuggestions": "No suggestions found",
       "loading": "Loading suggestions...",
@@ -962,6 +965,7 @@
     "selectAll": "Select All",
     "bulkMarkCollected": "Bulk Mark Collected",
     "bulkMarkReady": "Bulk Mark Ready",
+    "bulkDelete": "Delete All",
     "selected": "selected",
     "scanBarcode": "Scan Barcode",
     "selectPatient": "Select patient",
@@ -1005,6 +1009,9 @@
     "markedUrgent": "Patient {{patientName}} marked as urgent",
     "failedToMarkUrgent": "Failed to mark patient as urgent",
     "reassigned": "Patient {{patientName}} reassigned successfully",
-    "failedToReassign": "Failed to reassign patient"
+    "failedToReassign": "Failed to reassign patient",
+    "deleteConfirmation": "Are you sure you want to delete {{count}} selected patient(s)? This action cannot be undone.",
+    "deleteSuccess": "Successfully deleted {{count}} patient(s)",
+    "deleteError": "Failed to delete some patients. Please try again."
   }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { collection, query, where, orderBy, onSnapshot, updateDoc, doc, addDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, updateDoc, doc, addDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -12,7 +12,8 @@ import {
   FaUserMd, FaVial, FaSyringe, FaThermometer, FaExclamationTriangle,
   FaInfoCircle, FaChartLine, FaCalendarAlt, FaMapMarkerAlt,
   FaUserCircle, FaFileAlt, FaDownload, FaUpload, FaCog, FaBell,
-  FaIdCard, FaUserPlus, FaHeartbeat, FaNotesMedical, FaFlask, FaTag
+  FaIdCard, FaUserPlus, FaHeartbeat, FaNotesMedical, FaFlask, FaTag,
+  FaTrash
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import GlowCard from '../../components/common/GlowCard';
@@ -1410,6 +1411,48 @@ const Phlebotomist = () => {
     setSelectedPatientIds([]);
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedPatientIds.length === 0) return;
+    
+    try {
+      // Show confirmation dialog
+      const confirmed = window.confirm(
+        t('phlebotomyView.deleteConfirmation', { 
+          defaultValue: `Are you sure you want to delete ${selectedPatientIds.length} selected patient(s)? This action cannot be undone.`,
+          count: selectedPatientIds.length
+        })
+      );
+      
+      if (!confirmed) return;
+      
+      // Delete all selected patients
+      for (const id of selectedPatientIds) {
+        await deleteDoc(doc(db, "patients", id));
+      }
+      
+      // Clear selection
+      setSelectedPatientIds([]);
+      
+      // Show success message
+      showFlashMessage({ 
+        type: 'success', 
+        title: t('phlebotomyView.success', { defaultValue: 'Success' }), 
+        message: t('phlebotomyView.deleteSuccess', { 
+          defaultValue: `Successfully deleted ${selectedPatientIds.length} patient(s)`,
+          count: selectedPatientIds.length
+        })
+      });
+      
+    } catch (error) {
+      console.error('Error deleting patients:', error);
+      showFlashMessage({ 
+        type: 'error', 
+        title: t('phlebotomyView.error', { defaultValue: 'Error' }), 
+        message: t('phlebotomyView.deleteError', { defaultValue: 'Failed to delete some patients. Please try again.' })
+      });
+    }
+  };
+
   // Handler to toggle expansion
   const handleToggleExpand = (id) => {
     setExpandedPatientIds((prev) =>
@@ -1462,6 +1505,8 @@ const Phlebotomist = () => {
   const needsRecollectionPatients = filteredPatients.filter(
     p => p.bloodCollectionStatus === 'needs_recollection'
   );
+  
+
 
   return (
     <PhlebotomistContainer
@@ -1656,6 +1701,14 @@ const Phlebotomist = () => {
                     onClick={handleBulkMarkReady}
                   >
                     <FaClock style={{ marginRight: 8 }} />{t('phlebotomyView.bulkMarkReady', { defaultValue: 'Bulk Mark Ready' })}
+                  </GlowButton>
+                  <GlowButton
+                    $variant="danger"
+                    disabled={selectedPatientIds.length === 0}
+                    onClick={handleBulkDelete}
+                    style={{ backgroundColor: '#dc3545', borderColor: '#dc3545' }}
+                  >
+                    <FaTrash style={{ marginRight: 8 }} />{t('phlebotomyView.bulkDelete', { defaultValue: 'Delete All' })}
                   </GlowButton>
                   <span style={{ color: '#888', fontSize: '0.95rem' }}>{selectedPatientIds.length} {t('phlebotomyView.selected', { defaultValue: 'selected' })}</span>
                 </div>

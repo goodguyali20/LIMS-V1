@@ -11,8 +11,8 @@ const NotificationContainer = styled(motion.div)`
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-width: 400px;
+  gap: 8px;
+  max-width: 320px;
 `;
 
 const NotificationCard = styled(motion.div)`
@@ -26,21 +26,21 @@ const NotificationCard = styled(motion.div)`
     }
   }};
   color: white;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
 `;
 
 const IconContainer = styled.div`
   flex-shrink: 0;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.25rem;
+  height: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -73,8 +73,8 @@ const Content = styled.div`
 const Message = styled('p')`
   margin: 0;
   color: ${({ theme }) => theme.colors.text};
-  font-size: 0.875rem;
-  line-height: 1.4;
+  font-size: 0.8rem;
+  line-height: 1.3;
 `;
 
 const CloseButton = styled.button`
@@ -82,7 +82,7 @@ const CloseButton = styled.button`
   border: none;
   color: ${({ theme }) => theme.colors.textSecondary};
   cursor: pointer;
-  padding: 0.25rem;
+  padding: 0.2rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -161,7 +161,7 @@ const AnimatedNotification = ({
       >
         <NotificationCard type={type}>
           <IconContainer type={type}>
-            <Icon className="w-4 h-4" />
+            <Icon className="w-3 h-3" />
           </IconContainer>
           
           <Content>
@@ -170,7 +170,7 @@ const AnimatedNotification = ({
           
           {onClose && (
             <CloseButton onClick={onClose}>
-              <X className="w-4 h-4" />
+              <X className="w-3 h-3" />
             </CloseButton>
           )}
         </NotificationCard>

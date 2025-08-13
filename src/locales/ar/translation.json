@@ -88,6 +88,7 @@
     "selectAll": "تحديد الكل",
     "bulkMarkCollected": "تحديد كمجمعة",
     "bulkMarkReady": "تحديد كجاهز",
+    "bulkDelete": "حذف الكل",
     "selected": "محدد",
     "scanBarcode": "مسح الباركود",
     "selectPatient": "تحديد المريض",
@@ -131,7 +132,10 @@
     "markedUrgent": "تم تحديد المريض {{patientName}} كعاجل",
     "failedToMarkUrgent": "فشل في تحديد المريض كعاجل",
     "reassigned": "تم إعادة إسناد المريض {{patientName}} بنجاح",
-    "failedToReassign": "فشل في إعادة إسناد المريض"
+    "failedToReassign": "فشل في إعادة إسناد المريض",
+    "deleteConfirmation": "هل أنت متأكد من أنك تريد حذف {{count}} مريض محدد؟ لا يمكن التراجع عن هذا الإجراء.",
+    "deleteSuccess": "تم حذف {{count}} مريض بنجاح",
+    "deleteError": "فشل في حذف بعض المرضى. يرجى المحاولة مرة أخرى."
   },
   "qualityControl": "مراقبة الجودة",
     "inventory": "المخزون",
@@ -194,6 +198,9 @@
     "firstNameTip": "ابدأ بالكتابة للحصول على اقتراحات الأسماء",
     "fathersNameTip": "ابدأ بالكتابة للحصول على اقتراحات الأسماء",
     "grandFathersNameTip": "ابدأ بالكتابة للحصول على اقتراحات الأسماء",
+    "firstNamePlaceholder": "أدخل الاسم الأول",
+    "fathersNamePlaceholder": "أدخل اسم الأب",
+    "grandFathersNamePlaceholder": "أدخل اسم الجد",
     "autoComplete": {
       "noSuggestions": "لم يتم العثور على اقتراحات",
       "loading": "جاري تحميل الاقتراحات...",

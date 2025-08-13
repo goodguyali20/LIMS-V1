@@ -25,7 +25,69 @@ const Wrapper = styled.div`
     width: 100vw;
     min-height: 100vh;
     padding: 1rem 0.8rem 0.8rem 0.8rem;
-    background: white;
+    background: white !important;
+    color: black !important;
+    
+    /* Ensure all text is visible and styled properly */
+    * {
+      color: black !important;
+      background: transparent !important;
+    }
+    
+    /* Keep the gradient title visible */
+    .title {
+      background: #3b82f6 !important;
+      -webkit-background-clip: unset !important;
+      -webkit-text-fill-color: unset !important;
+      background-clip: unset !important;
+      color: #3b82f6 !important;
+    }
+    
+    /* Keep the patient queue number styling */
+    .patient-queue-number {
+      background: #3b82f6 !important;
+      color: white !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    
+    /* Ensure table borders are visible */
+    table {
+      border-collapse: collapse !important;
+      width: 100% !important;
+    }
+    
+    th, td {
+      border: 1px solid #ddd !important;
+      padding: 8px !important;
+      text-align: left !important;
+    }
+    
+    th {
+      background: #f8f9fa !important;
+      font-weight: bold !important;
+    }
+    
+    /* Keep section titles visible */
+    .section-title {
+      color: #1e40af !important;
+      font-weight: bold !important;
+      border-bottom: 2px solid #3b82f6 !important;
+      padding-bottom: 0.5rem !important;
+      margin-bottom: 1rem !important;
+    }
+    
+    /* Ensure proper spacing */
+    .section {
+      margin-bottom: 1.5rem !important;
+      page-break-inside: avoid !important;
+    }
+    
+    /* Keep the header styling */
+    .header {
+      border-bottom: 3px solid #3b82f6 !important;
+      background: #f8f9fa !important;
+    }
   }
 `;
 
@@ -138,6 +200,13 @@ const InfoGrid = styled.div`
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
   }
+  
+  /* Ensure content uses full width */
+  > div {
+    min-width: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
 `;
 
 const InfoItem = styled.div`
@@ -147,6 +216,8 @@ const InfoItem = styled.div`
   border-left: 4px solid #3b82f6;
   border: 1px solid #e2e8f0;
   transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
   
   &:hover {
     transform: translateY(-1px);
@@ -249,37 +320,118 @@ const BarcodeBox = styled.div`
 const MasterSlip = ({ order, user, settings }) => {
   const now = new Date();
   const { t } = useTranslation();
+  
+  // Debug: Log the order data to see what we're receiving
+  console.log('MasterSlip - Order data:', order);
+  console.log('MasterSlip - Patient data fields:', {
+    firstName: order?.firstName,
+    fathersName: order?.fathersName,
+    grandFathersName: order?.grandFathersName,
+    lastName: order?.lastName,
+    patientName: order?.patientName,
+    patientId: order?.patientId,
+    age: order?.age,
+    gender: order?.gender,
+    phone: order?.phone
+  });
+  console.log('MasterSlip - Address data:', order?.address);
+  console.log('MasterSlip - Address fields detail:', {
+    governorate: order?.address?.governorate,
+    district: order?.address?.district,
+    area: order?.address?.area,
+    landmark: order?.address?.landmark
+  });
+  
   return (
-    <Wrapper className="print-only-premium">
+    <Wrapper className="print-only-premium" id="master-slip">
       <Watermark>{t('masterSlip').toUpperCase()}</Watermark>
-      <Header>
-        <Title>{t('masterSlip')}</Title>
+      <Header className="header">
+        <Title className="title">{t('masterSlip')}</Title>
         <Meta>
-          <div>{t('orderIdLabel')} {order?.id?.substring(0, 8) || 'N/A'}</div>
+          <div>{t('orderIdLabel')} {order?.id || order?.orderId || 'Preview Mode'}</div>
           <div>{t('dateLabel')} {now.toLocaleDateString()} {now.toLocaleTimeString()}</div>
           <div>{t('userLabel')} {user?.displayName || user?.email || 'N/A'}</div>
         </Meta>
       </Header>
-      <Section>
-        <SectionTitle>{t('patientInformation')}</SectionTitle>
+      
+      {/* Patient Queue Number Display */}
+      {order?.queueNumber && (
+        <div 
+          className="patient-queue-number"
+          style={{
+            textAlign: 'center',
+            marginBottom: '1.5rem',
+            padding: '1rem',
+            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+            color: 'white',
+            borderRadius: '12px',
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+          }}
+        >
+          Patient Queue Number: #{order.queueNumber}
+        </div>
+      )}
+      <Section className="section">
+        <SectionTitle className="section-title">{t('patientInformation')}</SectionTitle>
         <InfoGrid>
+          {/* Name - always show */}
           <InfoItem><strong>{t('nameLabel')}</strong> {order?.firstName ? `${order.firstName} ${order.fathersName || ''} ${order.grandFathersName || ''} ${order.lastName || ''}`.trim() : (order?.patientName || 'N/A')}</InfoItem>
-          <InfoItem><strong>{t('patientIdLabel')}</strong> {order?.patientId || 'N/A'}</InfoItem>
-          <InfoItem><strong>{t('ageGenderLabel')}</strong> {typeof order?.age === 'object' ? `${order?.age?.value || ''} ${order?.age?.unit || ''}` : order?.age || 'N/A'} / {order?.gender || 'N/A'}</InfoItem>
-          <InfoItem><strong>{t('phoneLabel')}</strong> {order?.phone || 'N/A'}</InfoItem>
-          <InfoItem><strong>{t('referringDoctorLabel')}</strong> {order?.referringDoctor || 'N/A'}</InfoItem>
-          <InfoItem><strong>{t('priorityLabel')}</strong> {order?.priority || 'NORMAL'}</InfoItem>
+          
+          {/* Patient ID - only show if provided */}
+          {order?.patientId && order.patientId !== 'N/A' && (
+            <InfoItem><strong>{t('patientIdLabel')}</strong> {order.patientId}</InfoItem>
+          )}
+          
+          {/* Age/Gender - only show if either is provided */}
+          {(order?.age || order?.gender) && (
+            <InfoItem>
+              <strong>{t('ageGenderLabel')}</strong> 
+              {typeof order?.age === 'object' ? `${order?.age?.value || ''} ${order?.age?.unit || ''}` : order?.age || ''} 
+              {order?.age && order?.gender ? ' / ' : ''}
+              {order?.gender || ''}
+            </InfoItem>
+          )}
+          
+          {/* Phone - only show if provided */}
+          {order?.phone && order.phone !== 'N/A' && (
+            <InfoItem><strong>{t('phoneLabel')}</strong> {order.phone}</InfoItem>
+          )}
+          
+          {/* Referring Doctor - only show if provided */}
+          {order?.referringDoctor && order.referringDoctor !== 'N/A' && (
+            <InfoItem><strong>{t('referringDoctorLabel')}</strong> {order.referringDoctor}</InfoItem>
+          )}
+          
+          {/* Priority - only show if provided and not default */}
+          {order?.priority && order.priority !== 'Normal' && order.priority !== 'NORMAL' && (
+            <InfoItem><strong>{t('priorityLabel')}</strong> {order.priority}</InfoItem>
+          )}
+          
+          {/* Address - only show if provided */}
+          {order?.address && Object.keys(order.address).length > 0 && (
+            <InfoItem>
+              <strong>Address:</strong> {
+                [
+                  order.address.landmark ? (typeof order.address.landmark === 'object' ? order.address.landmark.label || order.address.landmark.value : order.address.landmark) : null,
+                  order.address.area ? (typeof order.address.area === 'object' ? order.address.area.label || order.address.area.value : order.address.area) : null,
+                  order.address.district ? (typeof order.address.district === 'object' ? order.address.district.label || order.address.district.value : order.address.district) : null,
+                  order.address.governorate ? (typeof order.address.governorate === 'object' ? order.address.governorate.label || order.address.governorate.value : order.address.governorate) : null
+                ].filter(Boolean).join(' - ')
+              }
+            </InfoItem>
+          )}
         </InfoGrid>
       </Section>
-      <Section>
-        <SectionTitle>{t('allTests')}</SectionTitle>
+      <Section className="section">
+        <SectionTitle className="section-title">{t('allTests')}</SectionTitle>
         <Table>
           <thead>
             <tr>
               <th>{t('testLabel')}</th>
               <th>{t('departmentLabel')}</th>
-              <th>{t('statusLabel')}</th>
-              <th>{t('notesLabel')}</th>
+              <th>Queue #</th>
             </tr>
           </thead>
           <tbody>
@@ -311,22 +463,28 @@ const MasterSlip = ({ order, user, settings }) => {
                 testName = 'Unknown Test';
               }
               
+              // Get department queue number
+              const department = typeof test === 'object' ? test.department || 'General' : 'General';
+              const queueNumber = order?.departmentNumbers?.[department] || order?.queueNumber || 'N/A';
+              
               return (
                 <tr key={idx}>
                   <td>{testName}</td>
-                  <td>{typeof test === 'object' ? test.department || 'Parasitology' : 'Parasitology'}</td>
-                  <td style={{color: '#10b981', fontWeight: 700}}>{t('pendingStatus')}</td>
-                  <td>{t('emptyDash')}</td>
+                  <td>{department}</td>
+                  <td style={{color: '#3b82f6', fontWeight: 700, textAlign: 'center'}}>#{queueNumber}</td>
                 </tr>
               );
             })}
           </tbody>
         </Table>
       </Section>
-      <Section>
-        <SectionTitle>{t('notes')}</SectionTitle>
-        <div style={{minHeight: '2rem'}}>{order?.notes || '—'}</div>
-      </Section>
+      {/* Notes - only show if provided */}
+      {order?.notes && order.notes.trim() !== '' && (
+        <Section>
+          <SectionTitle>{t('notes')}</SectionTitle>
+          <div style={{minHeight: '2rem'}}>{order.notes}</div>
+        </Section>
+      )}
       {/* Remove SignatureRow */}
       {/* <SignatureRow>
         <SignatureBox>{t('doctorSignature')}</SignatureBox>
@@ -337,8 +495,7 @@ const MasterSlip = ({ order, user, settings }) => {
         {/* {order?.id && <QRCode value={order.id} size={40} />} */}
       </BarcodeBox>
       <Footer>
-        <div>{t('printedBySmartLabPremiumLims')}</div>
-        <div>{t('orderQrBarcodeComingSoon')}</div>
+        <div>Printed by SmartLab LIMS</div>
       </Footer>
       
       {/* Subtle SmartLab logo at bottom */}

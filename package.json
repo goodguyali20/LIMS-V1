@@ -32,7 +32,8 @@
     "build-storybook": "storybook build",
     "cleanup": "node scripts/cleanup.js",
     "organize": "node scripts/utilities/organize-files.js",
-    "organize-files": "node scripts/utilities/organize-files.js"
+    "organize-files": "node scripts/utilities/organize-files.js",
+    "seed-names": "node scripts/seed-names-database.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

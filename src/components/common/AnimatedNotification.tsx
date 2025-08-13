@@ -11,16 +11,16 @@ const StyledNotificationContainer = styled(motion.div)<NotificationContainerProp
   position: fixed;
   top: 20px;
   right: 20px;
-  min-width: 320px;
-  max-width: 400px;
+  min-width: 280px;
+  max-width: 350px;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
-  padding: 1rem;
+  border-radius: 12px;
+  padding: 0.75rem;
   z-index: 9999;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
   
   /* Gradient background overlay */
   &::before {
@@ -69,7 +69,7 @@ const NotificationHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
 `;
 
 interface IconContainerProps {
@@ -80,8 +80,8 @@ const IconContainer = styled(motion.div)<IconContainerProps>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: ${({ $type }: { $type: 'success' | 'error' | 'warning' | 'info' }) => {
     switch ($type) {
@@ -98,7 +98,7 @@ const IconContainer = styled(motion.div)<IconContainerProps>`
     }
   }};
   color: white;
-  font-size: 1.2rem;
+  font-size: 0.875rem;
   position: relative;
   overflow: hidden;
   
@@ -121,20 +121,20 @@ const IconContainer = styled(motion.div)<IconContainerProps>`
 
 const Title = styled.h4`
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: ${({ theme }: { theme: DefaultTheme }) => theme.colors.text};
   flex: 1;
-  margin-left: 0.75rem;
+  margin-left: 0.5rem;
 `;
 
 const CloseButton = styled(motion.button)`
   background: none;
   border: none;
   color: ${({ theme }: { theme: DefaultTheme }) => theme.colors.textSecondary};
-  font-size: 1rem;
+  font-size: 0.875rem;
   cursor: pointer;
-  padding: 0.25rem;
+  padding: 0.2rem;
   border-radius: 50%;
   transition: all 0.2s ease;
   display: flex;
@@ -150,9 +150,9 @@ const CloseButton = styled(motion.button)`
 
 const Message = styled.p`
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: ${({ theme }: { theme: DefaultTheme }) => theme.colors.textSecondary};
-  line-height: 1.5;
+  line-height: 1.4;
 `;
 
 interface ProgressBarProps {

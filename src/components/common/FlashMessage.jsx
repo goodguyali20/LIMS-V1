@@ -5,22 +5,22 @@ import { FaCheckCircle, FaTimesCircle, FaExclamationCircle, FaInfoCircle, FaTime
 const typeStyles = {
   success: {
     bg: '#22c55e',
-    icon: <FaCheckCircle size={32} />,
+    icon: <FaCheckCircle size={20} />,
     blob: '#16a34a',
   },
   error: {
     bg: '#ef4444',
-    icon: <FaTimesCircle size={32} />,
+    icon: <FaTimesCircle size={20} />,
     blob: '#b91c1c',
   },
   warning: {
     bg: '#f59e42',
-    icon: <FaExclamationCircle size={32} />,
+    icon: <FaExclamationCircle size={20} />,
     blob: '#b45309',
   },
   info: {
     bg: '#3b82f6',
-    icon: <FaInfoCircle size={32} />,
+    icon: <FaInfoCircle size={20} />,
     blob: '#1d4ed8',
   },
 };
@@ -28,25 +28,25 @@ const typeStyles = {
 const FlashContainer = styled.div`
   display: flex;
   align-items: flex-start;
-  gap: 1.5rem;
-  min-width: 340px;
-  max-width: 420px;
-  padding: 1.5rem 2.2rem 1.5rem 1.5rem;
-  border-radius: 2rem;
-  box-shadow: 0 8px 32px #0002, 0 2px 8px #0001;
+  gap: 1rem;
+  min-width: 280px;
+  max-width: 350px;
+  padding: 1rem 1.5rem 1rem 1rem;
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 16px #0002, 0 2px 4px #0001;
   position: relative;
   background: ${({ $type }) => typeStyles[$type]?.bg || '#3b82f6'};
   color: white;
   overflow: hidden;
-  margin: 0.5rem 0;
+  margin: 0.25rem 0;
 `;
 
 const Blob = styled.div`
   position: absolute;
-  left: -40px;
-  top: -30px;
-  width: 110px;
-  height: 110px;
+  left: -30px;
+  top: -20px;
+  width: 80px;
+  height: 80px;
   background: ${({ $type }) => typeStyles[$type]?.blob || '#1d4ed8'};
   border-radius: 50% 40% 60% 50% / 60% 50% 40% 50%;
   opacity: 0.18;
@@ -55,14 +55,14 @@ const Blob = styled.div`
 `;
 
 const IconCircle = styled.div`
-  min-width: 48px;
-  min-height: 48px;
+  min-width: 32px;
+  min-height: 32px;
   border-radius: 50%;
   background: rgba(255,255,255,0.13);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
+  font-size: 1.25rem;
   z-index: 1;
   box-shadow: 0 2px 8px #0002;
 `;
@@ -73,24 +73,24 @@ const Content = styled.div`
 `;
 
 const Title = styled.div`
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
 `;
 
 const Message = styled.div`
-  font-size: 1rem;
+  font-size: 0.875rem;
   opacity: 0.92;
 `;
 
 const CloseBtn = styled.button`
   position: absolute;
-  top: 1.1rem;
-  right: 1.3rem;
+  top: 0.75rem;
+  right: 1rem;
   background: none;
   border: none;
   color: white;
-  font-size: 1.3rem;
+  font-size: 1rem;
   cursor: pointer;
   opacity: 0.7;
   z-index: 2;

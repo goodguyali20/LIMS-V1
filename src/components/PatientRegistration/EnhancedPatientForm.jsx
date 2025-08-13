@@ -7,6 +7,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+import { generateOrderId, createTestOrder } from '../../utils/core/orderUtils';
 import { FaUser, FaPhone, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaIdCard, FaFlask, FaPrint, FaEye, FaEdit, FaNotesMedical, FaArrowRight, FaSave, FaArrowLeft, FaClipboardList, FaSpinner, FaBarcode, FaSmileBeam, FaCheckCircle, FaTimes } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -398,6 +399,66 @@ const AgeSelect = styled.select`
   padding-right: 2rem;
 `;
 
+const GenderSelect = styled.select`
+  padding: 0.75rem 1rem !important;
+  border: 2px solid ${({ theme, $hasError }) => 
+    $hasError ? theme.colors.error : 'rgba(255, 255, 255, 0.1)'} !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #23263a !important;
+  font-size: 1rem !important;
+  outline: none !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(20px);
+  z-index: 1;
+  appearance: none !important;
+  cursor: pointer !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 1rem center !important;
+  background-size: 1rem !important;
+  padding-right: 2.5rem !important;
+  width: 100% !important;
+  height: 48px !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  
+  &:hover {
+    border-color: rgba(102, 126, 234, 0.5) !important;
+    background: #fff !important;
+    box-shadow: 
+      0 8px 32px rgba(102, 126, 234, 0.15),
+      0 4px 16px rgba(255, 255, 255, 0.08) !important;
+    transform: translateY(-2px);
+  }
+  
+  &:focus {
+    border-color: ${({ theme, $hasError }) => 
+      $hasError ? theme.colors.error : '#667eea'} !important;
+    box-shadow: ${({ theme, $hasError }) => 
+      $hasError ? theme.shadows.glow.error : '0 0 0 3px rgba(102, 126, 234, 0.2)'} !important;
+    transform: scale(1.02);
+    background: #fff !important;
+    color: #23263a !important;
+  }
+  
+  &::placeholder {
+    color: #6b7280 !important;
+  }
+  
+  /* Override any conflicting styles */
+  & option {
+    background: #fff !important;
+    color: #23263a !important;
+  }
+  
+  /* Ensure the background image is visible */
+  background-color: #fff !important;
+  background-size: 1rem !important;
+  background-position: right 1rem center !important;
+  background-repeat: no-repeat !important;
+`;
+
 const AgeDivider = styled.div`
   width: 1px;
   height: 70%;
@@ -406,66 +467,95 @@ const AgeDivider = styled.div`
 
 const SelectContainer = styled.div`
   .react-select__control {
-    background: #fff;
-    color: #23263a;
+    background: #fff !important;
+    color: #23263a !important;
     border: 2px solid ${({ $hasError, theme }) => 
-      $hasError ? theme.colors.error : 'rgba(255, 255, 255, 0.1)'};
-    border-radius: 12px;
-    box-shadow: none;
+      $hasError ? theme.colors.error : 'rgba(255, 255, 255, 0.1)'} !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
     backdrop-filter: blur(20px);
     z-index: 1;
     
     &:hover {
-      border-color: rgba(102, 126, 234, 0.5);
-      background: #fff;
+      border-color: rgba(102, 126, 234, 0.5) !important;
+      background: #fff !important;
       box-shadow: 
         0 8px 32px rgba(102, 126, 234, 0.15),
-        0 4px 16px rgba(255, 255, 255, 0.08);
+        0 4px 16px rgba(255, 255, 255, 0.08) !important;
       transform: translateY(-2px);
     }
     
     &.react-select__control--is-focused {
       border-color: ${({ $hasError, theme }) => 
-        $hasError ? theme.colors.error : '#667eea'};
+        $hasError ? theme.colors.error : '#667eea'} !important;
       box-shadow: ${({ $hasError, theme }) => 
-        $hasError ? theme.shadows.glow.error : '0 0 0 3px rgba(102, 126, 234, 0.2)'};
+        $hasError ? theme.shadows.glow.error : '0 0 0 3px rgba(102, 126, 234, 0.2)'} !important;
       transform: scale(1.02);
-      background: #fff;
+      background: #fff !important;
     }
   }
   
   .react-select__menu {
-    background: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    background: #fff !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
     backdrop-filter: blur(20px);
+    z-index: 9999 !important;
   }
   
   .react-select__option {
-    background: transparent;
-    color: #23263a;
+    background: transparent !important;
+    color: #23263a !important;
     
     &:hover {
-      background: rgba(102, 126, 234, 0.1);
+      background: rgba(102, 126, 234, 0.1) !important;
     }
     
     &.react-select__option--is-selected {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
+      background: linear-gradient(135deg, #667eea, #764ba2) !important;
+      color: white !important;
     }
   }
   
   .react-select__single-value {
-    color: #23263a;
+    color: #23263a !important;
   }
   
   .react-select__input-container {
-    color: #23263a;
+    color: #23263a !important;
   }
   
   .react-select__placeholder {
-    color: #6b7280;
+    color: #6b7280 !important;
+  }
+  
+  .react-select__clear-indicator {
+    color: #6b7280 !important;
+    
+    &:hover {
+      color: #ef4444 !important;
+    }
+    
+    /* Make clear button completely non-tabbable */
+    button {
+      tab-index: -1 !important;
+      outline: none !important;
+    }
+    
+    /* Ensure the button is not focusable */
+    button:focus {
+      outline: none !important;
+      box-shadow: none !important;
+    }
+  }
+  
+  .react-select__dropdown-indicator {
+    color: #6b7280 !important;
+  }
+  
+  .react-select__indicator-separator {
+    background-color: #e0e0e0 !important;
   }
 `;
 
@@ -760,89 +850,117 @@ const IRAQ_ADDRESS_DATA = [
 const selectStyles = (isDarkMode) => ({
   control: (provided, state) => ({
     ...provided,
-    background: isDarkMode
-      ? 'linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)'
-      : 'linear-gradient(145deg, #fff 0%, #f3f4f6 100%)',
-    color: isDarkMode ? '#fff' : '#23263a',
+    background: '#fff', // Always use solid white background
+    color: '#23263a', // Always use dark text
     borderColor: state.isFocused
-      ? (isDarkMode ? '#667eea' : '#667eea')
-      : (isDarkMode ? 'rgba(255,255,255,0.1)' : '#ccc'),
+      ? '#667eea'
+      : 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     minHeight: 48,
     height: 48,
     boxShadow: state.isFocused
-      ? (isDarkMode ? '0 0 0 3px rgba(102,126,234,0.2)' : '0 0 0 3px rgba(102,126,234,0.2)')
+      ? '0 0 0 3px rgba(102,126,234,0.2)'
       : 'none',
     fontSize: '1rem',
     paddingLeft: 0,
     paddingRight: 0,
     outline: 'none',
     transition: 'all 0.3s ease',
+    // Make the control non-tabbable
+    tabIndex: -1,
   }),
   menu: (provided) => ({
     ...provided,
-    background: isDarkMode
-      ? 'linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)'
-      : 'linear-gradient(145deg, #fff 0%, #f3f4f6 100%)',
-    color: isDarkMode ? '#fff' : '#23263a',
+    background: '#fff', // Always use solid white background
+    color: '#23263a', // Always use dark text
     borderRadius: 12,
     zIndex: 20,
+    border: '1px solid rgba(0, 0, 0, 0.1)',
+    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
   }),
   option: (provided, state) => ({
     ...provided,
     backgroundColor: state.isSelected
-      ? (isDarkMode ? '#667eea' : '#e0e7ff')
+      ? '#667eea'
       : state.isFocused
-      ? (isDarkMode ? '#2d3250' : '#f3f4f6')
+      ? 'rgba(102, 126, 234, 0.1)'
       : 'transparent',
-    color: isDarkMode ? '#fff' : '#23263a',
+    color: '#23263a',
     fontSize: '1rem',
     borderRadius: 8,
     cursor: 'pointer',
   }),
   singleValue: (provided) => ({
     ...provided,
-    color: isDarkMode ? '#fff' : '#23263a',
+    color: '#23263a',
     fontSize: '1rem',
   }),
   input: (provided) => ({
     ...provided,
-    color: isDarkMode ? '#fff' : '#23263a',
+    color: '#23263a',
     fontSize: '1rem',
+    // Make the input non-tabbable
+    tabIndex: -1,
   }),
   placeholder: (provided) => ({
     ...provided,
-    color: isDarkMode ? '#a0aec0' : '#6b7280',
+    color: '#6b7280',
     fontSize: '1rem',
   }),
   dropdownIndicator: (provided) => ({
     ...provided,
-    color: isDarkMode ? '#a0aec0' : '#6b7280',
+    color: '#6b7280',
   }),
   indicatorSeparator: (provided) => ({
     ...provided,
-    backgroundColor: isDarkMode ? '#44476a' : '#ccc',
+    backgroundColor: '#e0e0e0',
+  }),
+  clearIndicator: (provided) => ({
+    ...provided,
+    color: '#6b7280',
+    tabIndex: -1,
+    '&:hover': {
+      color: '#ef4444',
+    },
+    // Force remove from tab sequence - make the button completely non-tabbable
+    '& button': {
+      tabIndex: -1,
+      outline: 'none',
+    },
+    // Also target the SVG icon container
+    '& svg': {
+      pointerEvents: 'auto',
+    },
   }),
 });
 
-const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
+const EnhancedPatientForm = ({ 
+  onSubmit, 
+  initialData = null, 
+  isEditing = false, 
+  onCancel, 
+  showTestSelection = false,
+  onTestSelectionComplete,
+  initialShowPrintPreview = false,
+  onPrintPreviewComplete,
+  showRegistrationSummary = false,
+  onRegistrationSummaryComplete,
+  initialDuplicateWarning = false,
+  existingPatients = []
+}) => {
+  const { t } = useTranslation();
+  const { theme } = useTheme();
   const { settings } = useSettings();
   const { user } = useAuth();
+  const { testCatalog } = useTestCatalog();
+  const { selectedTestIds = [], clearSelection } = useTestSelection();
+  
+  // Debug logging
+  console.log('EnhancedPatientForm - selectedTestIds:', selectedTestIds);
+  console.log('EnhancedPatientForm - testCatalog:', testCatalog);
   const queryClient = useQueryClient();
-
-  const [showPrintPreview, setShowPrintPreview] = useState(false);
-  const [showSummaryModal, setShowSummaryModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const { t } = useTranslation();
-  const justSubmitted = useRef(false);
-  const skipNextAutosave = useRef(false);
-  const autosaveSubscription = useRef(null);
-  const { theme } = useTheme();
-  const isDarkMode = theme?.isDarkMode;
-  const { labTests } = useTestCatalog();
-  const { selectedTestIds, toggleTestSelection, clearSelection } = useTestSelection();
-
+  const barcodeScanner = useBarcodeScanner();
+  
   // React Hook Form setup
   const {
     control,
@@ -889,6 +1007,26 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
       },
     }
   });
+
+  // Move hooks to after useForm
+  const watchedGender = watch('gender');
+  const watchedFirstName = watch('firstName');
+  const watchedFathersName = watch('fathersName');
+  const watchedGrandFathersName = watch('grandFathersName');
+  
+  const { suggestions: firstNameSuggestions, isLoading: firstNameLoading, saveNewName: saveFirstName } = useFirstNameSuggestions(watchedFirstName, watchedGender);
+  const { suggestions: fatherSuggestions, isLoading: fatherLoading, saveNewName: saveFatherName } = useFatherNameSuggestions(watchedFathersName);
+  const { suggestions: grandfatherSuggestions, isLoading: grandfatherLoading, saveNewName: saveGrandfatherName } = useGrandfatherNameSuggestions(watchedGrandFathersName);
+
+  const [showPrintPreview, setShowPrintPreview] = useState(initialShowPrintPreview);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generatedOrderId, setGeneratedOrderId] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const justSubmitted = useRef(false);
+  const skipNextAutosave = useRef(false);
+  const autosaveSubscription = useRef(null);
+  const isDarkMode = theme?.isDarkMode;
 
   // Gender options
   const genderOptions = [
@@ -1145,7 +1283,9 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
           // Restore selected tests to context
           parsed.selectedTests.forEach(testName => {
             if (!selectedTestIds.includes(testName)) {
-              toggleTestSelection(testName);
+              // Note: This would need to be updated if we want to restore test selection
+              // For now, we'll just log it
+              console.log('Would restore test selection:', testName);
             }
           });
         }
@@ -1185,10 +1325,8 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     );
   }, [selectedTestIds]);
 
-
-
   // Show summary modal instead of direct submission
-  const onSubmit = (data) => {
+  const handleFormSubmit = (data) => {
     // Ensure address fields are synced to form state before showing summary
     setValue('address.governorate', governorateOptions.find(opt => opt.value === selectedGovernorate) || '');
     setValue('address.district', districtOptions.find(opt => opt.value === selectedDistrict) || '');
@@ -1201,7 +1339,46 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     setIsSubmitting(true);
     try {
       const data = getValues();
-      await addPatientMutation.mutateAsync(data);
+      
+      // First, save the patient
+      const patientResult = await addPatientMutation.mutateAsync(data);
+      
+      // Generate a unique Order ID
+      const orderId = await generateOrderId(db);
+      setGeneratedOrderId(orderId);
+      
+      // Create the test order
+      const orderData = {
+        orderId: orderId,
+        patientId: patientResult.id,
+        patientData: {
+          firstName: data.firstName,
+          fathersName: data.fathersName,
+          grandFathersName: data.grandFathersName,
+          lastName: data.lastName,
+          age: data.age,
+          gender: data.gender,
+          phoneNumber: data.phoneNumber,
+          email: data.email,
+          address: {
+            governorate: data.address?.governorate,
+            district: data.address?.district,
+            area: data.address?.area,
+            landmark: data.address?.landmark
+          }
+        },
+        tests: selectedTestIds,
+        referringDoctor: data.referringDoctor || 'N/A',
+        priority: data.priority || 'Normal',
+        notes: data.notes || '',
+        status: 'pending',
+        createdBy: user?.uid || 'unknown',
+        createdAt: new Date()
+      };
+      
+      // Save the order to the database
+      await createTestOrder(db, orderData);
+      
       localStorage.removeItem(AUTOSAVE_KEY);
       justSubmitted.current = true;
       skipNextAutosave.current = true;
@@ -1241,10 +1418,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     setShowPrintPreview(true);
   };
 
-  const [duplicateWarning, setDuplicateWarning] = useState('');
-  const watchedFirstName = watch('firstName');
-  const watchedFathersName = watch('fathersName');
-  const watchedGrandFathersName = watch('grandFathersName');
+  const [duplicateWarning, setDuplicateWarning] = useState(initialDuplicateWarning);
   const watchedPhone = watch('phoneNumber');
   const watchedEmail = watch('email');
   const watchedArea = watch('area');
@@ -1254,7 +1428,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
       setDuplicateWarning('');
       return;
     }
-    const match = patients.find(
+    const match = existingPatients.find(
       p =>
         watchedFirstName && watchedFathersName && watchedGrandFathersName && watchedPhone && watchedArea &&
         p.firstName?.toLowerCase() === watchedFirstName.toLowerCase() &&
@@ -1268,14 +1442,16 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     } else {
       setDuplicateWarning('');
     }
-  }, [watchedFirstName, watchedFathersName, watchedGrandFathersName, watchedPhone, watchedArea, patients]);
+  }, [watchedFirstName, watchedFathersName, watchedGrandFathersName, watchedPhone, watchedArea, existingPatients]);
 
   const handleTestSelection = (testName) => {
-    toggleTestSelection(testName);
+    // Note: clearSelectedTests is not available in the context
+    // We would need to implement this functionality if needed
   };
 
   const handleTestRemoval = (testName) => {
-    toggleTestSelection(testName);
+    // Note: clearSelectedTests is not available in the context
+    // We would need to implement this functionality if needed
   };
 
   const renderField = (fieldName, fieldConfig, section = null) => {
@@ -1326,6 +1502,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
             <GlowButton
               type="button"
               onClick={() => setScanning((s) => !s)}
+              tabIndex={-1}
               style={{ minWidth: 40, padding: '0.5rem' }}
               title={scanning ? 'Stop scanning' : 'Scan barcode/QR'}
             >
@@ -1343,26 +1520,24 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
 
     // Use AutoCompleteInput for name fields
     if (['firstName', 'fathersName', 'grandFathersName'].includes(fieldName)) {
-      const watchedGender = watch('gender');
-      const watchedValue = watch(fieldPath);
-      
       let suggestions = [];
       let isLoading = false;
+      let saveNewName = null;
       
       if (fieldName === 'firstName') {
-        const { suggestions: firstNameSuggestions, isLoading: firstNameLoading } = useFirstNameSuggestions(watchedValue, watchedGender);
         suggestions = firstNameSuggestions;
         isLoading = firstNameLoading;
+        saveNewName = saveFirstName;
       } else if (fieldName === 'fathersName') {
-        const { suggestions: fatherSuggestions, isLoading: fatherLoading } = useFatherNameSuggestions(watchedValue);
         suggestions = fatherSuggestions;
         isLoading = fatherLoading;
+        saveNewName = saveFatherName;
       } else if (fieldName === 'grandFathersName') {
-        const { suggestions: grandfatherSuggestions, isLoading: grandfatherLoading } = useGrandfatherNameSuggestions(watchedValue);
         suggestions = grandfatherSuggestions;
         isLoading = grandfatherLoading;
+        saveNewName = saveGrandfatherName;
       }
-
+      
       return (
         <InputGroup key={fieldPath}>
           <Label htmlFor={fieldPath}>
@@ -1376,19 +1551,16 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                 {...field}
                 id={fieldPath}
                 name={fieldPath}
-                placeholder={`Enter ${t(fieldLabel.toLowerCase())}`}
+                placeholder={t(`patientRegistration.${fieldName}Placeholder`)}
                 suggestions={suggestions}
                 isLoading={isLoading}
-                error={errorPath?.message}
-                autoComplete="off"
-                value={field.value ?? ''}
+                onSaveNewName={saveNewName}
+                showAddNewOption={true}
+                error={errorPath}
               />
             )}
           />
           {errorPath && <ErrorMessage>{errorPath.message}</ErrorMessage>}
-          {fieldName === 'firstName' && (
-            <FieldTip>{t('patientRegistration.firstNameTip') || 'Start typing for name suggestions'}</FieldTip>
-          )}
         </InputGroup>
       );
     }
@@ -1517,7 +1689,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                 options={options}
                 placeholder={`Select ${t(fieldLabel.toLowerCase())}`}
                 classNamePrefix="react-select"
-                isClearable
+                isClearable={false}
                 onChange={option => field.onChange(option ? option.value : '')}
                 value={options.find(option => option.value === field.value) || null}
                 menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
@@ -1592,6 +1764,10 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     }
   }, [reset, setValue, getValues, settings]);
 
+
+
+
+
   // Always sync city to district
   useEffect(() => {
     const district = getValues('address.district');
@@ -1615,8 +1791,8 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
     }
   }, [getValues('address.city'), getValues('address.district'), settings, setValue]);
 
-  // Map selectedTests (names) to test objects
-  const selectedTestObjects = selectedTestIds.map(testName => labTests.find(t => t.name === testName)).filter(Boolean);
+  // Map selectedTestIds to test objects
+  const selectedTestObjects = (selectedTestIds || []).map(testId => (testCatalog || []).find(t => t.id === testId)).filter(Boolean);
 
   // Add after useForm and before the form JSX
   const requiredFields = [
@@ -1653,7 +1829,9 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
           // Restore selected tests to context
           parsed.selectedTests.forEach(testName => {
             if (!selectedTestIds.includes(testName)) {
-              toggleTestSelection(testName);
+              // Note: This would need to be updated if we want to restore test selection
+              // For now, we'll just log it
+              console.log('Would restore test selection:', testName);
             }
           });
         }
@@ -1673,70 +1851,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
           <h2 style={{ color: '#667eea', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FaSmileBeam style={{ color: '#f093fb' }} /> {t('patientRegistration.title')}
           </h2>
-          <GlowButton 
-            onClick={() => {
-              // Reset form to default values
-              reset({
-                patientId: '',
-                firstName: '',
-                fathersName: '',
-                grandFathersName: '',
-                age: { value: '', unit: 'years' },
-                gender: '',
-                phoneNumber: '',
-                email: '',
-                address: {
-                  governorate: '',
-                  district: '',
-                  area: '',
-                  landmark: '',
-                  city: ''
-                },
-                emergencyContact: {
-                  name: '',
-                  relationship: '',
-                  phoneNumber: ''
-                },
-                medicalHistory: {
-                  allergies: '',
-                  medications: '',
-                  conditions: '',
-                  notes: ''
-                },
-                insurance: {
-                  provider: '',
-                  policyNumber: '',
-                  groupNumber: ''
-                }
-              });
-              
-              // Clear selected tests
-              clearSelection();
-              
-              // Clear address selections
-              setSelectedGovernorate('');
-              setSelectedDistrict('');
-              setSelectedArea('');
-              
-              // Clear other state variables
-              setDuplicateWarning('');
-              setShowPrintPreview(false);
-              setShowSummaryModal(false);
-              setIsSubmitting(false);
-              setShowConfetti(false);
-              setScanning(false);
-              setScanError('');
-              
-              // Clear any stored draft
-              localStorage.removeItem('patientRegistrationDraft');
-              
-              // Show success message
-              showFlashMessage({ type: 'success', title: 'Form Cleared', message: 'All fields have been cleared successfully!' });
-            }}
-            style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}
-          >
-            Clear
-          </GlowButton>
+
         </div>
         <div style={{ width: '100%', marginBottom: 16 }}>
           <LinearProgress variant="determinate" value={progress} />
@@ -1744,7 +1859,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         </div>
         <RegistrationLayout>
           <MainFormColumn>
-            <form onSubmit={handleSubmit(onSubmit)}>
+            <form onSubmit={handleSubmit(handleFormSubmit)}>
               {/* Personal Info Section */}
               <FormSection>
                 <SectionTitle>
@@ -1756,7 +1871,54 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                   {renderField('fathersName', settings.patientRegistrationFields?.fathersName)}
                   {renderField('grandFathersName', settings.patientRegistrationFields?.grandFathersName)}
                   {renderField('age', settings.patientRegistrationFields?.age)}
-                  {renderSelectField('gender', settings.patientRegistrationFields?.gender, genderOptions)}
+                  <InputGroup>
+                    <Label htmlFor="gender">
+                      Gender {isFieldRequired(settings.patientRegistrationFields, null, 'gender') && '*'}
+                    </Label>
+                    <Controller
+                      name="gender"
+                      control={control}
+                      render={({ field }) => (
+                        <select
+                          {...field}
+                          id="gender"
+                          name="gender"
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          tabIndex={6}
+                          style={{
+                            padding: '0.75rem 1rem',
+                            border: '2px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '12px',
+                            background: '#fff',
+                            color: '#23263a',
+                            fontSize: '1rem',
+                            outline: 'none',
+                            width: '100%',
+                            height: '48px',
+                            appearance: 'none',
+                            cursor: 'pointer',
+                            backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%236b7280\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6,9 12,15 18,9\'%3e%3c/svg%3e")',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'right 0.5rem center',
+                            backgroundSize: '1rem',
+                            paddingRight: '2rem',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <option value="" disabled>Select gender</option>
+                          {genderOptions.map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    />
+                    {errors.gender && (
+                      <ErrorMessage>{errors.gender.message}</ErrorMessage>
+                    )}
+                  </InputGroup>
                   {renderField('phoneNumber', settings.patientRegistrationFields?.phoneNumber)}
                   {renderField('email', settings.patientRegistrationFields?.email)}
                 </FormGrid>
@@ -1776,6 +1938,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                       <GlowButton
                         type="button"
                         onClick={handleSetDefaultAddress}
+                        tabIndex={-1}
                         style={{ 
                           fontSize: '0.7rem', 
                           padding: '0.3rem 0.5rem',
@@ -1794,6 +1957,7 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                       <GlowButton
                         type="button"
                         onClick={handleClearAddress}
+                        tabIndex={-1}
                         style={{ 
                           fontSize: '0.7rem', 
                           padding: '0.3rem 0.5rem',
@@ -1820,95 +1984,134 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
                     {/* Governorate */}
                     <InputGroup>
                       <Label>{t('patientRegistration.governorate')}</Label>
-                      <Select
-                        options={governorateOptions}
-                        value={governorateOptions.find(opt => opt.value === String(selectedGovernorate).trim()) || null}
-                        onChange={opt => {
-                          setSelectedGovernorate(opt?.value || '');
-                          setSelectedDistrict('');
-                          setSelectedArea('');
-                          setValue('address.governorate', opt || '');
-                        }}
-                        placeholder={t('patientRegistration.selectGovernorate')}
-                        isClearable
-                        menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
-                        menuPosition="fixed"
-                        styles={{ ...selectStyles(isDarkMode), menuPortal: base => ({ ...base, zIndex: 9999 }) }}
-                      />
+                      <div style={{ position: 'relative' }}>
+                        <select
+                          value={selectedGovernorate || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSelectedGovernorate(value);
+                            setSelectedDistrict('');
+                            setSelectedArea('');
+                            setValue('address.governorate', value ? { value, label: value } : '');
+                          }}
+                          tabIndex={9}
+                          style={{
+                            padding: '0.75rem 1rem',
+                            border: '2px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '12px',
+                            background: '#fff',
+                            color: '#23263a',
+                            fontSize: '1rem',
+                            outline: 'none',
+                            width: '100%',
+                            height: '48px',
+                            appearance: 'none',
+                            cursor: 'pointer',
+                            backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%236b7280\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6,9 12,15 18,9\'%3e%3c/polyline%3e%3c/svg%3e")',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'right 0.5rem center',
+                            backgroundSize: '1rem',
+                            paddingRight: '2rem',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <option value="">{t('patientRegistration.selectGovernorate')}</option>
+                          {governorateOptions.map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+
+                      </div>
                     </InputGroup>
                     {/* District */}
                     <InputGroup>
                       <Label>{t('patientRegistration.district')}</Label>
-                      <Select
-                        options={districtOptions}
-                        value={districtOptions.find(opt => opt.value === String(selectedDistrict).trim()) || (selectedDistrict && !districtOptions.find(opt => opt.value === String(selectedDistrict).trim()) ? { value: selectedDistrict, label: selectedDistrict } : null)}
-                        onChange={opt => {
-                          setSelectedDistrict(opt?.value || '');
-                          setSelectedArea('');
-                          setValue('address.district', opt || '');
-                          setValue('address.city', opt?.value || ''); // Sync city to district
-                        }}
-                        placeholder={t('patientRegistration.selectOrTypeDistrict')}
-                        isClearable
-                        isDisabled={!selectedGovernorate}
-                        filterOption={(option, inputValue) => {
-                          if (!inputValue) return true;
-                          return option.label.toLowerCase().includes(inputValue.toLowerCase());
-                        }}
-                        onInputChange={(inputValue) => {
-                          if (inputValue && !districtOptions.find(opt => opt.value === inputValue)) {
-                            setSelectedDistrict(inputValue);
-                            setValue('address.district', { value: inputValue, label: inputValue });
-                            setValue('address.city', inputValue); // Sync city to district
-                          }
-                        }}
-                        createOptionPosition="first"
-                        formatCreateLabel={(inputValue) => `Use "${inputValue}"`}
-                        isValidNewOption={(inputValue) => inputValue.length > 0}
-                        onCreateOption={(inputValue) => {
-                          setSelectedDistrict(inputValue);
-                          setValue('address.district', { value: inputValue, label: inputValue });
-                          setValue('address.city', inputValue); // Sync city to district
-                        }}
-                        menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
-                        menuPosition="fixed"
-                        styles={{ ...selectStyles(isDarkMode), menuPortal: base => ({ ...base, zIndex: 9999 }) }}
-                      />
+                      <div style={{ position: 'relative' }}>
+                        <select
+                          value={selectedDistrict || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSelectedDistrict(value);
+                            setSelectedArea('');
+                            setValue('address.district', value ? { value, label: value } : '');
+                            setValue('address.city', value || ''); // Sync city to district
+                          }}
+                          tabIndex={10}
+                          disabled={!selectedGovernorate}
+                          style={{
+                            padding: '0.75rem 1rem',
+                            border: '2px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '12px',
+                            background: selectedGovernorate ? '#fff' : '#f3f4f6',
+                            color: selectedGovernorate ? '#23263a' : '#9ca3af',
+                            fontSize: '1rem',
+                            outline: 'none',
+                            width: '100%',
+                            height: '48px',
+                            appearance: 'none',
+                            cursor: selectedGovernorate ? 'pointer' : 'not-allowed',
+                            backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%236b7280\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6,9 12,15 18,9\'%3e%3c/polyline%3e%3c/svg%3e")',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'right 0.5rem center',
+                            backgroundSize: '1rem',
+                            paddingRight: '2rem',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <option value="">{t('patientRegistration.selectOrTypeDistrict')}</option>
+                          {districtOptions.map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+
+                      </div>
                     </InputGroup>
                     {/* Area */}
                     <InputGroup>
                       <Label>{t('patientRegistration.area')}</Label>
-                      <Select
-                        options={areaOptions}
-                        value={areaOptions.find(opt => opt.value === String(selectedArea).trim()) || (selectedArea && !areaOptions.find(opt => opt.value === String(selectedArea).trim()) ? { value: selectedArea, label: selectedArea } : null)}
-                        onChange={opt => {
-                          setSelectedArea(opt?.value || '');
-                          setValue('address.area', opt || '');
-                        }}
-                        placeholder={t('patientRegistration.selectOrTypeArea')}
-                        isClearable
-                        isDisabled={!selectedDistrict}
-                        filterOption={(option, inputValue) => {
-                          if (!inputValue) return true;
-                          return option.label.toLowerCase().includes(inputValue.toLowerCase());
-                        }}
-                        onInputChange={(inputValue) => {
-                          if (inputValue && !areaOptions.find(opt => opt.value === inputValue)) {
-                            setSelectedArea(inputValue);
-                            setValue('address.area', { value: inputValue, label: inputValue });
-                          }
-                        }}
-                        createOptionPosition="first"
-                        formatCreateLabel={(inputValue) => `Use "${inputValue}"`}
-                        isValidNewOption={(inputValue) => inputValue.length > 0}
-                        onCreateOption={(inputValue) => {
-                          setSelectedArea(inputValue);
-                          setValue('address.area', { value: inputValue, label: inputValue });
-                        }}
-                        menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
-                        menuPosition="fixed"
-                        styles={{ ...selectStyles(isDarkMode), menuPortal: base => ({ ...base, zIndex: 9999 }) }}
-                      />
+                      <div style={{ position: 'relative' }}>
+                        <select
+                          value={selectedArea || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSelectedArea(value);
+                            setValue('address.area', value ? { value, label: value } : '');
+                          }}
+                          tabIndex={11}
+                          disabled={!selectedDistrict}
+                          style={{
+                            padding: '0.75rem 1rem',
+                            border: '2px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '12px',
+                            background: selectedDistrict ? '#fff' : '#f3f4f6',
+                            color: selectedDistrict ? '#23263a' : '#9ca3af',
+                            fontSize: '1rem',
+                            outline: 'none',
+                            width: '100%',
+                            height: '48px',
+                            appearance: 'none',
+                            cursor: selectedDistrict ? 'pointer' : 'not-allowed',
+                            backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%236b7280\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6,9 12,15 18,9\'%3e%3c/polyline%3e%3c/svg%3e")',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'right 0.5rem center',
+                            backgroundSize: '1rem',
+                            paddingRight: '2rem',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <option value="">{t('patientRegistration.selectOrTypeArea')}</option>
+                          {areaOptions.map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+
+                      </div>
                     </InputGroup>
                     {/* Nearest Landmark */}
                     <InputGroup>
@@ -2020,6 +2223,8 @@ const EnhancedPatientForm = ({ onPatientRegistered, patients = [] }) => {
         patientData={getValues()}
         selectedTests={selectedTestIds}
         orderData={{
+          id: generatedOrderId, // Use the generated Order ID
+          orderId: generatedOrderId, // Also pass as orderId for consistency
           referringDoctor: getValues('referringDoctor') || 'N/A',
           priority: getValues('priority') || 'Normal',
           notes: getValues('notes') || ''
