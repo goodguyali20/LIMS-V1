@@ -1373,43 +1373,49 @@ const PrintPreviewModal = ({
           marginBottom: '15px',
           marginTop: '20px'
         }}>
-          {/* Top row with user info and queue number */}
+          {/* Three-column layout: User info | Title | Queue number */}
           <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: '10px',
-            fontSize: '10px'
+            display: 'grid',
+            gridTemplateColumns: '1fr auto 1fr',
+            alignItems: 'center',
+            gap: '10px',
+            marginBottom: '10px'
           }}>
-            <div style={{ textAlign: 'left' }}>
+            {/* Left column - User info */}
+            <div style={{ textAlign: 'left', fontSize: '10px' }}>
               <div>User: {user?.displayName || user?.email || 'N/A'}</div>
               <div>Date: {new Date().toLocaleDateString()}</div>
             </div>
-            {order?.queueNumber && (
-              <div style={{
-                background: '#000',
-                color: 'white',
-                fontSize: '12px',
-                fontWeight: 'bold',
-                padding: '3px 6px',
-                borderRadius: '3px'
-              }}>
-                #{order.queueNumber}
-              </div>
-            )}
-          </div>
-          
-          {/* Title with border */}
-          <div style={{
-            textAlign: 'center',
-            borderBottom: '1px solid #000',
-            paddingBottom: '8px'
-          }}>
-            <h1 style={{ 
-              margin: '0',
-              fontSize: '14px', 
-              fontWeight: 'bold'
-            }}>MASTER SLIP</h1>
+            
+            {/* Center column - Title */}
+            <div style={{
+              textAlign: 'center',
+              borderBottom: '1px solid #000',
+              paddingBottom: '8px'
+            }}>
+              <h1 style={{ 
+                margin: '0',
+                fontSize: '14px', 
+                fontWeight: 'bold'
+              }}>MASTER SLIP</h1>
+            </div>
+            
+            {/* Right column - Queue number */}
+            <div style={{ textAlign: 'right' }}>
+              {order?.queueNumber && (
+                <div style={{
+                  background: '#000',
+                  color: 'white',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  padding: '3px 6px',
+                  borderRadius: '3px',
+                  display: 'inline-block'
+                }}>
+                  #{order.queueNumber}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1599,45 +1605,49 @@ const PrintPreviewModal = ({
           marginBottom: '20px',
           marginTop: '20px'
         }}>
-          {/* Top row with user info and queue number */}
+          {/* Three-column layout: User info | Title | Queue number */}
           <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: '10px',
-            fontSize: '10px'
+            display: 'grid',
+            gridTemplateColumns: '1fr auto 1fr',
+            alignItems: 'center',
+            gap: '10px',
+            marginBottom: '10px'
           }}>
-            <div style={{ textAlign: 'left' }}>
+            {/* Left column - User info */}
+            <div style={{ textAlign: 'left', fontSize: '10px' }}>
               <div>User: {user?.displayName || user?.email || 'N/A'}</div>
               <div>Date: {new Date().toLocaleDateString()}</div>
             </div>
             
-            {/* Queue Number in top right */}
-            {order?.departmentNumbers?.[department] && (
-              <div style={{
-                background: '#000',
-                color: 'white',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                padding: '5px 10px',
-                borderRadius: '3px'
-              }}>
-                #{order.departmentNumbers[department]}
-              </div>
-            )}
-          </div>
-          
-          {/* Title with border */}
-          <div style={{
-            textAlign: 'center',
-            borderBottom: '1px solid #000',
-            paddingBottom: '10px'
-          }}>
-            <h1 style={{ 
-              margin: '0',
-              fontSize: '18px', 
-              fontWeight: 'bold'
-            }}>{department}</h1>
+            {/* Center column - Title */}
+            <div style={{
+              textAlign: 'center',
+              borderBottom: '1px solid #000',
+              paddingBottom: '10px'
+            }}>
+              <h1 style={{ 
+                margin: '0',
+                fontSize: '18px', 
+                fontWeight: 'bold'
+              }}>{department}</h1>
+            </div>
+            
+            {/* Right column - Queue number */}
+            <div style={{ textAlign: 'right' }}>
+              {order?.departmentNumbers?.[department] && (
+                <div style={{
+                  background: '#000',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  padding: '5px 10px',
+                  borderRadius: '3px',
+                  display: 'inline-block'
+                }}>
+                  #{order.departmentNumbers[department]}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
