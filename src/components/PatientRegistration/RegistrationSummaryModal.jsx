@@ -146,7 +146,7 @@ const SummaryGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 `;
 
 const SummaryCard = styled(motion.div)`
@@ -218,7 +218,7 @@ const TestsSection = styled.div`
   border: 1px solid rgba(16, 185, 129, 0.2);
   border-radius: 16px;
   padding: 1.5rem;
-  margin-top: 1rem;
+  margin-top: 0;
 `;
 
 const TestsTitle = styled.h4`
@@ -432,20 +432,20 @@ const RegistrationSummaryModal = ({
               </SummaryCard>
             </SummaryGrid>
 
-            {selectedTests.length > 0 && (
-              <TestsSection
-                variants={cardVariants}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: 0.7 }}
-              >
-                <TestsTitle>
-                  <FaFlask />
-                  {t('patientRegistration.testDetails') || 'Test Details'}
-                  <span style={{ fontWeight: 400, fontSize: '1rem', color: '#059669', marginLeft: 8 }}>
-                    ({selectedTests.length})
-                  </span>
-                </TestsTitle>
+            <TestsSection
+              variants={cardVariants}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.7 }}
+            >
+              <TestsTitle>
+                <FaFlask />
+                {t('patientRegistration.testDetails') || 'Test Details'}
+                <span style={{ fontWeight: 400, fontSize: '1rem', color: '#059669', marginLeft: 8 }}>
+                  ({selectedTests.length})
+                </span>
+              </TestsTitle>
+              {selectedTests.length > 0 ? (
                 <TestsList>
                   {selectedTests.map((test, index) => (
                     <TestTag key={index}>
@@ -453,8 +453,17 @@ const RegistrationSummaryModal = ({
                     </TestTag>
                   ))}
                 </TestsList>
-              </TestsSection>
-            )}
+              ) : (
+                <div style={{ 
+                  textAlign: 'center', 
+                  color: 'rgba(255, 255, 255, 0.6)', 
+                  padding: '2rem 0',
+                  fontSize: '0.9rem'
+                }}>
+                  No tests selected for this patient
+                </div>
+              )}
+            </TestsSection>
           </ModalContent>
 
           <ModalFooter>

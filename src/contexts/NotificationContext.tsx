@@ -48,7 +48,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     // Only connect if VITE_SOCKET_URL is explicitly set
     const socketUrl = import.meta.env.VITE_SOCKET_URL;
     if (!socketUrl) {
-      console.log('Socket URL not configured, skipping real-time notifications');
       return;
     }
 
@@ -67,13 +66,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     newSocket.on('connect', () => {
       setIsConnected(true);
       trackEvent('socket_connected', { userId: user.uid });
-      console.log('Connected to notification server');
     });
 
     newSocket.on('disconnect', () => {
       setIsConnected(false);
       trackEvent('socket_disconnected', { userId: user.uid });
-      console.log('Disconnected from notification server');
     });
 
     newSocket.on('connect_error', (error) => {

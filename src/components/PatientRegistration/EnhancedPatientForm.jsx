@@ -952,12 +952,13 @@ const EnhancedPatientForm = ({
   const { theme } = useTheme();
   const { settings } = useSettings();
   const { user } = useAuth();
-  const { testCatalog } = useTestCatalog();
-  const { selectedTestIds = [], clearSelection } = useTestSelection();
+  const { testCatalog, labTests, loading: testsLoading } = useTestCatalog();
+  const { selectedTestIds = [], clearSelection, toggleTestSelection } = useTestSelection();
   
-  // Debug logging
-  console.log('EnhancedPatientForm - selectedTestIds:', selectedTestIds);
-  console.log('EnhancedPatientForm - testCatalog:', testCatalog);
+  // Debug logging for test selection
+  useEffect(() => {
+    console.log('Debug - selectedTestIds changed:', selectedTestIds);
+  }, [selectedTestIds]);
   const queryClient = useQueryClient();
   const barcodeScanner = useBarcodeScanner();
   
@@ -1792,7 +1793,7 @@ const EnhancedPatientForm = ({
   }, [getValues('address.city'), getValues('address.district'), settings, setValue]);
 
   // Map selectedTestIds to test objects
-  const selectedTestObjects = (selectedTestIds || []).map(testId => (testCatalog || []).find(t => t.id === testId)).filter(Boolean);
+  const selectedTestObjects = (selectedTestIds || []).map(testId => testCatalog?.[testId]).filter(Boolean);
 
   // Add after useForm and before the form JSX
   const requiredFields = [
@@ -2212,7 +2213,25 @@ const EnhancedPatientForm = ({
         isOpen={showSummaryModal}
         onClose={() => setShowSummaryModal(false)}
         patientData={getValues()}
-        selectedTests={selectedTestIds}
+        selectedTests={(() => {
+          let tests = [];
+          
+          // Use labTests directly if available
+          if (labTests && Array.isArray(labTests)) {
+            tests = labTests.filter(test => selectedTestIds.includes(test.name));
+          }
+          
+          // Fallback: if no tests found but we have selectedTestIds, create basic test objects
+          if (tests.length === 0 && selectedTestIds.length > 0) {
+            tests = selectedTestIds.map(testName => ({ name: testName, department: 'General' }));
+          }
+          
+          console.log('Debug - selectedTestIds:', selectedTestIds);
+          console.log('Debug - labTests:', labTests);
+          console.log('Debug - testsLoading:', testsLoading);
+          console.log('Debug - filtered tests:', tests);
+          return tests;
+        })()}
         onConfirm={handleConfirmRegistration}
         onEdit={handleEditForm}
         onPrint={handlePrintSummary}
@@ -2241,6 +2260,32 @@ const EnhancedPatientForm = ({
             Load Draft
           </GlowButton>
         )}
+        <GlowButton 
+          type="button" 
+          onClick={() => {
+            console.log('Current selectedTestIds:', selectedTestIds);
+            console.log('Current labTests:', labTests);
+            console.log('Current testCatalog:', testCatalog);
+          }}
+          style={{ background: '#ff6b6b' }}
+        >
+          Debug Test Data
+        </GlowButton>
+        <GlowButton 
+          type="button" 
+          onClick={() => {
+            // Manually add some test IDs for testing
+            const testNames = ['CBC', 'Glucose', 'Cholesterol'];
+            testNames.forEach(name => {
+              if (!selectedTestIds.includes(name)) {
+                toggleTestSelection(name);
+              }
+            });
+          }}
+          style={{ background: '#4ecdc4' }}
+        >
+          Add Test IDs
+        </GlowButton>
       </div>
     </>
   );

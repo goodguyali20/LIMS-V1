@@ -161,8 +161,11 @@ const PreviewContainer = styled.div`
   height: 100%;
   max-height: 70vh;
   overflow-y: auto;
-  padding: 2rem;
+  padding: ${({ $viewMode }) => $viewMode === 'simple' ? '1rem' : '2rem'};
   background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   
   &::-webkit-scrollbar {
     width: 8px;
@@ -187,14 +190,16 @@ const PrintPreview = styled.div`
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   border-radius: 8px;
   margin: 0 auto;
-  max-width: 800px;
-  transform: scale(0.8);
+  max-width: ${({ $viewMode }) => $viewMode === 'simple' ? '100%' : '800px'};
+  transform: ${({ $viewMode }) => $viewMode === 'simple' ? 'scale(1.5)' : 'scale(0.8)'};
   transform-origin: top center;
+  transition: all 0.3s ease;
   
   @media print {
     transform: none;
     box-shadow: none;
     border-radius: 0;
+    max-width: none;
   }
 `;
 const OrderSummary = styled.div`
@@ -758,6 +763,10 @@ const PrintPreviewModal = ({
         }
         
         @media print {
+          @page {
+            size: A4;
+            margin: 0;
+          }
           body { margin: 0; padding: 0; }
           .master-slip-wrapper { 
             margin: 0; 
@@ -1134,6 +1143,10 @@ const PrintPreviewModal = ({
         }
         
         @media print {
+          @page {
+            size: A4;
+            margin: 0;
+          }
           body { margin: 0; padding: 0; }
           .dept-slip-wrapper { 
             margin: 0 0 1rem 0; 
@@ -1225,12 +1238,28 @@ const PrintPreviewModal = ({
             <table>
               <thead>
                 <tr>
-                  <th>Test</th>
-                  <th>Queue #</th>
+                  <th style={{ 
+                    border: '1px solid #ddd', 
+                    padding: '12px 8px', 
+                    textAlign: 'left', 
+                    fontSize: '14px', 
+                    fontWeight: 'bold',
+                    background: '#e9ecef',
+                    width: '75%'
+                  }}>Test</th>
+                  <th style={{ 
+                    border: '1px solid #ddd', 
+                    padding: '12px 8px', 
+                    textAlign: 'center', 
+                    fontSize: '14px', 
+                    fontWeight: 'bold',
+                    background: '#e9ecef',
+                    width: '25%'
+                  }}>Queue #</th>
                 </tr>
               </thead>
               <tbody>
-                ${deptTests.map(test => {
+                ${deptTests.map((test, index) => {
                   let testName = 'Unknown Test';
                   try {
                     if (typeof test === 'string') {
@@ -1257,8 +1286,21 @@ const PrintPreviewModal = ({
                   
                   return `
                     <tr>
-                      <td>${testName}</td>
-                      <td>#${queueNumber}</td>
+                      <td style={{ 
+                        border: '1px solid #ddd', 
+                        padding: '12px 8px', 
+                        fontSize: '14px',
+                        wordWrap: 'break-word',
+                        maxWidth: 'none'
+                      }}>${testName}</td>
+                      <td style={{ 
+                        border: '1px solid #ddd', 
+                        padding: '12px 8px', 
+                        fontSize: '14px',
+                        textAlign: 'center',
+                        fontWeight: 'bold',
+                        color: '#007bff'
+                      }}>#{queueNumber}</td>
                     </tr>
                   `;
                 }).join('') || ''}
@@ -1288,245 +1330,432 @@ const PrintPreviewModal = ({
       <style>
         {`
           @media print {
+            @page {
+              size: 70mm 99mm;
+              margin: 0;
+            }
             .simple-master-slip {
               width: 70mm !important;
               height: 99mm !important;
-              padding: 10px !important;
+              padding: 8mm !important;
               margin: 0 !important;
               page-break-after: always !important;
               box-sizing: border-box !important;
               overflow: hidden !important;
+              page-break-inside: avoid !important;
+              font-size: 14px !important;
+            }
+            body {
+              margin: 0 !important;
+              padding: 0 !important;
             }
           }
         `}
       </style>
       <div 
-        className="simple-master-slip"
+        className="simple-master-slip simple-print-view"
         style={{
-          width: '70mm',
-          height: '99mm',
+          width: '280px', // 4x larger for better preview visibility
+          height: '396px', // 4x larger for better preview visibility
           background: 'white',
           color: 'black',
-          padding: '10px',
-          border: '1px solid #ddd',
-          borderRadius: '8px',
+          padding: '20px', // 4x larger padding
           fontFamily: 'Arial, sans-serif',
-          fontSize: '16px',
-          lineHeight: '1.4',
+          fontSize: '40px', // 4x larger font
+          lineHeight: '1.2',
           boxSizing: 'border-box',
-          overflow: 'hidden'
+          border: '2px solid #000',
+          margin: '0 auto'
         }}
       >
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #333', paddingBottom: '15px', position: 'relative' }}>
-        <h1 style={{ margin: '0 0 10px 0', fontSize: '20px', fontWeight: 'bold', color: '#333' }}>MASTER SLIP</h1>
-        {/* Meta info stacked at top left */}
+        {/* Header */}
         <div style={{ 
-          position: 'absolute', 
-          top: '10px', 
-          left: '10px', 
-          fontSize: '14px', 
-          fontWeight: '600',
-          textAlign: 'left',
-          lineHeight: '1.3'
+          marginBottom: '15px',
+          marginTop: '20px'
         }}>
-          <div>Order ID: {order?.id || order?.orderId || 'N/A'}</div>
-          <div>Date: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</div>
-          <div>User: {user?.displayName || user?.email || 'N/A'}</div>
-        </div>
-        {/* Queue Number in top right */}
-        {order?.queueNumber && (
+          {/* Top row with user info and queue number */}
           <div style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            background: '#333',
-            color: 'white',
-            fontSize: '18px',
-            fontWeight: 'bold',
-            padding: '8px 12px',
-            borderRadius: '6px',
-            minWidth: '60px',
-            textAlign: 'center'
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: '10px',
+            fontSize: '10px'
           }}>
-            #{order.queueNumber}
+            <div style={{ textAlign: 'left' }}>
+              <div>User: {user?.displayName || user?.email || 'N/A'}</div>
+              <div>Date: {new Date().toLocaleDateString()}</div>
+            </div>
+            {order?.queueNumber && (
+              <div style={{
+                background: '#000',
+                color: 'white',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                padding: '3px 6px',
+                borderRadius: '3px'
+              }}>
+                #{order.queueNumber}
+              </div>
+            )}
           </div>
-        )}
-      </div>
-
-      {/* Patient Information */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '14px' }}>
-          <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}><strong>Name:</strong> {order?.firstName ? 
-            `${order.firstName} ${order.fathersName || ''} ${order.grandFathersName || ''} ${order.lastName || ''}`.trim() : 
-            (order?.patientName || 'N/A')}</div>
-          {order?.address && Object.keys(order.address).length > 0 && (
-            <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}><strong>Address:</strong> {
-              [
-                order.address.landmark ? (typeof order.address.landmark === 'object' ? order.address.landmark.label || order.address.landmark.value : order.address.landmark) : null,
-                order.address.area ? (typeof order.address.area === 'object' ? order.address.area.label || order.address.area.value : order.address.area) : null,
-                order.address.district ? (typeof order.address.district === 'object' ? order.address.district.label || order.address.district.value : order.address.district) : null,
-                order.address.governorate ? (typeof order.address.governorate === 'object' ? order.address.governorate.label || order.address.governorate.value : order.address.governorate) : null
-              ].filter(Boolean).join(' - ')
-            }</div>
-          )}
-          {(order?.age || order?.gender) && (
-            <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}><strong>Age/Gender:</strong> {typeof order?.age === 'object' ? `${order?.age?.value || ''} ${order?.age?.unit || ''}` : order?.age || ''} {order?.age && order?.gender ? ' / ' : ''} {order.gender || ''}</div>
-          )}
-          {order?.phone && order.phone !== 'N/A' && (
-            <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}><strong>Phone:</strong> {order.phone}</div>
-          )}
-          {order?.patientId && order.patientId !== 'N/A' && (
-            <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}><strong>Patient ID:</strong> {order.patientId}</div>
-          )}
-          {order?.referringDoctor && order.referringDoctor !== 'N/A' && (
-            <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}><strong>Referring Doctor:</strong> {order.referringDoctor}</div>
-          )}
-          {order?.priority && order.priority !== 'Normal' && order.priority !== 'NORMAL' && (
-            <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}><strong>Priority:</strong> {order.priority}</div>
-          )}
+          
+          {/* Title with border */}
+          <div style={{
+            textAlign: 'center',
+            borderBottom: '1px solid #000',
+            paddingBottom: '8px'
+          }}>
+            <h1 style={{ 
+              margin: '0',
+              fontSize: '14px', 
+              fontWeight: 'bold'
+            }}>MASTER SLIP</h1>
+          </div>
         </div>
-      </div>
 
-      {/* Tests */}
-      <div>
-        <h2 style={{ fontSize: '20px', marginBottom: '8px', borderBottom: '2px solid #333', paddingBottom: '3px', fontWeight: 'bold' }}>All Tests</h2>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-          <thead>
-            <tr style={{ background: '#f5f5f5' }}>
-              <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', fontSize: '16px', fontWeight: 'bold' }}>Test</th>
-              <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', fontSize: '16px', fontWeight: 'bold' }}>Dept</th>
-              <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', fontSize: '16px', fontWeight: 'bold' }}>Q</th>
-            </tr>
-          </thead>
-          <tbody>
-            {order?.tests?.map((test, index) => {
-              let testName = 'Unknown Test';
-              try {
-                if (typeof test === 'string') {
-                  testName = test;
-                } else if (test && typeof test === 'object') {
-                  if (typeof test.name === 'string') {
-                    testName = test.name;
-                  } else if (typeof test.id === 'string') {
-                    testName = test.id;
-                  } else if (test.name && typeof test.name === 'object') {
-                    if (test.name.value && test.name.unit) {
-                      testName = `${test.name.value} ${test.name.unit}`;
-                    } else {
-                      testName = test.name.value || test.name.unit || 'Unknown Test';
+        {/* Patient Information */}
+        <div style={{ marginBottom: '15px' }}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '1fr', 
+            gap: '4px', 
+            fontSize: '10px' 
+          }}>
+            <div><strong>Name:</strong> {order?.firstName ? 
+              `${order.firstName} ${order.fathersName || ''} ${order.grandFathersName || ''} ${order.lastName || ''}`.trim() : 
+              (order?.patientName || 'N/A')}</div>
+            {order?.address && Object.keys(order.address).length > 0 && (
+              <div><strong>Address:</strong> {
+                [
+                  order.address.landmark ? (typeof order.address.landmark === 'object' ? order.address.landmark.label || order.address.landmark.value : order.address.landmark) : null,
+                  order.address.area ? (typeof order.address.area === 'object' ? order.address.area.label || order.address.area.value : order.address.area) : null,
+              order.address.district ? (typeof order.address.district === 'object' ? order.address.district.label || order.address.district.value : order.address.district) : null,
+              order.address.governorate ? (typeof order.address.governorate === 'object' ? order.address.governorate.label || order.address.governorate.value : order.address.governorate) : null
+                ].filter(Boolean).join(' - ')
+              }</div>
+            )}
+            {(order?.age || order?.gender) && (
+              <div><strong>Age/Gender:</strong> {typeof order?.age === 'object' ? `${order?.age?.value || ''} ${order?.age?.unit || ''}` : order?.age || ''} {order?.age && order?.gender ? ' / ' : ''} {order.gender || ''}</div>
+            )}
+            {order?.phone && order.phone !== 'N/A' && (
+              <div><strong>Phone:</strong> {order.phone}</div>
+            )}
+            {order?.patientId && order.patientId !== 'N/A' && (
+              <div><strong>Patient ID:</strong> {order.patientId}</div>
+            )}
+            {order?.referringDoctor && order.referringDoctor !== 'N/A' && (
+              <div><strong>Referring Doctor:</strong> {order.referringDoctor}</div>
+            )}
+            {order?.priority && order.priority !== 'Normal' && order.priority !== 'NORMAL' && (
+              <div><strong>Priority:</strong> {order.priority}</div>
+            )}
+          </div>
+        </div>
+
+        {/* Tests */}
+        <div>
+          <table style={{ 
+            width: '100%', 
+            borderCollapse: 'collapse', 
+            fontSize: '10px'
+          }}>
+            <thead>
+              <tr>
+                <th style={{ 
+                  border: '1px solid #000', 
+                  padding: '2px', 
+                  textAlign: 'left', 
+                  fontWeight: 'bold',
+                  background: '#f0f0f0'
+                }}>Test</th>
+                <th style={{ 
+                  border: '1px solid #000', 
+                  padding: '2px', 
+                  textAlign: 'left', 
+                  fontWeight: 'bold',
+                  background: '#f0f0f0'
+                }}>Dept</th>
+                <th style={{ 
+                  border: '1px solid #000', 
+                  padding: '2px', 
+                  textAlign: 'center', 
+                  fontWeight: 'bold',
+                  background: '#f0f0f0'
+                }}>Q</th>
+              </tr>
+            </thead>
+            <tbody>
+              {order?.tests?.map((test, index) => {
+                let testName = 'Unknown Test';
+                try {
+                  if (typeof test === 'string') {
+                    testName = test;
+                  } else if (test && typeof test === 'object') {
+                    if (typeof test.name === 'string') {
+                      testName = test.name;
+                    } else if (typeof test.id === 'string') {
+                      testName = test.id;
+                    } else if (test.name && typeof test.name === 'object') {
+                      if (test.name.value && test.name.unit) {
+                        testName = `${test.name.value} ${test.name.unit}`;
+                      } else {
+                        testName = test.name.value || test.name.unit || 'Unknown Test';
+                      }
                     }
                   }
+                  testName = String(testName || 'Unknown Test');
+                } catch (error) {
+                  testName = 'Unknown Test';
                 }
-                testName = String(testName || 'Unknown Test');
-              } catch (error) {
-                testName = 'Unknown Test';
-              }
-              
-              const department = typeof test === 'object' ? test.department || 'General' : 'General';
-              const queueNumber = order?.departmentNumbers?.[department] || order?.queueNumber || 'N/A';
-              
-              return (
-                <tr key={index} style={{ background: index % 2 === 0 ? '#f9f9f9' : 'white' }}>
-                  <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '14px' }}>{testName}</td>
-                  <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '14px' }}>{department}</td>
-                  <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '14px' }}>#{queueNumber}</td>
-                </tr>
-              );
-            }) || []}
-          </tbody>
-        </table>
-      </div>
+                
+                const department = typeof test === 'object' ? test.department || 'General' : 'General';
+                const queueNumber = order?.departmentNumbers?.[department] || order?.queueNumber || 'N/A';
+                
+                return (
+                  <tr key={index}>
+                    <td style={{ 
+                      border: '1px solid #000', 
+                      padding: '2px'
+                    }}>{testName}</td>
+                    <td style={{ 
+                      border: '1px solid #000', 
+                      padding: '2px'
+                    }}>{department}</td>
+                    <td style={{ 
+                      border: '1px solid #000', 
+                      padding: '2px',
+                      textAlign: 'center',
+                      fontWeight: 'bold'
+                    }}>#{queueNumber}</td>
+                  </tr>
+                );
+              }) || []}
+            </tbody>
+          </table>
+        </div>
 
-      {/* Footer */}
-      <div style={{ 
-        marginTop: '20px', 
-        textAlign: 'center', 
-        fontSize: '10px', 
-        color: '#666',
-        borderTop: '1px solid #ddd',
-        paddingTop: '10px'
-      }}>
-        Printed by SmartLab LIMS
+        {/* Footer */}
+        <div style={{ 
+          position: 'absolute',
+          bottom: '10px',
+          right: '20px',
+          textAlign: 'right', 
+          fontSize: '8px', 
+          color: '#666',
+          fontStyle: 'italic'
+        }}>
+          Printed by SmartLab app
+        </div>
       </div>
-    </div>
     </>
   );
 
   // Simple print-optimized Department Slip component
   const SimpleDepartmentSlip = ({ order, department, tests, user, settings }) => (
-    <div className="simple-dept-slip" style={{ width: '70mm', height: '99mm', background: 'white', color: 'black', padding: '10px', border: '1px solid #ddd', borderRadius: '8px', fontFamily: 'Arial, sans-serif', fontSize: '16px', lineHeight: '1.4', boxSizing: 'border-box', overflow: 'hidden' }}>
-      <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #333', paddingBottom: '15px' }}>
-        <h1 style={{ margin: '0 0 10px 0', fontSize: '20px', fontWeight: 'bold', color: '#333' }}>{department}</h1>
-        <div style={{ fontSize: '14px', textAlign: 'left' }}>
-          <div>Order ID: {order?.id || order?.orderId || 'N/A'}</div>
-          <div>Date: {new Date().toLocaleDateString()}</div>
-          <div>User: {user?.displayName || user?.email || 'N/A'}</div>
+    <>
+      <style>
+        {`
+          @media print {
+            @page {
+              size: 70mm 99mm;
+              margin: 0;
+            }
+            .simple-dept-slip {
+              width: 70mm !important;
+              height: 70mm !important;
+              padding: 8mm !important;
+              margin: 0 !important;
+              page-break-after: always !important;
+              box-sizing: border-box !important;
+              overflow: hidden !important;
+              page-break-inside: avoid !important;
+              font-size: 14px !important;
+            }
+            body {
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+          }
+        `}
+      </style>
+      <div 
+        className="simple-dept-slip simple-print-view" 
+        style={{ 
+          width: '280px', // 4x larger for better preview visibility
+          height: '396px', // 4x larger for better preview visibility
+          background: 'white', 
+          color: 'black', 
+          padding: '20px', // 4x larger padding
+          fontFamily: 'Arial, sans-serif', 
+          fontSize: '40px', // 4x larger font
+          lineHeight: '1.2', 
+          boxSizing: 'border-box',
+          border: '2px solid #000',
+          margin: '0 auto'
+        }}
+      >
+        {/* Header */}
+        <div style={{ 
+          marginBottom: '20px',
+          marginTop: '20px'
+        }}>
+          {/* Top row with user info and queue number */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: '10px',
+            fontSize: '10px'
+          }}>
+            <div style={{ textAlign: 'left' }}>
+              <div>User: {user?.displayName || user?.email || 'N/A'}</div>
+              <div>Date: {new Date().toLocaleDateString()}</div>
+            </div>
+            
+            {/* Queue Number in top right */}
+            {order?.departmentNumbers?.[department] && (
+              <div style={{
+                background: '#000',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                padding: '5px 10px',
+                borderRadius: '3px'
+              }}>
+                #{order.departmentNumbers[department]}
+              </div>
+            )}
+          </div>
+          
+          {/* Title with border */}
+          <div style={{
+            textAlign: 'center',
+            borderBottom: '1px solid #000',
+            paddingBottom: '10px'
+          }}>
+            <h1 style={{ 
+              margin: '0',
+              fontSize: '18px', 
+              fontWeight: 'bold'
+            }}>{department}</h1>
+          </div>
         </div>
-      </div>
-      
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ fontSize: '14px' }}>
-          <div><strong>Name:</strong> {order?.firstName ? `${order.firstName} ${order.fathersName || ''} ${order.grandFathersName || ''} ${order.lastName || ''}`.trim() : (order?.patientName || 'N/A')}</div>
-          {(order?.age || order?.gender) && (
-            <div><strong>Age/Gender:</strong> {typeof order?.age === 'object' ? `${order?.age?.value || ''} ${order?.age?.unit || ''}` : order?.age || ''} {order?.age && order?.gender ? ' / ' : ''} {order.gender || ''}</div>
-          )}
-          {order?.patientId && order.patientId !== 'N/A' && (
-            <div><strong>Patient ID:</strong> {order.patientId}</div>
-          )}
+        
+                {/* Patient Information */}
+        <div style={{ marginBottom: '15px' }}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '1fr', 
+            gap: '4px', 
+            fontSize: '10px' 
+          }}>
+            <div><strong>Name:</strong> {order?.firstName ? `${order.firstName} ${order.fathersName || ''} ${order.grandFathersName || ''} ${order.lastName || ''}`.trim() : (order?.patientName || 'N/A')}</div>
+            {(order?.age || order?.gender) && (
+              <div><strong>Age/Gender:</strong> {typeof order?.age === 'object' ? `${order?.age?.value || ''} ${order?.age?.unit || ''}` : order?.age || ''} {order?.age && order?.gender ? ' / ' : ''} {order.gender || ''}</div>
+            )}
+            {order?.patientId && order.patientId !== 'N/A' && (
+              <div><strong>Patient ID:</strong> {order.patientId}</div>
+            )}
+            {order?.phone && order.phone !== 'N/A' && (
+              <div><strong>Phone:</strong> {order.phone}</div>
+            )}
+            {order?.address && Object.keys(order.address).length > 0 && (
+              <div><strong>Address:</strong> {
+                [
+                  order.address.landmark ? (typeof order.address.landmark === 'object' ? order.address.landmark.label || order.address.landmark.value : order.address.landmark) : null,
+                  order.address.area ? (typeof order.address.area === 'object' ? order.address.area.label || order.address.area.value : order.address.area) : null,
+                  order.address.district ? (typeof order.address.district === 'object' ? order.address.district.label || order.address.district.value : order.address.district) : null,
+                  order.address.governorate ? (typeof order.address.governorate === 'object' ? order.address.governorate.label || order.address.governorate.value : order.address.governorate) : null
+                ].filter(Boolean).join(' - ')
+              }</div>
+            )}
+          </div>
         </div>
-      </div>
-      
-      <div>
-        <h2 style={{ fontSize: '20px', marginBottom: '8px', borderBottom: '2px solid #333', paddingBottom: '3px', fontWeight: 'bold' }}>Tests for {department}</h2>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-          <thead>
-            <tr style={{ background: '#f5f5f5' }}>
-              <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', fontSize: '16px', fontWeight: 'bold' }}>Test</th>
-              <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', fontSize: '16px', fontWeight: 'bold' }}>Queue</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tests?.map((test, index) => {
-              let testName = 'Unknown Test';
-              try {
-                if (typeof test === 'string') {
-                  testName = test;
-                } else if (test && typeof test === 'object') {
-                  if (typeof test.name === 'string') {
-                    testName = test.name;
-                  } else if (typeof test.id === 'string') {
-                    testName = test.id;
-                  } else if (test.name && typeof test.name === 'object') {
-                    if (test.name.value && test.name.unit) {
-                      testName = `${test.name.value} ${test.name.unit}`;
-                    } else {
-                      testName = test.name.value || test.name.unit || 'Unknown Test';
+        
+        {/* Tests */}
+        <div>
+          <table style={{ 
+            width: '100%', 
+            borderCollapse: 'collapse', 
+            fontSize: '10px'
+          }}>
+            <thead>
+              <tr>
+                <th style={{ 
+                  border: '1px solid #000', 
+                  padding: '2px', 
+                  textAlign: 'left', 
+                  fontWeight: 'bold',
+                  background: '#f0f0f0'
+                }}>Test</th>
+                <th style={{ 
+                  border: '1px solid #000', 
+                  padding: '2px', 
+                  textAlign: 'center', 
+                  fontWeight: 'bold',
+                  background: '#f0f0f0'
+                }}>Q</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tests?.map((test, index) => {
+                let testName = 'Unknown Test';
+                try {
+                  if (typeof test === 'string') {
+                    testName = test;
+                  } else if (test && typeof test === 'object') {
+                    if (typeof test.name === 'string') {
+                      testName = test.name;
+                    } else if (typeof test.id === 'string') {
+                      testName = test.id;
+                    } else if (test.name && typeof test.name === 'object') {
+                      if (test.name.value && test.name.unit) {
+                        testName = `${test.name.value} ${test.name.unit}`;
+                      } else {
+                        testName = test.name.value || test.name.unit || 'Unknown Test';
+                      }
                     }
                   }
+                  testName = String(testName || 'Unknown Test');
+                } catch (error) {
+                  testName = 'Unknown Test';
                 }
-                testName = String(testName || 'Unknown Test');
-              } catch (error) {
-                testName = 'Unknown Test';
-              }
-              
-              const queueNumber = order?.departmentNumbers?.[department] || order?.queueNumber || 'N/A';
-              
-              return (
-                <tr key={index} style={{ background: index % 2 === 0 ? '#f9f9f9' : 'white' }}>
-                  <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '14px' }}>{testName}</td>
-                  <td style={{ border: '1px solid #ddd', padding: '6px', fontSize: '14px' }}>#{queueNumber}</td>
-                </tr>
-              );
-            }) || []}
-          </tbody>
-        </table>
+                
+                const queueNumber = order?.departmentNumbers?.[department] || order?.queueNumber || 'N/A';
+                
+                return (
+                  <tr key={index}>
+                    <td style={{ 
+                      border: '1px solid #000', 
+                      padding: '2px'
+                    }}>{testName}</td>
+                    <td style={{ 
+                      border: '1px solid #000', 
+                      padding: '2px',
+                      textAlign: 'center',
+                      fontWeight: 'bold'
+                    }}>#{queueNumber}</td>
+                  </tr>
+                );
+              }) || []}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Footer */}
+        <div style={{ 
+          position: 'absolute',
+          bottom: '10px',
+          right: '20px',
+          textAlign: 'right', 
+          fontSize: '8px', 
+          color: '#666',
+          fontStyle: 'italic'
+        }}>
+          Printed by SmartLab app
+        </div>
       </div>
-      
-      <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '10px', color: '#666', borderTop: '1px solid #ddd', paddingTop: '10px' }}>
-        Printed by SmartLab LIMS
-      </div>
-    </div>
+    </>
   );
 
   if (!isOpen) return null;
@@ -1537,6 +1766,33 @@ const PrintPreviewModal = ({
   console.log('PrintPreviewModal: processedOrderData =', processedOrderData);
 
   return (
+    <>
+      {/* Global print styles for simple view */}
+      <style>
+        {`
+          @media print {
+            @page {
+              size: 70mm 99mm;
+              margin: 0;
+            }
+            .simple-print-view {
+              width: 70mm !important;
+              height: 99mm !important;
+              padding: 8mm !important;
+              margin: 0 !important;
+              page-break-after: always !important;
+              box-sizing: border-box !important;
+              overflow: hidden !important;
+              page-break-inside: avoid !important;
+              font-size: 14px !important;
+            }
+            body {
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+          }
+        `}
+      </style>
     <ModalBackdrop onClick={onClose}>
       <ModalContent
         ref={modalContentRef}
@@ -1565,6 +1821,105 @@ const PrintPreviewModal = ({
               {viewMode === 'beautiful' ? <FaEye /> : <FaPrint />}
               {viewMode === 'beautiful' ? 'Switch to Simple' : 'Switch to Beautiful'}
             </GlowButton>
+            {viewMode === 'simple' && (
+              <GlowButton
+                onClick={() => {
+                  const printWindow = window.open('', '', 'width=900,height=1200');
+                  printWindow.document.write('<html><head><title>Print Simple View</title>');
+                  printWindow.document.write(`
+                    <style>
+                      @page {
+                        size: 70mm 99mm;
+                        margin: 0;
+                      }
+                      body {
+                        margin: 0;
+                        padding: 0;
+                        font-family: Arial, sans-serif;
+                        background: white;
+                      }
+                      .simple-print-view, .simple-master-slip, .simple-dept-slip {
+                        width: 70mm !important;
+                        height: 99mm !important;
+                        padding: 8mm !important;
+                        margin: 0 !important;
+                        page-break-after: always !important;
+                        box-sizing: border-box !important;
+                        overflow: hidden !important;
+                        page-break-inside: avoid !important;
+                        font-size: 14px !important;
+                        background: white !important;
+                        color: black !important;
+                        border: none !important;
+                      }
+                      .simple-dept-slip {
+                        height: 70mm !important;
+                      }
+                      table {
+                        width: 100% !important;
+                        border-collapse: collapse !important;
+                        font-size: 12px !important;
+                        margin-top: 3mm !important;
+                      }
+                      th, td {
+                        border: 1px solid black !important;
+                        padding: 1mm !important;
+                        text-align: left !important;
+                        font-size: 11px !important;
+                      }
+                      th {
+                        background: #f0f0f0 !important;
+                        font-weight: bold !important;
+                        font-size: 12px !important;
+                      }
+                      h1, h2 {
+                        margin: 3mm 0 !important;
+                        font-size: 16px !important;
+                        font-weight: bold !important;
+                      }
+                      .header, .footer {
+                        font-size: 10px !important;
+                      }
+                    </style>
+                  `);
+                  printWindow.document.write('</head><body>');
+                  
+                  // Get the current active tab content
+                  let content = '';
+                  if (activeTab === 'preview') {
+                    content = document.querySelector('.simple-print-view')?.outerHTML || '';
+                  } else if (activeTab === 'master') {
+                    content = document.querySelector('.simple-master-slip')?.outerHTML || '';
+                  } else if (activeTab.startsWith('dept-')) {
+                    content = document.querySelector('.simple-dept-slip')?.outerHTML || '';
+                  }
+                  
+                  // Clean up the content for printing (remove preview-specific styles)
+                  content = content.replace(/width:\s*400px/g, 'width: 70mm');
+                  content = content.replace(/height:\s*566px/g, 'height: 99mm');
+                  content = content.replace(/height:\s*400px/g, 'height: 70mm');
+                  content = content.replace(/padding:\s*30px/g, 'padding: 8mm');
+                  content = content.replace(/font-size:\s*60px/g, 'font-size: 14px');
+                  
+                  printWindow.document.write(content);
+                  printWindow.document.write('</body></html>');
+                  printWindow.document.close();
+                  printWindow.focus();
+                  setTimeout(() => {
+                    printWindow.print();
+                    printWindow.close();
+                  }, 300);
+                }}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
+                  background: 'linear-gradient(135deg, #10b981, #059669)'
+                }}
+              >
+                <FaPrint /> Print Simple View
+              </GlowButton>
+            )}
             <GlowButton
               onClick={handlePrintMasterSlip}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
@@ -1602,8 +1957,8 @@ const PrintPreviewModal = ({
 
         <ContentArea>
           {activeTab === 'preview' && (
-            <PreviewContainer>
-              <PrintPreview>
+            <PreviewContainer $viewMode={viewMode}>
+              <PrintPreview $viewMode={viewMode}>
                 {viewMode === 'beautiful' ? (
                   <>
                     {/* Show all slips in preview */}
@@ -1632,8 +1987,24 @@ const PrintPreviewModal = ({
                 ) : (
                   <>
                     {/* Simple print-optimized view */}
-                    <div style={{ marginBottom: '30px' }}>
-                      <h4 style={{ color: '#10b981', marginBottom: '15px' }}>Master Slip (All Tests) - Simple View</h4>
+                    <div style={{ 
+                      marginBottom: '30px',
+                      padding: '15px',
+                      border: '1px solid #000',
+                      background: 'white',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center'
+                    }}>
+                      <h4 style={{ 
+                        color: '#000', 
+                        marginBottom: '15px', 
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        borderBottom: '1px solid #000',
+                        paddingBottom: '5px'
+                      }}>Master Slip (All Tests) - Simple View</h4>
                       <SimpleMasterSlip 
                         order={processedOrderData} 
                         user={user}
@@ -1642,8 +2013,24 @@ const PrintPreviewModal = ({
                     </div>
                     
                     {processedOrderData?.tests?.filter(test => test.department !== 'Master').map(test => test.department).filter((dept, index, arr) => arr.indexOf(dept) === index).map(dept => (
-                      <div key={dept} style={{ marginBottom: '30px' }}>
-                        <h4 style={{ color: '#10b981', marginBottom: '15px' }}>{dept} Slip - Simple View</h4>
+                      <div key={dept} style={{ 
+                        marginBottom: '30px',
+                        padding: '15px',
+                        border: '1px solid #000',
+                        background: 'white',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center'
+                      }}>
+                        <h4 style={{ 
+                          color: '#000', 
+                          marginBottom: '15px', 
+                          fontSize: '16px',
+                          fontWeight: 'bold',
+                          textAlign: 'center',
+                          borderBottom: '1px solid #000',
+                          paddingBottom: '5px'
+                        }}>{dept} Slip - Simple View</h4>
                         <SimpleDepartmentSlip 
                           order={processedOrderData} 
                           department={dept}
@@ -1660,8 +2047,8 @@ const PrintPreviewModal = ({
           )}
 
           {activeTab === 'master' && (
-            <PreviewContainer>
-              <PrintPreview>
+            <PreviewContainer $viewMode={viewMode}>
+              <PrintPreview $viewMode={viewMode}>
                 {viewMode === 'beautiful' ? (
                   <MasterSlip 
                     order={processedOrderData} 
@@ -1680,8 +2067,8 @@ const PrintPreviewModal = ({
           )}
 
           {activeTab.startsWith('dept-') && (
-            <PreviewContainer>
-              <PrintPreview>
+            <PreviewContainer $viewMode={viewMode}>
+              <PrintPreview $viewMode={viewMode}>
                 {(() => {
                   const dept = activeTab.replace('dept-', '');
                   return viewMode === 'beautiful' ? (
@@ -1715,6 +2102,7 @@ const PrintPreviewModal = ({
         </ActionButtons>
       </ModalContent>
     </ModalBackdrop>
+    </>
   );
 };
 
