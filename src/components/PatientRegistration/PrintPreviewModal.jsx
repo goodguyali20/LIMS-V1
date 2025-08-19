@@ -1936,6 +1936,13 @@ const PrintPreviewModal = ({
             >
               <FaTimes /> Close
             </GlowButton>
+            <GlowButton
+              $size="sm"
+              $variant="info"
+              onClick={handleDownloadPdf}
+            >
+              <FaDownload /> Download PDF
+            </GlowButton>
             </div>
           </HeaderActions>
         </ModalHeader>
@@ -1962,7 +1969,6 @@ const PrintPreviewModal = ({
                   <>
                     {/* Show all slips in preview */}
                     <div style={{ marginBottom: '30px' }}>
-                      <h4 style={{ color: '#007bff', marginBottom: '15px' }}>Master Slip (All Tests)</h4>
                       <MasterSlip 
                         order={processedOrderData} 
                         user={user}
@@ -1972,7 +1978,6 @@ const PrintPreviewModal = ({
                     
                     {processedOrderData?.tests?.filter(test => test.department !== 'Master').map(test => test.department).filter((dept, index, arr) => arr.indexOf(dept) === index).map(dept => (
                       <div key={dept} style={{ marginBottom: '30px' }}>
-                        <h4 style={{ color: '#007bff', marginBottom: '15px' }}>{dept} Slip</h4>
                         <DepartmentSlip 
                           order={processedOrderData} 
                           department={dept}
@@ -1986,24 +1991,7 @@ const PrintPreviewModal = ({
                 ) : (
                   <>
                     {/* Simple print-optimized view */}
-                    <div style={{ 
-                      marginBottom: '30px',
-                      padding: '15px',
-                      border: '1px solid #000',
-                      background: 'white',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center'
-                    }}>
-                      <h4 style={{ 
-                        color: '#000', 
-                        marginBottom: '15px', 
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        borderBottom: '1px solid #000',
-                        paddingBottom: '5px'
-                      }}>Master Slip (All Tests) - Simple View</h4>
+                    <div style={{ marginBottom: '30px' }}>
                       <SimpleMasterSlip 
                         order={processedOrderData} 
                         user={user}
@@ -2012,24 +2000,7 @@ const PrintPreviewModal = ({
                     </div>
                     
                     {processedOrderData?.tests?.filter(test => test.department !== 'Master').map(test => test.department).filter((dept, index, arr) => arr.indexOf(dept) === index).map(dept => (
-                      <div key={dept} style={{ 
-                        marginBottom: '30px',
-                        padding: '15px',
-                        border: '1px solid #000',
-                        background: 'white',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center'
-                      }}>
-                        <h4 style={{ 
-                          color: '#000', 
-                          marginBottom: '15px', 
-                          fontSize: '16px',
-                          fontWeight: 'bold',
-                          textAlign: 'center',
-                          borderBottom: '1px solid #000',
-                          paddingBottom: '5px'
-                        }}>{dept} Slip - Simple View</h4>
+                      <div key={dept} style={{ marginBottom: '30px' }}>
                         <SimpleDepartmentSlip 
                           order={processedOrderData} 
                           department={dept}
@@ -2093,12 +2064,6 @@ const PrintPreviewModal = ({
           )}
 
         </ContentArea>
-
-        <ActionButtons>
-          <DownloadButton onClick={handleDownloadPdf}>
-            <FaDownload /> Download PDF
-          </DownloadButton>
-        </ActionButtons>
       </ModalContent>
     </ModalBackdrop>
     </>
