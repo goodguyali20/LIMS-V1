@@ -1807,96 +1807,99 @@ const PrintPreviewModal = ({
             <FaFileAlt /> Print Preview
           </HeaderTitle>
           <HeaderActions>
-            <GlowButton
-              onClick={() => setViewMode(viewMode === 'simple' ? 'beautiful' : 'simple')}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem',
-                background: viewMode === 'simple' 
-                  ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' 
-                  : 'linear-gradient(135deg, #10b981, #059669)'
-              }}
-            >
-              {viewMode === 'simple' ? <FaEye /> : <FaPrint />}
-              {viewMode === 'simple' ? 'Switch to Beautiful View' : 'Switch to Simple View'}
-            </GlowButton>
-            {viewMode === 'simple' && (
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <GlowButton
-                onClick={() => {
-                  const printWindow = window.open('', '', 'width=900,height=1200');
-                  printWindow.document.write('<html><head><title>Print Simple View</title>');
-                  printWindow.document.write(`
-                    <style>
-                      @page {
-                        size: 70mm 99mm;
-                        margin: 0;
-                      }
-                      body {
-                        margin: 0;
-                        padding: 0;
-                        font-family: Arial, sans-serif;
-                        background: white;
-                      }
-                      .simple-print-view, .simple-master-slip, .simple-dept-slip {
-                        width: 70mm !important;
-                        height: 99mm !important;
-                        padding: 8mm !important;
-                        margin: 0 !important;
-                        page-break-after: always !important;
-                        box-sizing: border-box !important;
-                        overflow: hidden !important;
-                        page-break-inside: avoid !important;
-                        font-size: 14px !important;
-                        background: white !important;
-                        color: black !important;
-                        border: none !important;
-                      }
-                      .simple-dept-slip {
-                        height: 70mm !important;
-                      }
-                      table {
-                        width: 100% !important;
-                        border-collapse: collapse !important;
-                        font-size: 12px !important;
-                        margin-top: 3mm !important;
-                      }
-                      th, td {
-                        border: 1px solid black !important;
-                        padding: 1mm !important;
-                        text-align: left !important;
-                        font-size: 11px !important;
-                      }
-                      th {
-                        background: #f0f0f0 !important;
-                        font-weight: bold !important;
-                        font-size: 12px !important;
-                      }
-                      h1, h2 {
-                        margin: 3mm 0 !important;
-                        font-size: 16px !important;
-                        font-weight: bold !important;
-                      }
-                      .header, .footer {
-                        font-size: 10px !important;
-                      }
-                    </style>
-                  `);
-                  printWindow.document.write('</head><body>');
-                  
-                  // Get the current active tab content
-                  let content = '';
-                  if (activeTab === 'preview') {
-                    content = document.querySelector('.simple-print-view')?.outerHTML || '';
-                  } else if (activeTab === 'master') {
-                    content = document.querySelector('.simple-master-slip')?.outerHTML || '';
-                  } else if (activeTab.startsWith('dept-')) {
-                    content = document.querySelector('.simple-dept-slip')?.outerHTML || '';
-                  }
-                  
-                  // Clean up the content for printing (remove preview-specific styles)
-                  content = content.replace(/width:\s*400px/g, 'width: 70mm');
-                  content = content.replace(/height:\s*566px/g, 'height: 99mm');
+                $size="sm"
+                onClick={() => setViewMode(viewMode === 'simple' ? 'beautiful' : 'simple')}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.4rem',
+                  fontSize: '0.875rem',
+                  padding: '0.5rem 1rem'
+                }}
+              >
+                {viewMode === 'simple' ? <FaEye /> : <FaPrint />}
+                {viewMode === 'simple' ? 'Beautiful View' : 'Simple View'}
+              </GlowButton>
+              {viewMode === 'simple' && (
+                <GlowButton
+                  $size="sm"
+                  $variant="success"
+                  onClick={() => {
+                    const printWindow = window.open('', '', 'width=900,height=1200');
+                    printWindow.document.write('<html><head><title>Print Simple View</title>');
+                    printWindow.document.write(`
+                      <style>
+                        @page {
+                          size: 70mm 99mm;
+                          margin: 0;
+                        }
+                        body {
+                          margin: 0;
+                          padding: 0;
+                          font-family: Arial, sans-serif;
+                          background: white;
+                        }
+                        .simple-print-view, .simple-master-slip, .simple-dept-slip {
+                          width: 70mm !important;
+                          height: 99mm !important;
+                          padding: 8mm !important;
+                          margin: 0 !important;
+                          page-break-after: always !important;
+                          box-sizing: border-box !important;
+                          overflow: hidden !important;
+                          page-break-inside: avoid !important;
+                          font-size: 14px !important;
+                          background: white !important;
+                          color: black !important;
+                          border: none !important;
+                        }
+                        .simple-dept-slip {
+                          height: 70mm !important;
+                        }
+                        table {
+                          width: 100% !important;
+                          border-collapse: collapse !important;
+                          font-size: 12px !important;
+                          margin-top: 3mm !important;
+                        }
+                        th, td {
+                          border: 1px solid black !important;
+                          padding: 1mm !important;
+                          text-align: left !important;
+                          font-size: 11px !important;
+                        }
+                        th {
+                          background: #f0f0f0 !important;
+                          font-weight: bold !important;
+                          font-size: 12px !important;
+                        }
+                        h1, h2 {
+                          margin: 3mm 0 !important;
+                          font-size: 16px !important;
+                          font-weight: bold !important;
+                        }
+                        .header, .footer {
+                          font-size: 10px !important;
+                        }
+                      </style>
+                    `);
+                    printWindow.document.write('</head><body>');
+                    
+                    // Get the current active tab content
+                    let content = '';
+                    if (activeTab === 'preview') {
+                      content = document.querySelector('.simple-print-view')?.outerHTML || '';
+                    } else if (activeTab === 'master') {
+                      content = document.querySelector('.simple-master-slip')?.outerHTML || '';
+                    } else if (activeTab.startsWith('dept-')) {
+                      content = document.querySelector('.simple-dept-slip')?.outerHTML || '';
+                    }
+                    
+                    // Clean up the content for printing (remove preview-specific styles)
+                    content = content.replace(/width:\s*400px/g, 'width: 70mm');
+                    content = content.replace(/height:\s*566px/g, 'height: 99mm');
                   content = content.replace(/height:\s*400px/g, 'height: 70mm');
                   content = content.replace(/padding:\s*30px/g, 'padding: 8mm');
                   content = content.replace(/font-size:\s*60px/g, 'font-size: 14px');
@@ -1910,34 +1913,30 @@ const PrintPreviewModal = ({
                     printWindow.close();
                   }, 300);
                 }}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem',
-                  background: 'linear-gradient(135deg, #10b981, #059669)'
-                }}
               >
                 <FaPrint /> Print Simple View
               </GlowButton>
             )}
             <GlowButton
+              $size="sm"
               onClick={handlePrintMasterSlip}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
-              <FaPrint /> Print Master Slip
+              <FaPrint /> Master Slip
             </GlowButton>
             <GlowButton
+              $size="sm"
               onClick={handlePrintAllSlips}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
-              <FaPrint /> Print All Slips
+              <FaPrint /> All Slips
             </GlowButton>
             <GlowButton
+              $size="sm"
+              $variant="ghost"
               onClick={onClose}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
               <FaTimes /> Close
             </GlowButton>
+            </div>
           </HeaderActions>
         </ModalHeader>
 
