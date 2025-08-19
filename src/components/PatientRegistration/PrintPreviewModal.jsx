@@ -1417,6 +1417,12 @@ const PrintPreviewModal = ({
               )}
             </div>
           </div>
+          
+          {/* Additional line under header */}
+          <div style={{
+            borderBottom: '1px solid #000',
+            marginBottom: '10px'
+          }}></div>
         </div>
 
         {/* Patient Information */}
@@ -1649,6 +1655,12 @@ const PrintPreviewModal = ({
               )}
             </div>
           </div>
+          
+          {/* Additional line under header */}
+          <div style={{
+            borderBottom: '1px solid #000',
+            marginBottom: '10px'
+          }}></div>
         </div>
         
                 {/* Patient Information */}
