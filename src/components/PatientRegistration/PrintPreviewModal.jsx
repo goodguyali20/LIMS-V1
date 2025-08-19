@@ -274,7 +274,7 @@ const PrintPreviewModal = ({
   const { t } = useTranslation();
   const { labTests, departmentColors } = useTestCatalog();
   const [activeTab, setActiveTab] = useState('preview');
-  const [viewMode, setViewMode] = useState('beautiful'); // 'beautiful' or 'simple'
+  const [viewMode, setViewMode] = useState('simple'); // 'simple' or 'beautiful'
   const downloadPdf = usePdfDownload();
   const previewRef = useRef(null);
   const modalContentRef = useRef(null);
@@ -1808,18 +1808,18 @@ const PrintPreviewModal = ({
           </HeaderTitle>
           <HeaderActions>
             <GlowButton
-              onClick={() => setViewMode(viewMode === 'beautiful' ? 'simple' : 'beautiful')}
+              onClick={() => setViewMode(viewMode === 'simple' ? 'beautiful' : 'simple')}
               style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: '0.5rem',
-                background: viewMode === 'beautiful' 
+                background: viewMode === 'simple' 
                   ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' 
                   : 'linear-gradient(135deg, #10b981, #059669)'
               }}
             >
-              {viewMode === 'beautiful' ? <FaEye /> : <FaPrint />}
-              {viewMode === 'beautiful' ? 'Switch to Simple' : 'Switch to Beautiful'}
+              {viewMode === 'simple' ? <FaEye /> : <FaPrint />}
+              {viewMode === 'simple' ? 'Switch to Beautiful View' : 'Switch to Simple View'}
             </GlowButton>
             {viewMode === 'simple' && (
               <GlowButton
